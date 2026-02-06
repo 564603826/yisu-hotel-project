@@ -1,12 +1,23 @@
-import './App.scss'
+import React from 'react'
+import { ConfigProvider } from 'antd'
+import zhCN from 'antd/locale/zh_CN'
+import { RouterProvider } from 'react-router-dom'
+import router from '@/router' // 引入路由配置
 
-function App() {
+const App: React.FC = () => {
   return (
-    <>
-      <div className="app">
-        <div className="app-content">app组件</div>
-      </div>
-    </>
+    // 第一层：Ant Design 全局配置
+    <ConfigProvider
+      locale={zhCN}
+      theme={{
+        token: {
+          colorPrimary: '#1677ff',
+        },
+      }}
+    >
+      {/* 第二层：路由提供者 */}
+      <RouterProvider router={router} />
+    </ConfigProvider>
   )
 }
 
