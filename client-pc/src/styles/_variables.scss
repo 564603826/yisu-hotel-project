@@ -1,14 +1,34 @@
-// 核心主题色 (参考 Ant Design 默认蓝)
-$primary-color: #1677ff;
+// src/styles/variables.scss
 
-// 布局背景色 (管理后台常用的浅灰底色)
-$bg-body: #f0f2f5;
-$bg-white: #ffffff;
+// ===================================
+// 1. 品牌色系 (Brand Colors)
+// ===================================
+$gold-primary: #c6a87c; // 香槟金 (主色)
+$gold-hover: #d4b890; // 浅金 (Hover状态)
+$gold-active: #a68a60; // 深金 (Active状态)
 
-// 文本颜色
-$text-main: #333333;
-$text-secondary: #666666;
+// ===================================
+// 2. 中性色系 (Neutrals)
+// ===================================
+$color-bg-body: #f9f7f5; // 页面大背景 (暖白)
+$color-bg-card: #ffffff; // 卡片背景 (纯白)
+$color-bg-sidebar: #2b2623; // 侧边栏背景 (深松露)
 
-// 常用尺寸
-$sidebar-width: 200px; // 侧边栏宽度
-$header-height: 64px; // 顶部导航高度
+$color-text-main: #2e2a25; // 主要文字
+$color-text-sub: #8c8680; // 次要文字
+$color-border: #ebe6e1; // 边框颜色
+
+// ===================================
+// 3. 功能色 (Functional) - 稍微调暗一点，不要太刺眼
+// ===================================
+$color-success: #52c41a;
+$color-warning: #faad14;
+$color-error: #ff4d4f;
+
+// ===================================
+// 4. 布局尺寸 (Layout)
+// ===================================
+$sidebar-width: 220px;
+$header-height: 64px;
+$border-radius: 6px; // 圆角稍微小一点，显得干练
+$box-shadow: 0 4px 12px rgba(43, 38, 35, 0.05); // 阴影带一点暖色调
