@@ -5,11 +5,11 @@ import Home from '@/pages/Home'
 
 const router = createHashRouter([
   {
-    path: '/',
+    path: '/home',
     element: <Home />,
   },
   {
-    path: '/login',
+    path: '/',
     element: <Login />,
   },
   {
