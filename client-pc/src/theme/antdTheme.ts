@@ -1,51 +1,63 @@
 import { type ThemeConfig } from 'antd'
 
-// 这里的色值必须和 SCSS 保持一致
+// 从你的 variables.scss 中提取的色值
+const colors = {
+  primary: '$gold-500', // $gold-500
+  primaryHover: '$gold-600', // $gold-600
+  text: '$stone-800', // $stone-800
+  bgBase: '$gold-50', // $gold-50
+}
+
 export const antdTheme: ThemeConfig = {
   token: {
-    // 1. 品牌主色 (影响按钮、链接、Switch等)
-    colorPrimary: '#C6A87C',
+    // 1. 品牌色 (影响所有按钮、链接、高亮)
+    colorPrimary: colors.primary,
+    colorError: '#cf3f46', // 主错误色 (比默认的柔和一点)
+    colorErrorBg: '#fff1f0', // 错误背景色 (极淡的粉红)
+    colorErrorBorder: '#ffa39e', // 错误边框色
 
-    // 2. 圆角 (直角显得严谨，小圆角显得现代，建议 4-6px)
-    borderRadius: 6,
+    // 2. 基础圆角 (配合你的卡片设计，稍微圆润一点)
+    borderRadius: 8,
 
-    // 3. 基础背景
-    colorBgLayout: '#F9F7F5', // Layout 组件的背景色 (对应 $color-bg-body)
-    colorBgContainer: '#FFFFFF', // Card, Content 的背景色
+    // 3. 字体 (配合设计稿)
+    fontFamily:
+      '"Lato", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
 
     // 4. 文字颜色
-    colorTextBase: '#2E2A25',
-    colorTextSecondary: '#8C8680',
-
-    // 5. 字体 (建议加上 Lato 或 Roboto 提升数字显示的高级感)
-    fontFamily:
-      '"Helvetica Neue", Helvetica, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", Arial, sans-serif',
+    colorText: colors.text,
   },
-
-  // 针对特定组件的微调
   components: {
-    Layout: {
-      // 侧边栏背景色 (覆盖 Antd 默认的深蓝色)
-      siderBg: '#2B2623',
-      triggerBg: '#3E3834',
-    },
-    Menu: {
-      // 深色模式下的菜单背景
-      darkItemBg: '#2B2623',
-      darkSubMenuItemBg: '#221E1C',
-      // 选中项的背景色 (稍微亮一点的深色)
-      darkItemSelectedBg: '#C6A87C',
-      // 选中项的文字颜色 (反白)
-      darkItemSelectedColor: '#FFFFFF',
+    Message: {
+      borderRadiusLG: 12,
+      contentPadding: '12px 20px',
     },
     Button: {
-      // 按钮加一点点阴影更有质感
-      boxShadow: '0 2px 0 rgba(0, 0, 0, 0.02)',
-      fontWeight: 500,
+      // 按钮加高一点，更有质感
+      controlHeight: 40,
+      controlHeightLG: 48,
+      algorithm: true, // 启用算法自动计算 hover 颜色
+      colorPrimaryHover: colors.primaryHover,
+      boxShadow: '0 4px 14px 0 rgba(197, 142, 83, 0.3)', // 金色阴影
     },
-    Table: {
-      headerBg: '#FAF8F6', // 表头用极淡的暖灰色
-      headerColor: '#8C8680',
+    Input: {
+      controlHeight: 42,
+      controlHeightLG: 50,
+      activeBorderColor: colors.primary,
+      hoverBorderColor: colors.primary,
+    },
+    Card: {
+      borderRadiusLG: 16, // 卡片圆角更大
+    },
+    Layout: {
+      // 侧边栏背景色 (深松露色)
+      siderBg: '#2B2623',
+    },
+    Menu: {
+      // 深色菜单的选中色
+      darkItemBg: '#2B2623',
+      darkItemSelectedBg: colors.primary,
+      darkItemColor: '$stone-400', // stone-400
+      darkItemSelectedColor: '#fff',
     },
   },
 }
