@@ -3,7 +3,7 @@ import axios, {
   type InternalAxiosRequestConfig,
   type AxiosResponse,
 } from 'axios'
-import { message } from 'antd'
+import { message } from '@/utils/staticAntd'
 import { useUserStore } from '@/store'
 import { type ApiResponse } from '@/types'
 import { getToken } from '@/utils/token'

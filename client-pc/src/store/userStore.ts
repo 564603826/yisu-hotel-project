@@ -8,7 +8,7 @@ import type {
   RegisterResponseData,
   LoginResponseData,
 } from '@/types' // 引入你的类型定义
-import { message } from 'antd'
+import { message } from '@/utils/staticAntd'
 
 const { userLogin, userRegister } = useUserAPI
 // 1. 定义数据 (State)
@@ -51,7 +51,6 @@ export const useUserStore = create<UserState & UserActions>()(
             role: res.role,
           },
         })
-
         return res
       },
 
