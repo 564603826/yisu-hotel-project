@@ -1,9 +1,9 @@
 import React from 'react'
 import { Outlet } from 'react-router-dom'
-import { SafetyCertificateOutlined, SyncOutlined, BankOutlined } from '@ant-design/icons'
+import { SafetyCertificateOutlined, SyncOutlined } from '@ant-design/icons'
 import styles from './AuthLayout.module.scss'
 // 假设这是你的 Logo 图片，如果没有就先用 Icon 代替
-// import logo from '@/assets/logo.png';
+import logo from '@/assets/logo.svg'
 
 const AuthLayout: React.FC = () => {
   return (
@@ -20,7 +20,11 @@ const AuthLayout: React.FC = () => {
           <div className={`${styles.glow} ${styles.glowBottom}`} />
 
           <div className={styles.brandHeader}>
-            <BankOutlined style={{ fontSize: 40, color: '#fff' }} />
+            <img
+              src={logo}
+              alt="YISU"
+              style={{ width: 80, height: 80, marginRight: 8, marginTop: 16 }}
+            />
             <h1 className={styles.title}>YISU</h1>
             <p className={styles.desc}>
               赋能世界级酒店管理，
