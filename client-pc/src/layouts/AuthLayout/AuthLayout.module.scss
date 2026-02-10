@@ -99,6 +99,7 @@
     opacity: 0.9;
     font-weight: 300;
     line-height: 1.6;
+    font-size: 1.2rem;
   }
 }
 
@@ -107,7 +108,6 @@
   display: flex;
   flex-direction: column;
   gap: 20px;
-  margin-top: 40px;
 
   .featureItem {
     background: rgba(255, 255, 255, 0.65);
