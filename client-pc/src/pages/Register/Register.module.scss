@@ -1,0 +1,64 @@
+// 角色选择容器
+.roleSelector {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+// 单个角色卡片
+.roleCard {
+  cursor: pointer;
+  border-radius: 12px;
+  border: 2px solid #e7e5e4; // stone-200
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+  background: rgba(255, 255, 255, 0.5);
+
+  &:hover {
+    border-color: $gold-300;
+    transform: translateY(-2px);
+  }
+
+  // 选中状态
+  &.active {
+    border-color: $gold-500;
+    background-color: rgba(197, 142, 83, 0.05); // 极淡的金色背景
+    box-shadow: 0 4px 12px rgba(197, 142, 83, 0.15);
+
+    span {
+      color: $gold-800;
+      font-weight: 700;
+    }
+
+    // 选中时图标颜色变深
+    :global(.anticon) {
+      color: $gold-600;
+    }
+  }
+
+  span {
+    font-size: 0.875rem;
+    color: $stone-500;
+    transition: color 0.3s;
+  }
+}
+
+.titleSection {
+  margin-bottom: 32px;
+
+  h2 {
+    font-family: $font-serif;
+    font-size: 2.25rem;
+    color: $stone-800;
+    margin-bottom: 8px;
+  }
+
+  p {
+    color: $stone-500;
+  }
+}
