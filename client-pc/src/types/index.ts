@@ -11,8 +11,8 @@ type UserLoginRequest = {
 }
 
 type UserRegisterRequest = {
-  userId: string
   username: string
+  password: string
   role: UserRole
 }
 // 用户基础信息
@@ -101,6 +101,7 @@ export type {
   UserRegisterRequest,
   RegisterResponseData,
   UserInfo,
+  UserRole,
   HotelIdResponse,
   TokenField,
   HotelItem,

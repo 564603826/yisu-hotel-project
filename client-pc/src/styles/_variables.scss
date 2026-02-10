@@ -32,3 +32,39 @@ $sidebar-width: 220px;
 $header-height: 64px;
 $border-radius: 6px; // 圆角稍微小一点，显得干练
 $box-shadow: 0 4px 12px rgba(43, 38, 35, 0.05); // 阴影带一点暖色调
+// src/styles/variables.scss
+
+// ===================================
+// 1. LuxeStay 品牌色系 (从源文件提取)
+// ===================================
+$gold-50: #fbf8f1;
+$gold-100: #f5efe0;
+$gold-300: #dfc299;
+$gold-500: #c58e53; // 主色
+$gold-600: #b87544; // 悬停色
+$gold-800: #7f4d36;
+
+$stone-50: #fafaf9;
+$stone-500: #78716c;
+$stone-800: #292524; // 深色文字
+
+// ===================================
+// 2. 映射到你的项目语义
+// ===================================
+$color-primary: $gold-500;
+$color-primary-hover: $gold-600;
+$color-text-main: $stone-800;
+$color-text-sub: $stone-500;
+
+// ===================================
+// 3. 字体定义
+// ===================================
+// 建议在 index.html 引入 Playfair Display 字体，或者用宋体/明体代替
+$font-serif: 'Playfair Display', 'Times New Roman', serif;
+$font-sans:
+  'Lato',
+  -apple-system,
+  BlinkMacSystemFont,
+  'Segoe UI',
+  Roboto,
+  sans-serif;
