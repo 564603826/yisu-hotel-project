@@ -102,10 +102,6 @@
       .mainButton {
         box-shadow: 0 4px 12px rgba(197, 142, 83, 0.3);
         border: none;
-        &:hover {
-          color: $gold-500 !important;
-          border-color: $gold-500 !important;
-        }
       }
 
       .secondaryButton {
