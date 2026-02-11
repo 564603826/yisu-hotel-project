@@ -38,7 +38,8 @@ const Login = () => {
     }
     const loginData = { username: values.username, password: values.password }
     await login(loginData)
-    navigate('/')
+    const role = useUserStore.getState().userInfo?.role
+    navigate(role === 'admin' ? '/admin' : '/merchant', { replace: true })
   }
 
   return (
