@@ -79,11 +79,30 @@ const Register = () => {
         size="large"
         initialValues={{ role: 'merchant' }}
       >
-        <Form.Item name="username" rules={[{ required: true, message: '请输入用户名' }]}>
+        <Form.Item
+          name="username"
+          rules={[
+            { required: true, message: '请输入用户名' },
+            {
+              pattern: /^[a-zA-Z0-9_]{3,20}$/,
+              message: '用户名必须是3-20位的字母、数字或下划线',
+            },
+          ]}
+        >
           <Input prefix={<UserOutlined style={{ color: '#a8a29e' }} />} placeholder="用户名" />
         </Form.Item>
 
-        <Form.Item name="password" rules={[{ required: true, message: '请输入密码' }]}>
+        <Form.Item
+          name="password"
+          rules={[
+            { required: true, message: '请输入密码' },
+            {
+              min: 6,
+              max: 20,
+              message: '密码长度必须是6-20位',
+            },
+          ]}
+        >
           <Input.Password
             prefix={<LockOutlined style={{ color: '#a8a29e' }} />}
             placeholder="设置密码"
