@@ -39,9 +39,7 @@ type TokenField = {
 
 type LoginResponseData = {
   token: string // 登录生成的JWT令牌
-  userId: string // 来自UserInfo
-  username: string // 来自UserInfo
-  role: UserRole // 来自UserInfo
+  userInfo: UserInfo // 用户基础信息
 }
 
 type RegisterResponseData = {

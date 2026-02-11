@@ -9,6 +9,7 @@ import type {
   LoginResponseData,
 } from '@/types' // 引入你的类型定义
 import { message } from '@/utils/staticAntd'
+import router from '@/router'
 
 const { userLogin, userRegister } = useUserAPI
 // 1. 定义数据 (State)
@@ -45,12 +46,9 @@ export const useUserStore = create<UserState & UserActions>()(
         // 2. 拿到数据，更新 Store (Zustand 会自动同步到 LocalStorage)
         set({
           token: res.token,
-          userInfo: {
-            userId: res.userId,
-            username: res.username,
-            role: res.role,
-          },
+          userInfo: res.userInfo,
         })
+        message.success('登录成功')
         return res
       },
 
@@ -62,7 +60,7 @@ export const useUserStore = create<UserState & UserActions>()(
 
       logout: () => {
         set({ token: null, userInfo: null })
-        // 如果需要调用后端登出接口，也可以在这里写 await authApi.logout()
+        router.navigate('/login')
       },
     }),
     {

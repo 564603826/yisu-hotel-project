@@ -29,10 +29,10 @@ service.interceptors.request.use(
 service.interceptors.response.use(
   (response: AxiosResponse<ApiResponse>) => {
     const { code, msg } = response.data
-
     // 全局处理：根据业务状态码判断是否成功
-    if (code !== 200) {
+    if (code !== 200 && code !== 201) {
       message.error(msg || '请求失败')
+      console.error('API Error:', response.data)
       return Promise.reject(response.data)
     }
 
@@ -53,7 +53,7 @@ service.interceptors.response.use(
     }
 
     const status = response.status
-    const errorMessage = response.data?.message || '请求失败'
+    const errorMessage = response.data?.msg || '请求失败'
 
     // ----------------------------------------------------
     // 情况 B：特定状态码处理 (全局处理)
@@ -62,22 +62,19 @@ service.interceptors.response.use(
       case 401:
         //  核心需求：401 未授权
         useUserStore.getState().logout() // 清除 Token 和用户信息
-        message.error('登录已过期，请重新登录')
-        window.location.href = `/login?redirect=${window.location.pathname}`
+        message.error(errorMessage || '登录已过期，请重新登录')
         break
 
       case 403:
-        message.warning('您没有权限执行此操作')
+        message.warning(errorMessage || '您没有权限执行此操作')
         break
 
       case 500:
-        message.error('服务器内部错误，请联系管理员')
+        message.error(errorMessage || '服务器内部错误，请联系管理员')
         break
 
       default:
-        // 其他错误，默认不处理，抛出去给业务层自己决定？
-        // 或者在这里做一个兜底提示：
-        message.error(errorMessage)
+        message.error(errorMessage || '请求失败，请联系管理员')
     }
 
     return Promise.reject(error)

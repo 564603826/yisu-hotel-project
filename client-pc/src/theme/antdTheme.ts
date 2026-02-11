@@ -2,16 +2,17 @@ import { type ThemeConfig } from 'antd'
 
 // 从你的 variables.scss 中提取的色值
 const colors = {
-  primary: '$gold-500', // $gold-500
-  primaryHover: '$gold-600', // $gold-600
-  text: '$stone-800', // $stone-800
-  bgBase: '$gold-50', // $gold-50
+  primary: '#c58e53', // $gold-500
+  primaryHover: '#b87544', // $b87544-600
+  text: '#292524', // $stone-800
+  bgBase: '#fbf8f1', // $gold-50
 }
 
 export const antdTheme: ThemeConfig = {
   token: {
     // 1. 品牌色 (影响所有按钮、链接、高亮)
     colorPrimary: colors.primary,
+    colorBgBase: '#fbf8f1',
     colorError: '#cf3f46', // 主错误色 (比默认的柔和一点)
     colorErrorBg: '#fff1f0', // 错误背景色 (极淡的粉红)
     colorErrorBorder: '#ffa39e', // 错误边框色
@@ -50,13 +51,15 @@ export const antdTheme: ThemeConfig = {
     },
     Layout: {
       // 侧边栏背景色 (深松露色)
-      siderBg: '#2B2623',
+      bodyBg: '#fbf8f1',
+      headerBg: '#ffffff',
+      siderBg: '#292524',
     },
     Menu: {
       // 深色菜单的选中色
       darkItemBg: '#2B2623',
       darkItemSelectedBg: colors.primary,
-      darkItemColor: '$stone-400', // stone-400
+      darkItemColor: '#78716c', // stone-400
       darkItemSelectedColor: '#fff',
     },
   },

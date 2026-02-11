@@ -1,65 +1,38 @@
-// src/styles/variables.scss
-
 // ===================================
-// 1. 品牌色系 (Brand Colors)
-// ===================================
-$gold-primary: #c6a87c; // 香槟金 (主色)
-$gold-hover: #d4b890; // 浅金 (Hover状态)
-$gold-active: #a68a60; // 深金 (Active状态)
-
-// ===================================
-// 2. 中性色系 (Neutrals)
-// ===================================
-$color-bg-body: #f9f7f5; // 页面大背景 (暖白)
-$color-bg-card: #ffffff; // 卡片背景 (纯白)
-$color-bg-sidebar: #2b2623; // 侧边栏背景 (深松露)
-
-$color-text-main: #2e2a25; // 主要文字
-$color-text-sub: #8c8680; // 次要文字
-$color-border: #ebe6e1; // 边框颜色
-
-// ===================================
-// 3. 功能色 (Functional) - 稍微调暗一点，不要太刺眼
-// ===================================
-$color-success: #52c41a;
-$color-warning: #faad14;
-$color-error: #ff4d4f;
-
-// ===================================
-// 4. 布局尺寸 (Layout)
-// ===================================
-$sidebar-width: 220px;
-$header-height: 64px;
-$border-radius: 6px; // 圆角稍微小一点，显得干练
-$box-shadow: 0 4px 12px rgba(43, 38, 35, 0.05); // 阴影带一点暖色调
-// src/styles/variables.scss
-
-// ===================================
-// 1. LuxeStay 品牌色系 (从源文件提取)
+// 1. YiSu 品牌色系 (Core)
 // ===================================
 $gold-50: #fbf8f1;
 $gold-100: #f5efe0;
+$gold-200: #eadbc0; // 补充：用于边框/分割线
 $gold-300: #dfc299;
 $gold-500: #c58e53; // 主色
 $gold-600: #b87544; // 悬停色
-$gold-800: #7f4d36;
+$gold-800: #7f4d36; // 深金
+$gold-shadow: rgba(197, 142, 83, 0.2); // 专用阴影色
 
 $stone-50: #fafaf9;
+$stone-100: #f5f5f4;
+$stone-200: #e7e5e4;
+$stone-300: #d6d3d1;
+$stone-400: #a8a29e;
 $stone-500: #78716c;
-$stone-800: #292524; // 深色文字
+$stone-600: #57534e;
+$stone-800: #292524; // 深色背景/主文字
 
 // ===================================
-// 2. 映射到你的项目语义
+// 2. 语义化映射 (Semantic)
 // ===================================
 $color-primary: $gold-500;
 $color-primary-hover: $gold-600;
+$color-bg-body: $gold-50;
+$color-bg-sidebar: $stone-800;
 $color-text-main: $stone-800;
 $color-text-sub: $stone-500;
+$color-border: $gold-200;
 
 // ===================================
-// 3. 字体定义
+// 3. 字体定义 (Fonts)
 // ===================================
-// 建议在 index.html 引入 Playfair Display 字体，或者用宋体/明体代替
 $font-serif: 'Playfair Display', 'Times New Roman', serif;
 $font-sans:
   'Lato',
@@ -68,3 +41,11 @@ $font-sans:
   'Segoe UI',
   Roboto,
   sans-serif;
+
+// ===================================
+// 4. 布局变量 (Layout)
+// ===================================
+$sidebar-width: 240px;
+$sidebar-collapsed-width: 80px;
+$header-height: 64px;
+$card-radius: 12px; // 轻奢风圆角稍微大一点

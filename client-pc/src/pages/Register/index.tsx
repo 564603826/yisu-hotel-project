@@ -15,7 +15,6 @@ import { useUserStore } from '@/store'
 import { useNavigate } from 'react-router-dom'
 
 const Register = () => {
-  // 这里的 state 仅用于 UI 高亮，提交时通过 form 获取
   const [role, setRole] = useState<UserRole>('merchant')
   const { isExiting, switchPage } = useAuthTransition()
   const register = useUserStore((state) => state.register)
@@ -32,7 +31,6 @@ const Register = () => {
       password: values.password,
       role,
     }
-    console.log('注册数据:', submitData)
     await register(submitData)
     navigate('/login')
   }
@@ -48,7 +46,7 @@ const Register = () => {
         <p>创建账户以开始管理酒店信息或进行审核工作。</p>
       </div>
 
-      {/* 2. 角色选择卡片 (模拟 AI Studio 设计) */}
+      {/* 2. 角色选择卡片 */}
       <div className={styles.roleSelector}>
         <div
           className={`${styles.roleCard} ${role === 'merchant' ? styles.active : ''}`}
@@ -79,11 +77,30 @@ const Register = () => {
         size="large"
         initialValues={{ role: 'merchant' }}
       >
-        <Form.Item name="username" rules={[{ required: true, message: '请输入用户名' }]}>
+        <Form.Item
+          name="username"
+          rules={[
+            { required: true, message: '请输入用户名' },
+            {
+              pattern: /^[a-zA-Z0-9_]{3,20}$/,
+              message: '用户名必须是3-20位的字母、数字或下划线',
+            },
+          ]}
+        >
           <Input prefix={<UserOutlined style={{ color: '#a8a29e' }} />} placeholder="用户名" />
         </Form.Item>
 
-        <Form.Item name="password" rules={[{ required: true, message: '请输入密码' }]}>
+        <Form.Item
+          name="password"
+          rules={[
+            { required: true, message: '请输入密码' },
+            {
+              min: 6,
+              max: 20,
+              message: '密码长度必须是6-20位',
+            },
+          ]}
+        >
           <Input.Password
             prefix={<LockOutlined style={{ color: '#a8a29e' }} />}
             placeholder="设置密码"
