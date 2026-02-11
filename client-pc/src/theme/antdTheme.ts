@@ -2,10 +2,10 @@ import { type ThemeConfig } from 'antd'
 
 // 从你的 variables.scss 中提取的色值
 const colors = {
-  primary: '$gold-500', // $gold-500
-  primaryHover: '$gold-600', // $gold-600
-  text: '$stone-800', // $stone-800
-  bgBase: '$gold-50', // $gold-50
+  primary: '#c58e53', // $gold-500
+  primaryHover: '#b87544', // $b87544-600
+  text: '#292524', // $stone-800
+  bgBase: '#fbf8f1', // $gold-50
 }
 
 export const antdTheme: ThemeConfig = {
