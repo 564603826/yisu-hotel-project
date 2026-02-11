@@ -56,7 +56,7 @@ export const antdTheme: ThemeConfig = {
       // 深色菜单的选中色
       darkItemBg: '#2B2623',
       darkItemSelectedBg: colors.primary,
-      darkItemColor: '$stone-400', // stone-400
+      darkItemColor: '#78716c', // stone-400
       darkItemSelectedColor: '#fff',
     },
   },
