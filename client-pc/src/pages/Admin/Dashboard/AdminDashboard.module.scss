@@ -14,6 +14,42 @@
 }
 
 // ===============================================
+// 🎨 白色卡片容器 (匹配主题暖色调)
+// ===============================================
+.whiteCard {
+  background: #fffdfb !important; // 极淡的暖白色，比纯白更柔和
+  border: 1px solid rgba($gold-200, 0.6); // 淡金色边框
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 4px 24px rgba(197, 142, 83, 0.06); // 暖色微光阴影
+  transition: all 0.3s ease;
+
+  &:hover {
+    box-shadow: 0 8px 32px rgba(197, 142, 83, 0.12);
+    border-color: rgba($gold-300, 0.8);
+  }
+
+  // 表格样式覆盖：表头灰色，内容暖白
+  :global {
+    .ant-table-thead > tr > th {
+      background: #fafaf9 !important; // 表头背景：暖灰色
+      color: #292524 !important; // 表头文字：深色
+      font-weight: 600;
+      border-bottom: 1px solid rgba(214, 211, 209, 0.6) !important;
+    }
+
+    .ant-table-tbody > tr > td {
+      background: #fffdfb !important; // 表格内容：暖白色
+      border-bottom: 1px solid rgba(231, 229, 228, 0.5) !important;
+    }
+
+    .ant-table-tbody > tr:hover > td {
+      background: rgba(197, 142, 83, 0.06) !important; // 悬浮行：淡金色
+    }
+  }
+}
+
+// ===============================================
 // 🎨 彩色统计卡片 (Soft Colored Cards)
 // ===============================================
 // 基础卡片结构

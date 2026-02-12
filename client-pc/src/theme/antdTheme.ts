@@ -62,5 +62,17 @@ export const antdTheme: ThemeConfig = {
       darkItemColor: '#78716c', // stone-400
       darkItemSelectedColor: '#fff',
     },
+    Table: {
+      // 表格配色：表头灰色，内容暖白
+      headerBg: '#fafaf9', // 表头背景：暖灰色 (stone-50)
+      headerColor: '#292524', // 表头文字：深色
+      rowHoverBg: 'rgba(197, 142, 83, 0.06)', // 行悬浮背景：淡金色
+      borderColor: 'rgba(231, 229, 228, 0.8)', // 边框颜色：淡灰色
+      headerSplitColor: 'rgba(214, 211, 209, 0.6)', // 表头分割线
+      rowSelectedBg: 'rgba(197, 142, 83, 0.08)', // 选中行背景
+      rowSelectedHoverBg: 'rgba(197, 142, 83, 0.12)', // 选中行悬浮背景
+      cellPaddingBlock: 16, // 单元格垂直内边距
+      cellPaddingInline: 16, // 单元格水平内边距
+    },
   },
 }

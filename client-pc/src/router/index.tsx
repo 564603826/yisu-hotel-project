@@ -8,8 +8,8 @@ import AuthLayout from '@/layouts/AuthLayout' // 登录注册的布局
 const Login = React.lazy(() => import('@/pages/Login'))
 const Register = React.lazy(() => import('@/pages/Register'))
 const HomeLayout = React.lazy(() => import('@/layouts/HomeLayout'))
-const MerchantDashboard = React.lazy(() => import('@/pages/Home/Merchant'))
-const AdminDashboard = React.lazy(() => import('@/pages/Home/Admin'))
+const MerchantDashboard = React.lazy(() => import('@/pages/Merchant/Dashboard'))
+const AdminDashboard = React.lazy(() => import('@/pages/Admin/Dashboard'))
 const NotFound = React.lazy(() => import('@/pages/404'))
 
 const router = createBrowserRouter([
