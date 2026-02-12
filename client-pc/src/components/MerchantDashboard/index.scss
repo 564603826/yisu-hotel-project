@@ -12,13 +12,25 @@
     box-shadow: 0 8px 32px rgba(197, 142, 83, 0.12);
     border-color: rgba(197, 142, 83, 0.8);
   }
+
+  .stat-value {
+    color: #292524 !important;
+    font-size: 36px;
+    font-weight: 600;
+    margin: 8px 0 0 0;
+    font-family:
+      'Inter',
+      -apple-system,
+      BlinkMacSystemFont,
+      sans-serif;
+    letter-spacing: -0.02em;
+  }
 }
 
 .stat-card-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 8px;
 }
 
 .icon-box {
@@ -35,12 +47,21 @@
 .trend {
   display: flex;
   align-items: center;
+  gap: 4px;
+  margin-top: 8px;
   font-size: 13px;
-  margin-top: 12px;
+
+  .trend-icon {
+    &.up {
+      color: #52c41a;
+    }
+    &.down {
+      color: #ff4d4f;
+    }
+  }
 
   .trend-value {
-    font-weight: 700;
-    margin-right: 4px;
+    font-weight: 600;
 
     &.up {
       color: #52c41a;
@@ -53,6 +74,7 @@
 
   .trend-label {
     color: #a8a29e;
+    font-size: 12px;
   }
 }
 

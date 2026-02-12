@@ -1,5 +1,6 @@
 import React from 'react'
 import { Typography } from 'antd'
+import { TrendingUp, TrendingDown } from 'lucide-react'
 import '@/components/MerchantDashboard/index.scss'
 
 const { Text } = Typography
@@ -20,17 +21,21 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, icon, trend, isUp }) 
           <Text type="secondary" style={{ fontSize: 13 }}>
             {title}
           </Text>
-          <h2 style={{ margin: '4px 0 0 0', fontFamily: 'Playfair Display' }}>{value}</h2>
+          <h2 className="stat-value">{value}</h2>
+          {trend && (
+            <div className="trend">
+              {isUp ? (
+                <TrendingUp size={14} className="trend-icon up" />
+              ) : (
+                <TrendingDown size={14} className="trend-icon down" />
+              )}
+              <span className={`trend-value ${isUp ? 'up' : 'down'}`}>{trend}</span>
+              <span className="trend-label"> 较昨日</span>
+            </div>
+          )}
         </div>
         <div className="icon-box">{icon}</div>
       </div>
-
-      {trend && (
-        <div className="trend">
-          <span className={`trend-value ${isUp ? 'up' : 'down'}`}>{trend}</span>
-          <span className="trend-label"> 较昨日</span>
-        </div>
-      )}
     </div>
   )
 }
