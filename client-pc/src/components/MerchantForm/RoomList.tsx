@@ -1,20 +1,15 @@
 import React from 'react'
-import { Button, Typography } from 'antd'
+import { Button, Typography, Spin } from 'antd'
 import { Plus } from 'lucide-react'
+import type { RoomType } from '@/types'
 
 const { Title } = Typography
 
 interface RoomListProps {
-  rooms: Array<{
-    id: string
-    name: string
-    description: string
-    price: number
-    image: string
-  }>
+  rooms: Array<RoomType>
   onAddRoom?: () => void
-  onEditRoom?: (id: string) => void
-  onDeleteRoom?: (id: string) => void
+  onEditRoom?: (index: number) => void
+  onDeleteRoom?: (index: number) => void
 }
 
 const RoomList: React.FC<RoomListProps> = ({ rooms, onAddRoom, onEditRoom, onDeleteRoom }) => {
@@ -36,14 +31,30 @@ const RoomList: React.FC<RoomListProps> = ({ rooms, onAddRoom, onEditRoom, onDel
         </Button>
       </div>
 
-      {rooms.map((room) => (
-        <React.Suspense key={room.id} fallback={<div>加载中...</div>}>
+      {rooms.map((room, index) => (
+        <React.Suspense
+          key={index}
+          fallback={
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                height: '100%',
+                minHeight: '100px',
+              }}
+            >
+              <Spin size="default" />
+            </div>
+          }
+        >
           <RoomItem
-            id={room.id}
+            index={index}
             name={room.name}
-            description={room.description}
             price={room.price}
-            image={room.image}
+            area={room.area}
+            bedType={room.bedType}
+            facilities={room.facilities}
             onEdit={onEditRoom}
             onDelete={onDeleteRoom}
           />
