@@ -60,7 +60,10 @@ export const useUserStore = create<UserState & UserActions>()(
 
       logout: () => {
         set({ token: null, userInfo: null })
-        router.navigate('/login')
+        const currentPath = window.location.pathname + window.location.search
+        if (window.location.pathname !== '/login') {
+          router.navigate(`/login?redirect=${encodeURIComponent(currentPath)}`, { replace: true })
+        }
       },
     }),
     {

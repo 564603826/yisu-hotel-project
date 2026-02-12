@@ -15,6 +15,7 @@ import styles from './DashboardLayout.module.scss'
 import logo from '@/assets/logo.svg'
 import { useUserStore } from '@/store'
 import { Outlet } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 
 const { Header, Sider, Content } = Layout
 
@@ -26,6 +27,8 @@ interface DashboardLayoutProps {
 const DashboardLayout: React.FC<DashboardLayoutProps> = () => {
   const [collapsed, setCollapsed] = useState(false)
   const role = useUserStore((state) => state.userInfo?.role)
+  const navigate = useNavigate()
+  const location = useLocation()
 
   // 处理退出登录
   const logout = useUserStore((state) => state.logout)
@@ -38,15 +41,31 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = () => {
   const menuItems =
     role === 'merchant'
       ? [
-          { key: 'dashboard', icon: <LayoutDashboard size={20} />, label: '仪表盘' },
-          { key: 'my-hotels', icon: <Building2 size={20} />, label: '酒店信息管理' },
+          {
+            key: '/merchant/dashboard',
+            icon: <LayoutDashboard size={20} />,
+            label: '仪表盘',
+          },
+          {
+            key: '/merchant/hotels',
+            icon: <Building2 size={20} />,
+            label: '酒店信息管理',
+          },
           { key: 'rooms', icon: <BedDouble size={20} />, label: '房型管理' },
           { key: 'orders', icon: <ClipboardList size={20} />, label: '订单管理' },
         ]
       : [
-          { key: 'dashboard', icon: <LayoutDashboard size={20} />, label: '平台概览' },
-          { key: 'audit', icon: <FileCheck size={20} />, label: '审核与管理' },
-          { key: 'users', icon: <Users size={20} />, label: '用户管理' },
+          {
+            key: '/admin/dashboard',
+            icon: <LayoutDashboard size={20} />,
+            label: '平台概览',
+          },
+          {
+            key: '/admin/audit',
+            icon: <FileCheck size={20} />,
+            label: '审核与管理',
+          },
+          { key: 'users', icon: <Users size={20} />, label: '用户管理', path: '/admin/users' },
         ]
 
   return (
@@ -71,6 +90,8 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = () => {
         </div>
         <Menu
           className={styles.menu}
+          onClick={({ key }) => navigate(key)}
+          selectedKeys={[location.pathname]}
           theme="dark"
           mode="inline"
           defaultSelectedKeys={['dashboard']}

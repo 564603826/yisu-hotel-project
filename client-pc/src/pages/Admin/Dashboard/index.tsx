@@ -3,6 +3,11 @@ import { Row, Col, Typography, Table, Tag, Button, Space } from 'antd'
 import { FileClock, CheckCircle2, Building } from 'lucide-react'
 import type { ColumnsType } from 'antd/es/table'
 import styles from './AdminDashboard.module.scss'
+import { useNavigate } from 'react-router-dom'
+import StatCardRed from '@/components/AdminDashboard/StatCardRed'
+import StatCardGreen from '@/components/AdminDashboard/StatCardGreen'
+import StatCardStone from '@/components/AdminDashboard/StatCardStone'
+import TableCard from '@/components/AdminDashboard/TableCard'
 
 const { Title, Text } = Typography
 
@@ -106,6 +111,8 @@ const columns: ColumnsType<DataType> = [
 ]
 
 const AdminDashboard: React.FC = () => {
+  const navigate = useNavigate()
+
   return (
     <div className={styles.container}>
       {/* 顶部标题栏 */}
@@ -119,74 +126,35 @@ const AdminDashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* 统计卡片区 - 使用 .whiteCard */}
+      {/* 统计卡片区 */}
       <Row gutter={[24, 24]} style={{ marginBottom: 32 }}>
         {/* 1. 待审核 - 红色卡片 */}
         <Col xs={24} md={8}>
-          <div className={styles.cardRed}>
-            <div className={styles.statCardContent}>
-              <div className={`${styles.iconCircle} ${styles.red}`}>
-                <FileClock size={28} />
-              </div>
-              <div>
-                <Text>待审核酒店</Text>
-                <Title level={2} style={{ margin: 0, fontFamily: 'Playfair Display' }}>
-                  12
-                </Title>
-              </div>
-            </div>
-          </div>
+          <StatCardRed title="待审核酒店" value="12" icon={<FileClock size={28} />} />
         </Col>
 
         {/* 2. 今日通过 - 绿色卡片 */}
         <Col xs={24} md={8}>
-          <div className={styles.cardGreen}>
-            <div className={styles.statCardContent}>
-              <div className={`${styles.iconCircle} ${styles.green}`}>
-                <CheckCircle2 size={28} />
-              </div>
-              <div>
-                <Text>今日通过</Text>
-                <Title level={2} style={{ margin: 0, fontFamily: 'Playfair Display' }}>
-                  05
-                </Title>
-              </div>
-            </div>
-          </div>
+          <StatCardGreen title="今日通过" value="05" icon={<CheckCircle2 size={28} />} />
         </Col>
 
         {/* 3. 平台总数 - 暖灰色卡片 */}
         <Col xs={24} md={8}>
-          <div className={styles.cardStone}>
-            <div className={styles.statCardContent}>
-              <div className={`${styles.iconCircle} ${styles.stone}`}>
-                <Building size={28} />
-              </div>
-              <div>
-                <Text>平台收录总数</Text>
-                <Title level={2} style={{ margin: 0, fontFamily: 'Playfair Display' }}>
-                  1,240
-                </Title>
-              </div>
-            </div>
-          </div>
+          <StatCardStone title="平台收录总数" value="1,240" icon={<Building size={28} />} />
         </Col>
       </Row>
 
-      {/* 底部表格区 - 使用 .whiteCard */}
-      <div className={styles.whiteCard} style={{ padding: '24px 32px' }}>
-        <div className={styles.sectionHeader}>
-          <div className={styles.sectionTitle}>
-            <span className={styles.redDot} />
-            审核队列预览
-          </div>
-          <Button type="link" style={{ color: '#c58e53' }}>
+      {/* 底部表格区 */}
+      <TableCard
+        title="审核队列预览"
+        titleExtra={
+          <Button type="link" style={{ color: '#c58e53' }} onClick={() => navigate('/admin/audit')}>
             查看全部 &rarr;
           </Button>
-        </div>
-
+        }
+      >
         <Table columns={columns} dataSource={data} pagination={false} rowKey="key" />
-      </div>
+      </TableCard>
     </div>
   )
 }

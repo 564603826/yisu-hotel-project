@@ -1,61 +1,16 @@
 import React from 'react'
 import { Row, Col, Typography } from 'antd'
-import {
-  Users,
-  DoorOpen,
-  DollarSign,
-  TrendingUp,
-  Pencil,
-  BedDouble,
-  ChevronRight,
-} from 'lucide-react'
+import { Users, DoorOpen, DollarSign, TrendingUp, Pencil, BedDouble } from 'lucide-react'
 import styles from './MerchantDashboard.module.scss'
+import { useNavigate } from 'react-router-dom'
+import StatCard from '@/components/MerchantDashboard/StatCard'
+import ActionCard from '@/components/MerchantDashboard/ActionCard'
+import WhiteCard from '@/components/MerchantDashboard/WhiteCard'
 
 const { Title, Text } = Typography
 
-// 1. 顶部统计卡片 (不再使用 Antd Card，改用 div.whiteCard)
-const StatCard = ({ title, value, icon: Icon, trend, isUp }: any) => (
-  <div className={styles.whiteCard}>
-    <div className={styles.statCardHeader}>
-      <div>
-        <Text type="secondary" style={{ fontSize: 13 }}>
-          {title}
-        </Text>
-        <Title level={2} style={{ margin: '4px 0 0 0', fontFamily: 'Playfair Display' }}>
-          {value}
-        </Title>
-      </div>
-      <div className={styles.iconBox}>
-        <Icon size={22} />
-      </div>
-    </div>
-
-    <div className={styles.trend}>
-      <TrendingUp size={14} style={{ marginRight: 4 }} />
-      {/* 根据涨跌变色 */}
-      <span className={`${styles.trendValue} ${isUp ? styles.up : styles.down}`}>{trend}</span>
-      <span className={styles.trendLabel}> 较昨日</span>
-    </div>
-  </div>
-)
-
-// 2. 快捷操作卡片
-const ActionCard = ({ title, desc, icon: Icon, primary = false }: any) => (
-  <div className={`${styles.actionCard} ${primary ? styles.primary : ''}`}>
-    <div className={styles.actionContent}>
-      <div className={styles.actionIcon}>
-        <Icon size={22} />
-      </div>
-      <div>
-        <div className={styles.actionTitle}>{title}</div>
-        <div className={styles.actionDesc}>{desc}</div>
-      </div>
-    </div>
-    <ChevronRight className={styles.arrow} size={20} />
-  </div>
-)
-
 const MerchantDashboard: React.FC = () => {
+  const navigate = useNavigate()
   return (
     <div className={styles.container}>
       {/* 欢迎语 */}
@@ -69,16 +24,28 @@ const MerchantDashboard: React.FC = () => {
       {/* 1. 顶部数据 - 白色卡片 */}
       <Row gutter={[24, 24]}>
         <Col xs={24} md={8}>
-          <StatCard title="今日入住 (位)" value="24" icon={Users} trend="+12%" isUp={true} />
+          <StatCard
+            title="今日入住 (位)"
+            value="24"
+            icon={<Users size={22} />}
+            trend="+12%"
+            isUp={true}
+          />
         </Col>
         <Col xs={24} md={8}>
-          <StatCard title="剩余房量 (间)" value="08" icon={DoorOpen} trend="-5%" isUp={false} />
+          <StatCard
+            title="剩余房量 (间)"
+            value="08"
+            icon={<DoorOpen size={22} />}
+            trend="-5%"
+            isUp={false}
+          />
         </Col>
         <Col xs={24} md={8}>
           <StatCard
             title="今日总营收 (¥)"
             value="48,290"
-            icon={DollarSign}
+            icon={<DollarSign size={22} />}
             trend="+8.5%"
             isUp={true}
           />
@@ -95,15 +62,16 @@ const MerchantDashboard: React.FC = () => {
             <ActionCard
               title="编辑酒店信息"
               desc="更新设施、图片或基本信息"
-              icon={Pencil}
-              primary // 👈 只有这个是金色的
+              onClick={() => navigate('/merchant/hotels')}
+              icon={<Pencil size={22} />}
+              primary
             />
           </Col>
           <Col xs={24} md={8}>
-            <ActionCard title="房型管理" desc="调整房价、库存状态" icon={BedDouble} />
+            <ActionCard title="房型管理" desc="调整房价、库存状态" icon={<BedDouble size={22} />} />
           </Col>
           <Col xs={24} md={8}>
-            <ActionCard title="查看订单" desc="处理新的预订申请" icon={Users} />
+            <ActionCard title="查看订单" desc="处理新的预订申请" icon={<Users size={22} />} />
           </Col>
         </Row>
       </div>
@@ -113,8 +81,7 @@ const MerchantDashboard: React.FC = () => {
         <Title level={4} className={styles.sectionTitle}>
           实时动态
         </Title>
-        {/* 这里也不用 Antd Card，用我们自定义的 whiteCard */}
-        <div className={styles.whiteCard} style={{ minHeight: 'auto' }}>
+        <WhiteCard style={{ minHeight: 'auto' }}>
           <div className={styles.activityList}>
             {[1, 2, 3].map((_, index) => (
               <div key={index} className={styles.activityItem}>
@@ -126,7 +93,7 @@ const MerchantDashboard: React.FC = () => {
               </div>
             ))}
           </div>
-        </div>
+        </WhiteCard>
       </div>
     </div>
   )

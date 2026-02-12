@@ -12,3 +12,50 @@
   padding: 24px; // 管理后台页面的统一内边距
   min-height: calc(100vh - 64px); // 减去头部高度
 }
+
+// 页面顶部 Header 区域
+.pageHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid rgba(231, 229, 228, 0.6); // Stone-200
+
+  h2 {
+    font-size: 24px;
+    font-weight: 700;
+    color: #292524; // Stone-800
+    margin-bottom: 4px;
+  }
+
+  p {
+    color: #78716c; // Stone-500
+    font-size: 14px;
+    margin: 0;
+  }
+}
+
+// 通用的输入框聚焦效果 (配合 Antd Input 使用)
+.ant-input:focus,
+.ant-input-focused,
+.ant-select-focused .ant-select-selector {
+  border-color: #c58e53 !important; // Gold-500
+  box-shadow: 0 0 0 2px rgba(197, 142, 83, 0.1) !important;
+}
+
+// 通用主按钮 (金色渐变)
+.btn-primary-gold {
+  background: linear-gradient(135deg, #c58e53 0%, #b87544 100%);
+  border: none;
+  color: #fff;
+  font-weight: 500;
+  box-shadow: 0 4px 12px rgba(197, 142, 83, 0.2);
+
+  &:hover {
+    background: linear-gradient(135deg, #d4a776 0%, #c58e53 100%) !important;
+    color: #fff !important;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(197, 142, 83, 0.3);
+  }
+}
