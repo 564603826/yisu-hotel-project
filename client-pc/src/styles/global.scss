@@ -1,0 +1,14 @@
+@use './variables' as *; // 引入变量供本文件使用
+@use './reset';
+
+// 通用的工具类 (Utility Classes)
+.flex-center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.page-container {
+  padding: 24px; // 管理后台页面的统一内边距
+  min-height: calc(100vh - 64px); // 减去头部高度
+}

@@ -1,0 +1,38 @@
+.quick-filters {
+    .filters-title {
+      font-size: 14px;
+      color: #666;
+      margin: 0 0 12px;
+    }
+    
+    .filters-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      
+      .filter-button {
+        background: white;
+        border: 1px solid #e8e8e8;
+        border-radius: 20px;
+        padding: 8px 16px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        cursor: pointer;
+        transition: all 0.2s;
+        
+        &:hover {
+          border-color: #1890ff;
+          color: #1890ff;
+        }
+        
+        .filter-icon {
+          font-size: 16px;
+        }
+        
+        .filter-label {
+          font-size: 12px;
+        }
+      }
+    }
+  }
