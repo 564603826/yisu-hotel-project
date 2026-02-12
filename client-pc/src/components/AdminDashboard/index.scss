@@ -1,0 +1,264 @@
+.stat-card-red {
+  background: #fff2f0;
+  border: 1px solid #ffccc7;
+  border-radius: 12px;
+  padding: 24px;
+  transition: all 0.3s ease;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.06);
+    border-color: #ff7875;
+  }
+
+  .stat-value {
+    color: #cf1322 !important;
+    font-size: 36px;
+    font-weight: 600;
+    margin: 8px 0 0 0;
+    font-family:
+      'Inter',
+      -apple-system,
+      BlinkMacSystemFont,
+      sans-serif;
+    letter-spacing: -0.02em;
+  }
+
+  span {
+    color: #ff4d4f !important;
+  }
+
+  .icon-box {
+    background: rgba(255, 77, 79, 0.1);
+    color: #ff4d4f;
+  }
+}
+
+.stat-card-green {
+  background: #f6ffed;
+  border: 1px solid #d9f7be;
+  border-radius: 12px;
+  padding: 24px;
+  transition: all 0.3s ease;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.06);
+    border-color: #95de64;
+  }
+
+  .stat-value {
+    color: #389e0d !important;
+    font-size: 36px;
+    font-weight: 600;
+    margin: 8px 0 0 0;
+    font-family:
+      'Inter',
+      -apple-system,
+      BlinkMacSystemFont,
+      sans-serif;
+    letter-spacing: -0.02em;
+  }
+
+  span {
+    color: #52c41a !important;
+  }
+
+  .icon-box {
+    background: rgba(82, 196, 26, 0.1);
+    color: #52c41a;
+  }
+}
+
+.stat-card-stone {
+  background: #fafaf9;
+  border: 1px solid #e7e5e4;
+  border-radius: 12px;
+  padding: 24px;
+  transition: all 0.3s ease;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.06);
+    border-color: #dfc299;
+    background: #fffbe6;
+  }
+
+  .stat-value {
+    color: #292524 !important;
+    font-size: 36px;
+    font-weight: 600;
+    margin: 8px 0 0 0;
+    font-family:
+      'Inter',
+      -apple-system,
+      BlinkMacSystemFont,
+      sans-serif;
+    letter-spacing: -0.02em;
+  }
+
+  span {
+    color: #78716c !important;
+  }
+
+  .icon-box {
+    background: rgba(120, 113, 108, 0.1);
+    color: #78716c;
+  }
+}
+
+.stat-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.icon-box {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.trend {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 8px;
+  font-size: 13px;
+
+  .trend-icon {
+    &.up {
+      color: #52c41a;
+    }
+    &.down {
+      color: #ff4d4f;
+    }
+  }
+
+  .trend-value {
+    font-weight: 600;
+
+    &.up {
+      color: #52c41a;
+    }
+    &.down {
+      color: #ff4d4f;
+    }
+  }
+
+  .trend-label {
+    color: #a8a29e;
+    font-size: 12px;
+  }
+}
+
+.stat-card-content {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.icon-circle {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #ffffff !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+
+  &.red {
+    color: #ff4d4f;
+  }
+
+  &.green {
+    color: #52c41a;
+  }
+
+  &.stone {
+    color: #78716c;
+  }
+}
+
+.table-card {
+  background: #fffdfb !important;
+  border: 1px solid rgba(223, 194, 153, 0.6);
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 4px 24px rgba(197, 142, 83, 0.06);
+  transition: all 0.3s ease;
+
+  &:hover {
+    box-shadow: 0 8px 32px rgba(197, 142, 83, 0.12);
+    border-color: rgba(197, 142, 83, 0.8);
+  }
+}
+
+.table-card :global(.ant-table-thead > tr > th) {
+  background: #fafaf9 !important;
+  color: #292524 !important;
+  font-weight: 600;
+  border-bottom: 1px solid rgba(214, 211, 209, 0.6) !important;
+}
+
+.table-card :global(.ant-table-tbody > tr > td) {
+  background: #fffdfb !important;
+  border-bottom: 1px solid rgba(231, 229, 228, 0.5) !important;
+}
+
+.table-card :global(.ant-table-tbody > tr:hover > td) {
+  background: rgba(197, 142, 83, 0.06) !important;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(231, 229, 228, 0.5);
+}
+
+.section-title {
+  font-size: 16px;
+  font-weight: bold;
+  color: #292524;
+  display: flex;
+  align-items: center;
+}
+
+.red-dot {
+  display: inline-block;
+  width: 4px;
+  height: 16px;
+  background: #ff4d4f;
+  border-radius: 2px;
+  margin-right: 12px;
+}
+
+.title-extra {
+  cursor: pointer;
+  color: #c58e53;
+  font-weight: 500;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}

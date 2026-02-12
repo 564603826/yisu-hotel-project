@@ -5,13 +5,15 @@ import { useUserStore } from '@/store'
 import layoutStyles from '@/layouts/AuthLayout/AuthLayout.module.scss' // 引入刚才定义的动画样式
 import { useAuthTransition } from '@/hooks/useAuthTransition' // 引入 Hook
 import type { UserLoginRequest } from '@/types'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 
 const Login = () => {
   const login = useUserStore((state) => state.login)
   const { isExiting, switchPage } = useAuthTransition()
   const [form] = Form.useForm()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const redirect = searchParams.get('redirect') || '/'
 
   useEffect(() => {
     const savedInfo = localStorage.getItem('yisu-login-info')
@@ -38,8 +40,7 @@ const Login = () => {
     }
     const loginData = { username: values.username, password: values.password }
     await login(loginData)
-    const role = useUserStore.getState().userInfo?.role
-    navigate(role === 'admin' ? '/admin' : '/merchant', { replace: true })
+    navigate(redirect, { replace: true })
   }
 
   return (

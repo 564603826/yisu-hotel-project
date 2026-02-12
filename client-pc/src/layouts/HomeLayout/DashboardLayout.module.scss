@@ -139,6 +139,9 @@
   flex: 1; // 自动占据剩余的所有高度
   overflow-y: auto;
   overflow-x: hidden;
+  scrollbar-gutter: stable; // 预留滚动条空间，避免布局偏移
+  padding-right: 8px;
+  padding-left: 16px;
 
   &::-webkit-scrollbar {
     width: 6px;

@@ -8,9 +8,11 @@ import AuthLayout from '@/layouts/AuthLayout' // 登录注册的布局
 const Login = React.lazy(() => import('@/pages/Login'))
 const Register = React.lazy(() => import('@/pages/Register'))
 const HomeLayout = React.lazy(() => import('@/layouts/HomeLayout'))
-const MerchantDashboard = React.lazy(() => import('@/pages/Home/Merchant'))
-const AdminDashboard = React.lazy(() => import('@/pages/Home/Admin'))
+const MerchantDashboard = React.lazy(() => import('@/pages/Merchant/Dashboard'))
+const AdminDashboard = React.lazy(() => import('@/pages/Admin/Dashboard'))
 const NotFound = React.lazy(() => import('@/pages/404'))
+const AdminHotelList = React.lazy(() => import('@/pages/Admin/HotelList'))
+const MerchantHotelForm = React.lazy(() => import('@/pages/Merchant/HotelForm'))
 
 const router = createBrowserRouter([
   // 1. 公开路由 (无需登录)
@@ -40,8 +42,10 @@ const router = createBrowserRouter([
         path: 'dashboard',
         element: <LazyLoad component={MerchantDashboard} />,
       },
-      // 后续在这里添加更多商户页面，比如：
-      // { path: 'hotels', element: LazyLoad(MyHotels) },
+      {
+        path: 'hotels',
+        element: <LazyLoad component={MerchantHotelForm} />,
+      },
     ],
   },
 
@@ -58,6 +62,10 @@ const router = createBrowserRouter([
       {
         path: 'dashboard',
         element: <LazyLoad component={AdminDashboard} />,
+      },
+      {
+        path: 'audit',
+        element: <LazyLoad component={AdminHotelList} />,
       },
     ],
   },

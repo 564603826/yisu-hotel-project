@@ -1,0 +1,105 @@
+.container {
+  padding-bottom: 40px;
+
+  .headerSub {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-top: 30px;
+  }
+
+  .headerDesc {
+    font-size: 18px;
+    color: #78716c;
+  }
+
+  .statusTag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    font-size: 14px;
+    font-weight: 500;
+    border-radius: 6px;
+    border: none;
+
+    svg {
+      vertical-align: middle;
+    }
+  }
+
+  .optionButton {
+    margin-top: 30px;
+  }
+
+  .statusDraft {
+    background-color: #f5f5f4;
+    color: #78716c;
+  }
+
+  .statusPending {
+    background-color: #fef3c7;
+    color: #d97706;
+  }
+
+  .statusPublished {
+    background-color: #dcfce7;
+    color: #16a34a;
+  }
+
+  .statusRejected {
+    background-color: #fee2e2;
+    color: #dc2626;
+  }
+
+  :global {
+    .pageHeader {
+      h2 {
+        font-size: 30px;
+        font-weight: bold;
+        color: #292524;
+        margin-bottom: 0;
+      }
+    }
+
+    .ant-form-item-label {
+      label {
+        font-size: 15px !important;
+        font-weight: 500;
+        color: #57534e;
+      }
+    }
+
+    .ant-input,
+    .ant-input-number,
+    .ant-select-selector,
+    .ant-picker {
+      font-size: 15px !important;
+    }
+
+    .ant-btn {
+      font-size: 15px;
+    }
+
+    .ant-tabs-tab-btn {
+      font-size: 15px !important;
+    }
+
+    .ant-table {
+      font-size: 15px;
+    }
+
+    .ant-card-head-title {
+      font-size: 16px !important;
+      font-weight: 600;
+    }
+
+    .ant-input-textarea {
+      font-size: 15px;
+    }
+
+    .ant-select-item {
+      font-size: 15px;
+    }
+  }
+}

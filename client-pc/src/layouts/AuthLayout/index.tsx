@@ -1,11 +1,9 @@
-import React from 'react'
 import { Outlet } from 'react-router-dom'
 import { SafetyCertificateOutlined, SyncOutlined } from '@ant-design/icons'
 import styles from './AuthLayout.module.scss'
-// 假设这是你的 Logo 图片，如果没有就先用 Icon 代替
 import logo from '@/assets/logo.svg'
 
-const AuthLayout: React.FC = () => {
+const AuthLayout = () => {
   return (
     <div className={styles.container}>
       {/* 1. 动态背景 */}
