@@ -148,7 +148,11 @@ const AdminDashboard: React.FC = () => {
       <TableCard
         title="审核队列预览"
         titleExtra={
-          <Button type="link" style={{ color: '#c58e53' }} onClick={() => navigate('/admin/audit')}>
+          <Button
+            type="link"
+            style={{ color: '#c58e53', border: '1px solid #c58e53' }}
+            onClick={() => navigate('/admin/audit')}
+          >
             查看全部 &rarr;
           </Button>
         }

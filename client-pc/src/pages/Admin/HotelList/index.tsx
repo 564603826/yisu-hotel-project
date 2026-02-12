@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Button, Tag, Space, Modal, Tooltip, Typography, Input } from 'antd'
+import { Button, Tag, Space, Modal, Tooltip, Input } from 'antd'
 import { CheckCircle, XCircle, RefreshCw, Power } from 'lucide-react'
 import type { ColumnsType } from 'antd/es/table'
 import styles from './AdminHotelList.module.scss'
@@ -9,7 +9,6 @@ import HotelInfoCell from '@/components/AdminList/HotelInfoCell'
 import PriceCell from '@/components/AdminList/PriceCell'
 import TableCard from '@/components/AdminList/TableCard'
 
-const { Title, Text } = Typography
 const { TextArea } = Input
 
 interface DataType {
@@ -69,7 +68,7 @@ const MOCK_DATA: DataType[] = [
 const AdminHotelList: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'audit' | 'management'>('audit')
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [currentId, setCurrentId] = useState<string>('')
+  const [, setCurrentId] = useState<string>('')
 
   const listData = MOCK_DATA.filter((item) =>
     activeTab === 'audit' ? true : item.status === 'approved'
