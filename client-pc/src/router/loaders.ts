@@ -55,5 +55,5 @@ export const requireGuestLoader = () => {
     message.error('您已登录，无需重复操作')
     return redirect(target)
   }
-  return null // 没登录，允许访问
+  return null
 }
