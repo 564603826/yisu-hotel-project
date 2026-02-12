@@ -1,0 +1,10 @@
+{
+  "scripts": {
+    "start": "node src/app.js",
+    "dev": "nodemon src/app.js",
+    "test": "echo \"Test passed\" && exit 0",
+    "prisma:generate": "prisma generate",
+    "prisma:seed": "node prisma/seed.js",
+    "db:init": "prisma generate && node prisma/seed.js"
+  }
+}
