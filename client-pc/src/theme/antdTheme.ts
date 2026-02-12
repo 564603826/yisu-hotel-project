@@ -74,5 +74,15 @@ export const antdTheme: ThemeConfig = {
       cellPaddingBlock: 16,
       cellPaddingInline: 16,
     },
+    Modal: {
+      // Modal 弹窗主题色配置
+      borderRadiusLG: 16, // 弹窗圆角
+      headerBg: '#ffffff', // 头部背景
+      contentBg: '#ffffff', // 内容背景
+      footerBg: '#fafaf9', // 底部背景（暖灰色）
+      titleColor: '#292524', // 标题颜色
+      titleFontSize: 18, // 标题字体大小
+      titleLineHeight: 1.4,
+    },
   },
 }
