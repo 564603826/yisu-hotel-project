@@ -59,3 +59,49 @@
     box-shadow: 0 6px 16px rgba(197, 142, 83, 0.3);
   }
 }
+
+// Modal 确认弹窗主题色覆盖
+.ant-modal-confirm {
+  .ant-modal-content {
+    border-radius: 16px;
+    overflow: hidden;
+  }
+
+  .ant-modal-confirm-body {
+    .ant-modal-confirm-title {
+      color: #292524;
+      font-weight: 600;
+    }
+
+    .ant-modal-confirm-content {
+      color: #57534e;
+    }
+  }
+
+  // 确认图标颜色 - 使用主题金色
+  .ant-modal-confirm-body > .anticon {
+    color: #c58e53;
+  }
+
+  // 确认按钮样式
+  .ant-modal-confirm-btns {
+    .ant-btn-primary {
+      background: linear-gradient(135deg, #c58e53 0%, #b87544 100%);
+      border-color: #c58e53;
+      box-shadow: 0 4px 12px rgba(197, 142, 83, 0.2);
+
+      &:hover {
+        background: linear-gradient(135deg, #d4a776 0%, #c58e53 100%);
+        border-color: #c58e53;
+      }
+    }
+
+    // 取消按钮悬停色
+    .ant-btn-default {
+      &:hover {
+        color: #c58e53;
+        border-color: #c58e53;
+      }
+    }
+  }
+}
