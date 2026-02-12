@@ -90,7 +90,6 @@ type UpdateHotelRequest = {
   address: string
   starRating: number
   roomTypes: RoomType[]
-  price: number
   openDate: string
   nearbyAttractions?: string
   nearbyTransport?: string
@@ -98,6 +97,10 @@ type UpdateHotelRequest = {
   discounts?: Discount[]
   images?: string[]
   description?: string
+}
+type SubmitAuditResponse = {
+  id: number
+  status: HotelStatus
 }
 
 type PaginationParams = {
@@ -122,11 +125,36 @@ type RejectRequest = {
   reason: string
 }
 
+type RejectAuditResponse = {
+  id: number
+  status: 'rejected'
+  rejectReason: string
+}
+
+type PublishResponse = {
+  id: number
+  status: 'published'
+}
+
 type UploadResponse = {
   url: string
   filename: string
 }
 
+type OfflineResponse = {
+  id: number
+  status: 'offline'
+}
+type UploadImageResponse = {
+  url: string
+  filename: string
+}
+type CancelAuditResponse = {
+  id: number
+  status: 'draft'
+}
+
+type UploadImagesResponse = UploadImageResponse[]
 export type {
   ApiResponse,
   UserRole,
@@ -141,8 +169,15 @@ export type {
   Hotel,
   HotelWithCreator,
   UpdateHotelRequest,
+  SubmitAuditResponse,
   PaginationParams,
   Pagination,
   RejectRequest,
+  RejectAuditResponse,
+  PublishResponse,
   UploadResponse,
+  OfflineResponse,
+  UploadImageResponse,
+  UploadImagesResponse,
+  CancelAuditResponse,
 }
