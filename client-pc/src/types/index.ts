@@ -1,9 +1,12 @@
-// 全局统一响应体泛型
 type ApiResponse<T = null> = {
   code: number
   msg: string
   data: T
 }
+
+type UserRole = 'merchant' | 'admin'
+
+type HotelStatus = 'draft' | 'pending' | 'approved' | 'rejected' | 'published' | 'offline'
 
 type UserLoginRequest = {
   username: string
@@ -15,95 +18,131 @@ type UserRegisterRequest = {
   password: string
   role: UserRole
 }
-// 用户基础信息
+
 type UserInfo = {
-  userId: string
+  userId: number
   username: string
   role: UserRole
-}
-
-type UserRole = 'merchant' | 'admin'
-
-type HotelIdResponse = {
-  code: number
-  msg: string
-  data: {
-    hotelId: string
-  }
-}
-
-// 独立对象类型：仅包含token字段
-type TokenField = {
-  token: string
 }
 
 type LoginResponseData = {
-  token: string // 登录生成的JWT令牌
-  userInfo: UserInfo // 用户基础信息
+  token: string
+  userInfo: UserInfo
 }
 
 type RegisterResponseData = {
-  userId: string
+  id: number
   username: string
   role: UserRole
+  createdAt: string
 }
 
-// 单条酒店数据类型
-type HotelItem = {
-  id: string
-  nameCn: string
+type RoomType = {
+  name: string
+  price: number
+  area?: number
+  bedType?: string
+  facilities?: string[]
+}
+
+type Discount = {
+  type: 'percentage' | 'fixed'
+  name: string
+  value: number
+  description?: string
+  startDate?: string
+  endDate?: string
+}
+
+type Hotel = {
+  id: number
+  nameZh: string
   nameEn: string
   address: string
-  star: number
-  roomType: string[]
-  price: number
-  openTime: string
-  attractions: string[]
-  traffic: string
-  discount?: { type: string; value: number }
-  status: 'pending' | 'passed' | 'rejected' | 'offline'
+  starRating: number
+  roomTypes: RoomType[]
+  price: string
+  openDate: string
+  nearbyAttractions?: string
+  nearbyTransport?: string
+  nearbyMalls?: string
+  discounts?: Discount[]
+  images?: string[]
+  description?: string
+  status: HotelStatus
   rejectReason?: string
-  merchantId: string
-  createTime: string
-  updateTime: string
+  creatorId: number
+  createdAt: string
+  updatedAt: string
 }
 
-type HotelListResponse = {
-  // 固定外层响应结构
-  code: number
-  msg: string // 核心数据：HotelItem对象数组
-  data: HotelItem[]
-}
-
-// 与ApiResponse<{ hotelId: string }>完全等效
-type HotelOperateResponse = {
-  code: number
-  msg: string
-  data: {
-    hotelId: string
+type HotelWithCreator = Hotel & {
+  creator?: {
+    id: number
+    username: string
+    role?: UserRole
   }
 }
 
-// 分页公共结构泛型
-type PageResult<T> = {
-  list: T[] // 分页数据列表，类型为传入的T数组
-  total: number // 符合条件的总条数
-  page: number // 当前页码
-  pageSize: number // 每页条数
+type UpdateHotelRequest = {
+  nameZh: string
+  nameEn: string
+  address: string
+  starRating: number
+  roomTypes: RoomType[]
+  price: number
+  openDate: string
+  nearbyAttractions?: string
+  nearbyTransport?: string
+  nearbyMalls?: string
+  discounts?: Discount[]
+  images?: string[]
+  description?: string
+}
+
+type PaginationParams = {
+  page?: number
+  pageSize?: number
+  status?: HotelStatus
+  keyword?: string
+  starRating?: number
+}
+
+type Pagination<T> = {
+  list: T[]
+  pagination: {
+    page: number
+    pageSize: number
+    total: number
+    totalPages: number
+  }
+}
+
+type RejectRequest = {
+  reason: string
+}
+
+type UploadResponse = {
+  url: string
+  filename: string
 }
 
 export type {
   ApiResponse,
-  UserLoginRequest,
-  LoginResponseData,
-  UserRegisterRequest,
-  RegisterResponseData,
-  UserInfo,
   UserRole,
-  HotelIdResponse,
-  TokenField,
-  HotelItem,
-  HotelListResponse,
-  HotelOperateResponse,
-  PageResult,
+  HotelStatus,
+  UserLoginRequest,
+  UserRegisterRequest,
+  UserInfo,
+  LoginResponseData,
+  RegisterResponseData,
+  RoomType,
+  Discount,
+  Hotel,
+  HotelWithCreator,
+  UpdateHotelRequest,
+  PaginationParams,
+  Pagination,
+  RejectRequest,
+  UploadResponse,
 }
