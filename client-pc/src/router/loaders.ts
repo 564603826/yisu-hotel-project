@@ -1,6 +1,7 @@
 import { redirect } from 'react-router-dom'
 import { useUserStore } from '@/store/userStore'
 import { getToken } from '@/utils/token'
+import { message } from 'antd'
 
 const getUserRole = () => useUserStore.getState().userInfo?.role
 /**
@@ -15,6 +16,7 @@ export const checkRoleLoader = (allowedRoles: string[]) => {
 
     // 1. 没登录则去登录
     if (!token) {
+      message.error('请先登录')
       return redirect('/login')
     }
 
@@ -50,6 +52,7 @@ export const requireGuestLoader = () => {
   if (token) {
     // 已登录，根据角色踢回去
     const target = role === 'admin' ? '/admin/dashboard' : '/merchant/dashboard'
+    message.error('您已登录，无需重复操作')
     return redirect(target)
   }
   return null // 没登录，允许访问
