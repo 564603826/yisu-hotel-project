@@ -1,0 +1,49 @@
+#pip install flask == 3.1.2
+#pip install flask-sqlalchemy == 2.0.46
+#pip install flask-migrate == 4.1.0
+#pip install pymysql == 1.1.2
+import os
+
+from flask import Flask
+from flask_sqlalchemy import SQLAlchemy 
+from flask_migrate import Migrate   
+
+#创建一个flask-hotel实例
+app = Flask(__name__)
+
+class Config:
+    #设置参数
+    MYSQL_DIALECT = 'MYSQL'
+    MYSQL_DRIVER = 'pymysql'
+    MYSQL_USERNAME = 'root'
+    MYSQL_PASSWORD = '12345'
+    MYSQL_HOST = '127.0.0.1'#本机地址127.0.0.1
+    MYSQL_PORT = 3306
+    MYSQL_DB = 'flask_hotel'
+    MYSQL_CHARSET = 'utf8mb4'
+    #数据库连接字符串
+    SQLALCHEMY_DATABASE_URI = 'mysql+pymysql://root:12345@127.0.0.1:3306/flask_hotel' #f'{MYSQL_DIALECT}+{MYSQL_DRIVER}://{MYSQL_USERNAME}:{MYSQL_PASSWORD}@{MYSQL_HOST}:{MYSQL_PORT}/{MYSQL_DB}?charset={MYSQL_CHARSET}'
+    #数据加密
+    SECRET_KEY = os.urandom(16)
+    #DEBUG模式
+    DEBUG = True
+
+#根据类来加载配置信息
+app.config.from_object(Config)
+#创建一个数据库SQLAlchemy实例
+db = SQLAlchemy(app)
+
+#创建路由与函数的映射
+@app.route('/')
+def index():
+    return 'Hello！！!'
+
+#创建同步数据库migrate对象
+Migrate(app,db)
+
+#启动服务
+if __name__ == '__main__':
+    app.run()
+
+
+
