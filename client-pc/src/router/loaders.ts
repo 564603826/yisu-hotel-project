@@ -52,7 +52,6 @@ export const requireGuestLoader = () => {
   if (token) {
     // 已登录，根据角色踢回去
     const target = role === 'admin' ? '/admin/dashboard' : '/merchant/dashboard'
-    message.error('您已登录，无需重复操作')
     return redirect(target)
   }
   return null
