@@ -63,7 +63,8 @@
     height: 40px;
     border-radius: 6px;
     background-color: #e7e5e4;
-    background-size: cover;
+    object-fit: cover;
+    flex-shrink: 0;
   }
 
   .name {
@@ -119,5 +120,31 @@
     font-weight: bold;
     font-size: 16px;
     font-family: 'Playfair Display', 'Times New Roman', serif;
+  }
+}
+
+// 酒店详情模态框样式
+.hotel-detail-modal {
+  :global(.ant-descriptions-title) {
+    font-size: 16px;
+    font-weight: 600;
+    color: #292524;
+    margin-bottom: 16px;
+  }
+
+  :global(.ant-descriptions-item-label) {
+    background: #fafaf9;
+    color: #78716c;
+    font-weight: 500;
+  }
+
+  :global(.ant-descriptions-item-content) {
+    color: #292524;
+  }
+
+  h4 {
+    font-size: 15px;
+    font-weight: 600;
+    color: #292524;
   }
 }

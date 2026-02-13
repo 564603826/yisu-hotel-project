@@ -8,9 +8,15 @@ interface UploadAreaProps {
   onChange?: (url: string) => void
   pendingFile?: File | null
   onPendingFileChange?: (file: File | null) => void
+  disabled?: boolean
 }
 
-const UploadArea: React.FC<UploadAreaProps> = ({ value, onChange, onPendingFileChange }) => {
+const UploadArea: React.FC<UploadAreaProps> = ({
+  value,
+  onChange,
+  onPendingFileChange,
+  disabled = false,
+}) => {
   const [localPreview, setLocalPreview] = useState<string>('')
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -24,6 +30,7 @@ const UploadArea: React.FC<UploadAreaProps> = ({ value, onChange, onPendingFileC
   }, [localPreview])
 
   const handleClick = () => {
+    if (disabled) return
     inputRef.current?.click()
   }
 
@@ -67,6 +74,7 @@ const UploadArea: React.FC<UploadAreaProps> = ({ value, onChange, onPendingFileC
 
   const handleRemove = (e: React.MouseEvent) => {
     e.stopPropagation()
+    if (disabled) return
     // 清理本地预览
     if (localPreview) {
       URL.revokeObjectURL(localPreview)
@@ -89,27 +97,38 @@ const UploadArea: React.FC<UploadAreaProps> = ({ value, onChange, onPendingFileC
   // 如果有图片，显示预览
   if (displayUrl) {
     return (
-      <div className="upload-preview" onClick={handleClick}>
+      <div
+        className="upload-preview"
+        onClick={handleClick}
+        style={{ cursor: disabled ? 'default' : 'pointer' }}
+      >
         <img src={displayUrl} alt="封面图" />
-        <div className="upload-preview-overlay">
-          <span>点击更换图片</span>
-          <button className="upload-remove-btn" onClick={handleRemove} title="删除图片">
-            <X size={16} />
-          </button>
-        </div>
+        {!disabled && (
+          <div className="upload-preview-overlay">
+            <span>点击更换图片</span>
+            <button className="upload-remove-btn" onClick={handleRemove} title="删除图片">
+              <X size={16} />
+            </button>
+          </div>
+        )}
         <input
           ref={inputRef}
           type="file"
           accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
           style={{ display: 'none' }}
           onChange={handleFileChange}
+          disabled={disabled}
         />
       </div>
     )
   }
 
   return (
-    <div className="upload-area" onClick={handleClick}>
+    <div
+      className="upload-area"
+      onClick={handleClick}
+      style={{ cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.6 : 1 }}
+    >
       <div className="upload-content">
         <Upload size={32} />
         <span className="upload-title">点击上传或拖拽图片至此</span>
@@ -121,6 +140,7 @@ const UploadArea: React.FC<UploadAreaProps> = ({ value, onChange, onPendingFileC
         accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
         style={{ display: 'none' }}
         onChange={handleFileChange}
+        disabled={disabled}
       />
     </div>
   )
