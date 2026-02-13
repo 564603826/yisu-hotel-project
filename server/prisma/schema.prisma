@@ -1,63 +1,62 @@
 generator client {
   provider = "prisma-client-js"
-  version  = "6.3.0"
+  output   = "../node_modules/.prisma/client"
 }
 
 datasource db {
-  provider = "mongodb"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
-enum UserRole {
-  merchant @map("merchant")
-  admin    @map("admin")
+enum Role {
+  merchant
+  admin
 }
 
 enum HotelStatus {
-  pending   @map("pending")
-  passed    @map("passed")
-  rejected  @map("rejected")
-  offline   @map("offline")
-}
-
-type HotelDiscount {
-  type  String
-  value Float
+  draft
+  pending
+  approved
+  rejected
+  published
+  offline
 }
 
 model User {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  username    String   @unique @db.String
-  password    String   @db.String
-  role        UserRole @default(merchant) @db.String
-  createTime  DateTime @default(now()) @map("createTime")
-  updateTime  DateTime @updatedAt @map("updateTime")
-  hotels      Hotel[]
+  id        Int      @id @default(autoincrement())
+  username  String   @unique @db.VarChar(50)
+  password  String   @db.VarChar(255)
+  role      Role     @default(merchant)
+  createdAt DateTime @default(now())
+  hotel     Hotel?
 
-  @@map("users")
+  @@map("User")
 }
 
 model Hotel {
-  id          String        @id @default(auto()) @map("_id") @db.ObjectId
-  nameCn      String        @db.String
-  nameEn      String        @db.String
-  address     String        @db.String
-  star        Int           @db.Int
-  roomType    String[]      @db.String[]
-  price       Float         @db.Float
-  openTime    String        @db.String
-  attractions String[]      @db.String[]
-  traffic     String        @db.String
-  discount    HotelDiscount?
-  status      HotelStatus   @default(pending) @db.String
-  rejectReason String?      @db.String
-  merchantId  String        @db.ObjectId
-  createTime  DateTime      @default(now()) @map("createTime")
-  updateTime  DateTime      @updatedAt @map("updateTime")
+  id                 Int          @id @default(autoincrement())
+  nameZh             String       @db.VarChar(100)
+  nameEn             String       @db.VarChar(100)
+  address            String       @db.VarChar(255)
+  starRating         Int
+  roomTypes          Json
+  price              Decimal      @db.Decimal(10, 2)
+  openDate           DateTime     @db.Date
+  nearbyAttractions  String?
+  nearbyTransport    String?
+  nearbyMalls        String?
+  discounts          Json?
+  images             Json?
+  description        String?
+  status             HotelStatus  @default(draft)
+  rejectReason       String?      @db.VarChar(255)
+  draftData          Json?
+  creatorId          Int          @unique
+  creator            User         @relation(fields: [creatorId], references: [id])
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
 
-  merchant    User          @relation(fields: [merchantId], references: [id])
-
-  @@index([merchantId])
   @@index([status])
-  @@map("hotels")
+  @@index([starRating])
+  @@map("Hotel")
 }
