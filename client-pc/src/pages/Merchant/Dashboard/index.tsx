@@ -1,6 +1,6 @@
 import React from 'react'
 import { Row, Col, Typography } from 'antd'
-import { Users, DoorOpen, DollarSign, TrendingUp, Pencil, BedDouble } from 'lucide-react'
+import { Users, DoorOpen, DollarSign, Pencil, BedDouble } from 'lucide-react'
 import styles from './MerchantDashboard.module.scss'
 import { useNavigate } from 'react-router-dom'
 import StatCard from '@/components/MerchantDashboard/StatCard'
