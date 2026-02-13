@@ -21,7 +21,6 @@ interface MerchantActions {
   updateHotelInfo: (data: UpdateHotelRequest) => Promise<Hotel>
   submitAudit: () => Promise<SubmitAuditResponse>
   cancelAudit: () => Promise<CancelAuditResponse>
-  // 房型管理方法
   addRoomType: (room: RoomType) => void
   updateRoomType: (index: number, room: RoomType) => void
   deleteRoomType: (index: number) => void

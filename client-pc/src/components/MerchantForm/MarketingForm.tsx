@@ -4,7 +4,11 @@ import { MapPin, Train, ShoppingBag, Plus, X } from 'lucide-react'
 
 const { Title } = Typography
 
-const MarketingForm: React.FC = () => {
+interface MarketingFormProps {
+  disabled?: boolean
+}
+
+const MarketingForm: React.FC<MarketingFormProps> = ({ disabled = false }) => {
   return (
     <div>
       {/* 附近信息区域 */}
@@ -31,6 +35,7 @@ const MarketingForm: React.FC = () => {
                 rows={3}
                 placeholder="如：距离故宫3.5km"
                 style={{ borderRadius: 8, resize: 'none' }}
+                disabled={disabled}
               />
             </Form.Item>
           </Col>
@@ -51,6 +56,7 @@ const MarketingForm: React.FC = () => {
                 rows={3}
                 placeholder="如：距离地铁站500米"
                 style={{ borderRadius: 8, resize: 'none' }}
+                disabled={disabled}
               />
             </Form.Item>
           </Col>
@@ -71,6 +77,7 @@ const MarketingForm: React.FC = () => {
                 rows={3}
                 placeholder="如：步行可达万达广场"
                 style={{ borderRadius: 8, resize: 'none' }}
+                disabled={disabled}
               />
             </Form.Item>
           </Col>
@@ -111,6 +118,7 @@ const MarketingForm: React.FC = () => {
                         placeholder="活动标题，如：夏季清凉特惠"
                         style={{ borderRadius: 6 }}
                         size="middle"
+                        disabled={disabled}
                       />
                     </Form.Item>
                     <Form.Item
@@ -123,31 +131,36 @@ const MarketingForm: React.FC = () => {
                         rows={2}
                         placeholder="优惠详情，如：连住3晚享8折优惠"
                         style={{ borderRadius: 6, resize: 'none' }}
+                        disabled={disabled}
                       />
                     </Form.Item>
                   </div>
-                  <Button
-                    type="text"
-                    danger
-                    icon={<X size={16} />}
-                    onClick={() => remove(name)}
-                    style={{ marginTop: 4 }}
-                  />
+                  {!disabled && (
+                    <Button
+                      type="text"
+                      danger
+                      icon={<X size={16} />}
+                      onClick={() => remove(name)}
+                      style={{ marginTop: 4 }}
+                    />
+                  )}
                 </div>
               ))}
-              <Button
-                type="dashed"
-                onClick={() => add()}
-                icon={<Plus size={16} />}
-                style={{
-                  height: 40,
-                  borderRadius: 6,
-                  borderColor: '#d6d3d1',
-                  color: '#78716c',
-                }}
-              >
-                添加优惠活动
-              </Button>
+              {!disabled && (
+                <Button
+                  type="dashed"
+                  onClick={() => add()}
+                  icon={<Plus size={16} />}
+                  style={{
+                    height: 40,
+                    borderRadius: 6,
+                    borderColor: '#d6d3d1',
+                    color: '#78716c',
+                  }}
+                >
+                  添加优惠活动
+                </Button>
+              )}
             </div>
           )}
         </Form.List>

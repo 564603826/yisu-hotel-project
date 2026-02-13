@@ -7,6 +7,7 @@ import LocationPicker from '../Location/LocationPicker'
 interface BasicInfoFormProps {
   pendingCoverFile?: File | null
   onPendingCoverFileChange?: (file: File | null) => void
+  disabled?: boolean
 }
 
 interface LocationData {
@@ -18,6 +19,7 @@ interface LocationData {
 const BasicInfoForm: React.FC<BasicInfoFormProps> = ({
   pendingCoverFile,
   onPendingCoverFileChange,
+  disabled = false,
 }) => {
   const [locationPickerOpen, setLocationPickerOpen] = useState(false)
   const [currentLocation, setCurrentLocation] = useState<LocationData | null>(null)
@@ -34,25 +36,25 @@ const BasicInfoForm: React.FC<BasicInfoFormProps> = ({
       <Row gutter={48}>
         <Col xs={24} lg={12}>
           <Form.Item label="酒店中文名称" name="nameZh" rules={[{ required: true }]}>
-            <Input size="large" placeholder="请输入酒店中文名称" />
+            <Input size="large" placeholder="请输入酒店中文名称" disabled={disabled} />
           </Form.Item>
           <Form.Item label="酒店英文名称" name="nameEn" rules={[{ required: true }]}>
-            <Input size="large" placeholder="请输入酒店英文名称" />
+            <Input size="large" placeholder="请输入酒店英文名称" disabled={disabled} />
           </Form.Item>
           <Row gutter={16}>
             <Col span={12}>
               <Form.Item label="开业时间" name="openDate" rules={[{ required: true }]}>
-                <DatePicker size="large" style={{ width: '100%' }} />
+                <DatePicker size="large" style={{ width: '100%' }} disabled={disabled} />
               </Form.Item>
             </Col>
             <Col span={12}>
               <Form.Item label="酒店星级" name="starRating" style={{ marginLeft: 24 }}>
-                <Rate style={{ color: '#c58e53', fontSize: 24 }} />
+                <Rate style={{ color: '#c58e53', fontSize: 24 }} disabled={disabled} />
               </Form.Item>
             </Col>
           </Row>
           <Form.Item label="酒店简介" name="description">
-            <Input.TextArea rows={4} placeholder="请输入酒店描述..." />
+            <Input.TextArea rows={4} placeholder="请输入酒店描述..." disabled={disabled} />
           </Form.Item>
         </Col>
 
@@ -62,16 +64,19 @@ const BasicInfoForm: React.FC<BasicInfoFormProps> = ({
               size="large"
               prefix={<MapPin size={16} style={{ color: '#a8a29e' }} />}
               suffix={
-                <Button
-                  size="small"
-                  type="text"
-                  onClick={() => setLocationPickerOpen(true)}
-                  style={{ color: '#c58e53' }}
-                >
-                  定位
-                </Button>
+                !disabled && (
+                  <Button
+                    size="small"
+                    type="text"
+                    onClick={() => setLocationPickerOpen(true)}
+                    style={{ color: '#c58e53' }}
+                  >
+                    定位
+                  </Button>
+                )
               }
               placeholder="点击定位按钮选择地址"
+              disabled={disabled}
             />
           </Form.Item>
 
@@ -79,6 +84,7 @@ const BasicInfoForm: React.FC<BasicInfoFormProps> = ({
             <UploadArea
               pendingFile={pendingCoverFile}
               onPendingFileChange={onPendingCoverFileChange}
+              disabled={disabled}
             />
           </Form.Item>
         </Col>

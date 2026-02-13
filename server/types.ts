@@ -54,23 +54,6 @@ type Discount = {
   endDate?: string
 }
 
-// 草稿数据类型（与 UpdateHotelRequest 一致，但包含 price）
-type DraftData = {
-  nameZh?: string
-  nameEn?: string
-  address?: string
-  starRating?: number
-  roomTypes?: RoomType[]
-  price?: string
-  openDate?: string
-  nearbyAttractions?: string
-  nearbyTransport?: string
-  nearbyMalls?: string
-  discounts?: Discount[]
-  images?: string[]
-  description?: string
-}
-
 type Hotel = {
   id: number
   nameZh: string
@@ -88,27 +71,19 @@ type Hotel = {
   description?: string
   status: HotelStatus
   rejectReason?: string
-  draftData?: DraftData | null // 版本控制：已发布/已下线酒店的草稿数据
+  draftData?: DraftData
   creatorId: number
   createdAt: string
   updatedAt: string
 }
 
-type HotelWithCreator = Hotel & {
-  creator?: {
-    id: number
-    username: string
-    role?: UserRole
-  }
-  image?: string // 酒店封面图（列表接口返回）
-}
-
-type UpdateHotelRequest = {
+type DraftData = {
   nameZh: string
   nameEn: string
   address: string
   starRating: number
   roomTypes: RoomType[]
+  price: number
   openDate: string
   nearbyAttractions?: string
   nearbyTransport?: string
@@ -117,10 +92,18 @@ type UpdateHotelRequest = {
   images?: string[]
   description?: string
 }
-type SubmitAuditResponse = {
-  id: number
-  status: HotelStatus
+
+type HotelWithCreator = Hotel & {
+  creator?: {
+    id: number
+    username: string
+    role?: UserRole
+  }
 }
+
+type UpdateHotelRequest = Partial<
+  Omit<Hotel, 'id' | 'status' | 'rejectReason' | 'creatorId' | 'createdAt' | 'updatedAt' | 'price'>
+>
 
 type PaginationParams = {
   page?: number
@@ -144,42 +127,11 @@ type RejectRequest = {
   reason: string
 }
 
-type RejectAuditResponse = {
-  id: number
-  status: 'rejected'
-  rejectReason: string
-}
-
-type PublishResponse = {
-  id: number
-  status: 'published'
-}
-
 type UploadResponse = {
   url: string
   filename: string
 }
 
-type OfflineResponse = {
-  id: number
-  status: 'offline'
-}
-
-type RestoreResponse = {
-  id: number
-  status: 'published'
-}
-
-type UploadImageResponse = {
-  url: string
-  filename: string
-}
-type CancelAuditResponse = {
-  id: number
-  status: 'draft'
-}
-
-type UploadImagesResponse = UploadImageResponse[]
 export type {
   ApiResponse,
   UserRole,
@@ -191,20 +143,12 @@ export type {
   RegisterResponseData,
   RoomType,
   Discount,
-  DraftData,
   Hotel,
   HotelWithCreator,
+  DraftData,
   UpdateHotelRequest,
-  SubmitAuditResponse,
   PaginationParams,
   Pagination,
   RejectRequest,
-  RejectAuditResponse,
-  PublishResponse,
   UploadResponse,
-  OfflineResponse,
-  RestoreResponse,
-  UploadImageResponse,
-  UploadImagesResponse,
-  CancelAuditResponse,
 }

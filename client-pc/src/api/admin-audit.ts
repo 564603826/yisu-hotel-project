@@ -7,6 +7,7 @@ import type {
   RejectAuditResponse,
   PublishResponse,
   OfflineResponse,
+  RestoreResponse,
 } from '@/types'
 import service from '@/utils/request.ts'
 
@@ -34,5 +35,5 @@ export default {
   offlineHotel: (id: number) =>
     service.put<any, OfflineResponse>(URL.OFFLINE_HOTEL.replace(':id', id.toString())),
   restoreHotel: (id: number) =>
-    service.put<any, PublishResponse>(URL.RESTORE_HOTEL.replace(':id', id.toString())),
+    service.put<any, RestoreResponse>(URL.RESTORE_HOTEL.replace(':id', id.toString())),
 }

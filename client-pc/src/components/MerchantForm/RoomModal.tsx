@@ -128,8 +128,9 @@ const RoomModal: React.FC<RoomModalProps> = ({
                   placeholder="1280"
                   formatter={(value) => `¥ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
                   parser={(value) => {
-                    const parsed = value?.replace(/\s?|(,*)/g, '')
-                    return (parsed ? Number(parsed) : 0) as number
+                    if (!value) return 0
+                    const parsed = value.replace(/[^0-9]/g, '')
+                    return parsed ? Number(parsed) : 0
                   }}
                 />
               </Form.Item>

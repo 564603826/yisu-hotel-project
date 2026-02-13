@@ -1,6 +1,17 @@
 import React, { useState, useEffect, useMemo } from 'react'
-import { Form, Button, Space, message, Modal, Tag } from 'antd'
-import { Save, Undo2, Loader2, FileEdit, Clock, CheckCircle, XCircle } from 'lucide-react'
+import { Form, Button, Space, message, Modal, Tag, Alert } from 'antd'
+import {
+  Save,
+  Undo2,
+  Loader2,
+  FileEdit,
+  Clock,
+  CheckCircle,
+  XCircle,
+  Eye,
+  Edit3,
+  AlertCircle,
+} from 'lucide-react'
 import styles from './MerchantHotelForm.module.scss'
 import dayjs from 'dayjs'
 import CustomTabs from '@/components/MerchantForm/CustomTabs'
@@ -13,6 +24,11 @@ import { useMerchantStore } from '@/store'
 import { type RoomType } from '@/types'
 import uploadImageApi from '@/api/upload-image'
 
+// 判断是否为已发布/已下线状态（有版本控制）
+const hasVersionControl = (status: string) => {
+  return status === 'published' || status === 'offline'
+}
+
 const MerchantHotelForm: React.FC = () => {
   const [form] = Form.useForm()
   const [activeTab, setActiveTab] = useState('basic')
@@ -20,6 +36,10 @@ const MerchantHotelForm: React.FC = () => {
   const [editingRoomIndex, setEditingRoomIndex] = useState<number | null>(null)
   const [pendingCoverFile, setPendingCoverFile] = useState<File | null>(null)
   const [saving, setSaving] = useState(false)
+  // 版本控制：是否查看当前线上版本（已发布/已下线酒店）
+  const [viewingPublishedVersion, setViewingPublishedVersion] = useState(false)
+  // 查看驳回原因弹窗
+  const [rejectReasonModalOpen, setRejectReasonModalOpen] = useState(false)
 
   const { hotelInfo } = useMerchantStore((state) => state)
   const getHotelInfo = useMerchantStore((state) => state.getHotelInfo)
@@ -34,25 +54,62 @@ const MerchantHotelForm: React.FC = () => {
     getHotelInfo()
   }, [getHotelInfo])
 
-  const roomData = useMemo<RoomType[]>(() => {
-    return hotelInfo?.roomTypes || []
-  }, [hotelInfo?.roomTypes])
+  // 获取当前展示的数据（主数据或草稿数据）
+  const displayData = useMemo(() => {
+    if (!hotelInfo) return null
 
-  useEffect(() => {
-    if (hotelInfo?.id) {
-      const formData = {
+    // 已发布/已下线酒店且有草稿数据时
+    if (hasVersionControl(hotelInfo.status) && hotelInfo.draftData) {
+      // 查看线上版本：返回主数据
+      if (viewingPublishedVersion) {
+        return hotelInfo
+      }
+      // 编辑草稿版本：合并 draftData 到主数据
+      return {
         ...hotelInfo,
-        openDate: dayjs(hotelInfo?.openDate),
-        coverImage: hotelInfo?.images?.[0] || '',
+        ...hotelInfo.draftData,
+      }
+    }
+
+    // 其他情况直接返回主数据
+    return hotelInfo
+  }, [hotelInfo, viewingPublishedVersion])
+
+  // 房型数据（根据当前展示的数据源）
+  const roomData = useMemo<RoomType[]>(() => {
+    return displayData?.roomTypes || []
+  }, [displayData?.roomTypes])
+
+  // 表单数据初始化
+  useEffect(() => {
+    if (displayData?.id) {
+      const formData = {
+        ...displayData,
+        openDate: displayData.openDate ? dayjs(displayData.openDate) : null,
+        coverImage: displayData.images?.[0] || '',
       }
       form.setFieldsValue(formData)
       setPendingCoverFile(null)
     }
-  }, [hotelInfo, form])
+  }, [displayData, form])
+
+  // 切换查看模式时重置表单
+  useEffect(() => {
+    if (hotelInfo && hasVersionControl(hotelInfo.status)) {
+      const data = viewingPublishedVersion ? hotelInfo : { ...hotelInfo, ...hotelInfo.draftData }
+      const formData = {
+        ...data,
+        openDate: data?.openDate ? dayjs(data.openDate) : null,
+        coverImage: data?.images?.[0] || '',
+      }
+      form.setFieldsValue(formData)
+    }
+  }, [viewingPublishedVersion, hotelInfo, form])
 
   const update = async () => {
-    if (hotelInfo?.status === 'pending') {
-      message.warning('酒店正在审核中，暂不能修改信息')
+    // 查看线上版本时不能保存
+    if (viewingPublishedVersion) {
+      message.warning('当前处于查看线上版本模式，请切换到编辑模式后再保存')
       return
     }
 
@@ -71,7 +128,7 @@ const MerchantHotelForm: React.FC = () => {
 
       const updateForm = {
         ...formValues,
-        openDate: form.getFieldValue('openDate').format('YYYY-MM-DD'),
+        openDate: form.getFieldValue('openDate')?.format('YYYY-MM-DD'),
         roomTypes: roomData,
         images: coverImageUrl ? [coverImageUrl] : [],
       }
@@ -87,6 +144,18 @@ const MerchantHotelForm: React.FC = () => {
   }
 
   const submit = async () => {
+    // 查看线上版本时不能提交
+    if (viewingPublishedVersion) {
+      message.warning('当前处于查看线上版本模式，请切换到编辑模式后再提交')
+      return
+    }
+
+    // 已发布/已下线酒店需要检查是否有草稿数据
+    if (hotelInfo && hasVersionControl(hotelInfo.status) && !hotelInfo.draftData) {
+      message.warning('请先修改酒店信息后再提交审核')
+      return
+    }
+
     setSaving(true)
     try {
       await submitAudit()
@@ -112,16 +181,28 @@ const MerchantHotelForm: React.FC = () => {
   }
 
   const handleAddRoom = () => {
+    if (viewingPublishedVersion) {
+      message.warning('查看模式下不能编辑房型')
+      return
+    }
     setEditingRoomIndex(null)
     setRoomModalOpen(true)
   }
 
   const handleEditRoom = (index: number) => {
+    if (viewingPublishedVersion) {
+      message.warning('查看模式下不能编辑房型')
+      return
+    }
     setEditingRoomIndex(index)
     setRoomModalOpen(true)
   }
 
   const handleDeleteRoom = (index: number) => {
+    if (viewingPublishedVersion) {
+      message.warning('查看模式下不能删除房型')
+      return
+    }
     Modal.confirm({
       title: '确认删除',
       content: '确定要删除这个房型吗？此操作不可恢复。',
@@ -153,7 +234,10 @@ const MerchantHotelForm: React.FC = () => {
     return undefined
   }, [editingRoomIndex, roomData])
 
-  const statusConfig = {
+  const statusConfig: Record<
+    string,
+    { label: string; color: string; icon: React.ReactNode; className: string }
+  > = {
     draft: {
       label: '草稿',
       color: 'default',
@@ -165,6 +249,12 @@ const MerchantHotelForm: React.FC = () => {
       color: 'processing',
       icon: <Clock size={14} />,
       className: styles.statusPending,
+    },
+    approved: {
+      label: '审核通过',
+      color: 'warning',
+      icon: <CheckCircle size={14} />,
+      className: styles.statusApproved,
     },
     published: {
       label: '已发布',
@@ -178,9 +268,18 @@ const MerchantHotelForm: React.FC = () => {
       icon: <XCircle size={14} />,
       className: styles.statusRejected,
     },
+    offline: {
+      label: '已下线',
+      color: 'default',
+      icon: <XCircle size={14} />,
+      className: styles.statusOffline,
+    },
   }
 
-  const currentStatus = statusConfig[(hotelInfo?.status as keyof typeof statusConfig) || 'draft']
+  const currentStatus = statusConfig[hotelInfo?.status || 'draft'] || statusConfig.draft
+
+  // 是否有待审核的草稿
+  const hasPendingDraft = hotelInfo && hasVersionControl(hotelInfo.status) && !!hotelInfo.draftData
 
   return (
     <div className={styles.container}>
@@ -193,8 +292,29 @@ const MerchantHotelForm: React.FC = () => {
           >
             {currentStatus.label}
           </Tag>
-          <span className={styles.headerDesc}>请完善您的酒店资料，审核通过后将展示在客户端。</span>
+          <span className={styles.headerDesc}>
+            {hotelInfo?.status === 'published'
+              ? '酒店已发布，客户端展示的是最近一次已上线的版本。'
+              : hotelInfo?.status === 'offline'
+                ? '酒店已下线，客户端不再展示。'
+                : '请完善您的酒店资料，审核通过后将展示在客户端。'}
+          </span>
+          {/* 查看驳回原因按钮 */}
+          {hotelInfo?.rejectReason &&
+            (hotelInfo.status === 'rejected' ||
+              hotelInfo.status === 'draft' ||
+              hotelInfo.status === 'pending') && (
+              <Button
+                type="link"
+                icon={<AlertCircle size={16} />}
+                onClick={() => setRejectReasonModalOpen(true)}
+                style={{ color: '#dc2626', padding: '0 8px' }}
+              >
+                查看驳回原因
+              </Button>
+            )}
         </div>
+
         <Space className={styles.optionButton}>
           {hotelInfo?.status === 'draft' && (
             <>
@@ -217,10 +337,21 @@ const MerchantHotelForm: React.FC = () => {
               撤销审核
             </Button>
           )}
-          {hotelInfo?.status === 'published' && (
-            <Button size="large" onClick={update} disabled={saving}>
-              {saving ? <Loader2 size={16} className="spin" /> : '保存修改'}
-            </Button>
+          {(hotelInfo?.status === 'published' || hotelInfo?.status === 'offline') && (
+            <>
+              <Button size="large" onClick={update} disabled={saving || viewingPublishedVersion}>
+                {saving ? <Loader2 size={16} className="spin" /> : '保存修改'}
+              </Button>
+              <Button
+                size="large"
+                className="btn-primary-gold"
+                icon={<Save size={18} />}
+                onClick={submit}
+                disabled={saving || viewingPublishedVersion || !hasPendingDraft}
+              >
+                提交审核
+              </Button>
+            </>
           )}
           {hotelInfo?.status === 'rejected' && (
             <>
@@ -241,6 +372,69 @@ const MerchantHotelForm: React.FC = () => {
         </Space>
       </div>
 
+      {/* 版本控制切换按钮（仅已发布/已下线酒店显示） */}
+      {hotelInfo && hasVersionControl(hotelInfo.status) && (
+        <div className={styles.versionToggle}>
+          <Space>
+            <Button
+              type={viewingPublishedVersion ? 'primary' : 'default'}
+              icon={<Eye size={16} />}
+              onClick={() => setViewingPublishedVersion(true)}
+            >
+              查看线上版本
+            </Button>
+            <Button
+              type={!viewingPublishedVersion ? 'primary' : 'default'}
+              icon={<Edit3 size={16} />}
+              onClick={() => setViewingPublishedVersion(false)}
+            >
+              编辑草稿
+            </Button>
+          </Space>
+        </div>
+      )}
+
+      {/* 版本控制提示 */}
+      {hasPendingDraft && (
+        <Alert
+          message="您有未提交的修改"
+          description="当前酒店有已保存但未提交的修改，提交审核后客户端将展示新版本。"
+          type="info"
+          showIcon
+          style={{ marginBottom: 16 }}
+        />
+      )}
+
+      {/* 查看模式提示 */}
+      {viewingPublishedVersion && (
+        <Alert
+          message="查看模式"
+          description="当前展示的是客户端正在展示的线上版本，此模式下不能编辑。"
+          type="warning"
+          showIcon
+          style={{ marginBottom: 16 }}
+        />
+      )}
+
+      {/* 驳回原因弹窗 */}
+      <Modal
+        title="驳回原因"
+        open={rejectReasonModalOpen}
+        onCancel={() => setRejectReasonModalOpen(false)}
+        footer={[
+          <Button key="close" onClick={() => setRejectReasonModalOpen(false)}>
+            关闭
+          </Button>,
+        ]}
+      >
+        <div style={{ padding: '16px 0' }}>
+          <Alert title="审核不通过" description={hotelInfo?.rejectReason} type="error" showIcon />
+          <p style={{ marginTop: 16, color: '#78716c', fontSize: 14 }}>
+            请根据驳回原因修改酒店信息后重新提交审核。
+          </p>
+        </div>
+      </Modal>
+
       <CustomTabs
         activeKey={activeTab}
         onChange={setActiveTab}
@@ -257,6 +451,7 @@ const MerchantHotelForm: React.FC = () => {
             <BasicInfoForm
               pendingCoverFile={pendingCoverFile}
               onPendingCoverFileChange={setPendingCoverFile}
+              disabled={viewingPublishedVersion}
             />
           )}
           {activeTab === 'rooms' && (
@@ -267,7 +462,7 @@ const MerchantHotelForm: React.FC = () => {
               onDeleteRoom={handleDeleteRoom}
             />
           )}
-          {activeTab === 'marketing' && <MarketingForm />}
+          {activeTab === 'marketing' && <MarketingForm disabled={viewingPublishedVersion} />}
         </Form>
       </FormCard>
 
