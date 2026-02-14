@@ -61,6 +61,54 @@ const isOnlineStatus = (status) => {
   return status === 'published' || status === 'offline'
 }
 
+// 比较两个对象是否相等（深度比较）
+const isEqual = (obj1, obj2) => {
+  return JSON.stringify(obj1) === JSON.stringify(obj2)
+}
+
+// 检查酒店数据是否有变化
+const hasDataChanged = (currentData, newData) => {
+  const fieldsToCompare = [
+    'nameZh',
+    'nameEn',
+    'address',
+    'starRating',
+    'roomTypes',
+    'openDate',
+    'nearbyAttractions',
+    'nearbyTransport',
+    'nearbyMalls',
+    'discounts',
+    'images',
+    'description',
+  ]
+
+  for (const field of fieldsToCompare) {
+    if (newData[field] === undefined) continue
+
+    const currentValue = currentData[field]
+    const newValue = newData[field]
+
+    // 处理日期比较
+    if (field === 'openDate') {
+      const currentDate =
+        currentValue instanceof Date ? currentValue.toISOString().split('T')[0] : currentValue
+      const newDate = newValue instanceof Date ? newValue.toISOString().split('T')[0] : newValue
+      if (currentDate !== newDate) return true
+      continue
+    }
+
+    // 处理数组和对象比较
+    if (Array.isArray(currentValue) || typeof currentValue === 'object') {
+      if (!isEqual(currentValue, newValue)) return true
+    } else {
+      if (currentValue !== newValue) return true
+    }
+  }
+
+  return false
+}
+
 const getMyHotel = async (req, res) => {
   try {
     const userId = req.user.userId
@@ -145,6 +193,11 @@ const updateMyHotel = async (req, res) => {
         description: hotel.description,
       }
 
+      // 检查数据是否有变化
+      if (!hasDataChanged(currentData, updateData)) {
+        return responseHandler.badRequest(res, '酒店信息未发生任何变化，无需更新')
+      }
+
       const newDraftData = {
         ...currentData,
         ...updateData,
@@ -157,6 +210,26 @@ const updateMyHotel = async (req, res) => {
         },
       })
     } else {
+      const currentData = {
+        nameZh: hotel.nameZh,
+        nameEn: hotel.nameEn,
+        address: hotel.address,
+        starRating: hotel.starRating,
+        roomTypes: hotel.roomTypes,
+        openDate: hotel.openDate,
+        nearbyAttractions: hotel.nearbyAttractions,
+        nearbyTransport: hotel.nearbyTransport,
+        nearbyMalls: hotel.nearbyMalls,
+        discounts: hotel.discounts,
+        images: hotel.images,
+        description: hotel.description,
+      }
+
+      // 检查数据是否有变化
+      if (!hasDataChanged(currentData, updateData)) {
+        return responseHandler.badRequest(res, '酒店信息未发生任何变化，无需更新')
+      }
+
       updatedHotel = await prisma.hotel.update({
         where: { creatorId: userId },
         data: {
