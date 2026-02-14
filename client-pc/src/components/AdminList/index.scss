@@ -34,6 +34,20 @@
   margin-bottom: 24px;
 }
 
+// 刷新按钮旋转动画
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spinning {
+  animation: spin 1s linear infinite;
+}
+
 .table-card {
   background: #fff;
   border: 1px solid rgba(223, 194, 153, 0.5);

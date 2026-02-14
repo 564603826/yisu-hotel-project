@@ -10,6 +10,7 @@ const authRoutes = require('./routes/auth')
 const hotelRoutes = require('./routes/hotel')
 const adminRoutes = require('./routes/admin')
 const uploadRoutes = require('./routes/upload')
+const mobileRoutes = require('./routes/mobile')
 
 const app = express()
 const prisma = new PrismaClient()
@@ -22,6 +23,7 @@ app.use('/api/v1/auth', authRoutes)
 app.use('/api/v1/hotels', hotelRoutes)
 app.use('/api/v1/admin', adminRoutes)
 app.use('/api/v1/upload', uploadRoutes)
+app.use('/api/v1/mobile', mobileRoutes)
 
 app.use((err, req, res, next) => {
   console.error(err.stack)

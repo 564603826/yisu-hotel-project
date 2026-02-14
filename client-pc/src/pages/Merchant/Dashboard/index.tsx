@@ -1,24 +1,123 @@
-import React from 'react'
-import { Row, Col, Typography } from 'antd'
-import { Users, DoorOpen, DollarSign, Pencil, BedDouble } from 'lucide-react'
+import React, { useCallback, useState } from 'react'
+import { Row, Col, Typography, Spin } from 'antd'
+import { Users, DoorOpen, DollarSign, Pencil, BedDouble, RefreshCw } from 'lucide-react'
 import styles from './MerchantDashboard.module.scss'
 import { useNavigate } from 'react-router-dom'
 import StatCard from '@/components/MerchantDashboard/StatCard'
 import ActionCard from '@/components/MerchantDashboard/ActionCard'
 import WhiteCard from '@/components/MerchantDashboard/WhiteCard'
+import { useAutoRefresh } from '@/hooks/useAutoRefresh'
+import { useMerchantStore } from '@/store'
 
 const { Title, Text } = Typography
 
 const MerchantDashboard: React.FC = () => {
   const navigate = useNavigate()
+  const { hotelInfo, getHotelInfo } = useMerchantStore()
+  const [loading, setLoading] = useState(false)
+  const [lastUpdateTime, setLastUpdateTime] = useState<Date>(new Date())
+
+  // 获取酒店信息的函数 - 使用 useCallback 避免无限循环
+  const fetchHotelData = useCallback(async () => {
+    setLoading(true)
+    try {
+      await getHotelInfo()
+      setLastUpdateTime(new Date())
+    } catch (error) {
+      console.error('获取酒店信息失败:', error)
+    } finally {
+      setLoading(false)
+    }
+  }, [getHotelInfo])
+
+  // 使用自动刷新 Hook，每 30 秒刷新一次
+  const { refresh } = useAutoRefresh(fetchHotelData, {
+    interval: 30000, // 30秒
+    refreshOnVisible: true, // 页面可见时立即刷新
+    enabled: true,
+  })
+
+  // 格式化更新时间
+  const formatUpdateTime = (date: Date) => {
+    return date.toLocaleTimeString('zh-CN', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    })
+  }
+
   return (
     <div className={styles.container}>
       {/* 欢迎语 */}
       <div className={styles.welcomeSection}>
-        <Title level={2}>
-          欢迎回来, <span style={{ color: '#c58e53' }}>四季御苑酒店</span>
-        </Title>
-        <Text type="secondary">这是您今天的运营概况。</Text>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div>
+            <Title level={2}>
+              欢迎回来,{' '}
+              <span style={{ color: '#c58e53' }}>{hotelInfo?.nameZh || '四季御苑酒店'}</span>
+            </Title>
+            <Text type="secondary">这是您今天的运营概况。</Text>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            {loading && <Spin size="small" />}
+            <Text type="secondary" style={{ fontSize: '12px' }}>
+              上次更新: {formatUpdateTime(lastUpdateTime)}
+            </Text>
+            <RefreshCw
+              size={18}
+              style={{ cursor: 'pointer', color: '#c58e53' }}
+              onClick={refresh}
+              className={loading ? styles.spinning : ''}
+            />
+          </div>
+        </div>
+        {/* 酒店状态标签 */}
+        {hotelInfo && (
+          <div style={{ marginTop: '12px' }}>
+            <span
+              style={{
+                padding: '4px 12px',
+                borderRadius: '4px',
+                fontSize: '12px',
+                backgroundColor:
+                  hotelInfo.status === 'published'
+                    ? '#52c41a'
+                    : hotelInfo.status === 'pending'
+                      ? '#faad14'
+                      : hotelInfo.status === 'rejected'
+                        ? '#f5222d'
+                        : '#d9d9d9',
+                color: '#fff',
+              }}
+            >
+              {hotelInfo.status === 'published'
+                ? '已发布'
+                : hotelInfo.status === 'pending'
+                  ? '审核中'
+                  : hotelInfo.status === 'rejected'
+                    ? '审核不通过'
+                    : hotelInfo.status === 'draft'
+                      ? '草稿'
+                      : hotelInfo.status === 'offline'
+                        ? '已下线'
+                        : hotelInfo.status}
+            </span>
+            {hotelInfo.draftData && (
+              <span
+                style={{
+                  marginLeft: '8px',
+                  padding: '4px 12px',
+                  borderRadius: '4px',
+                  fontSize: '12px',
+                  backgroundColor: '#1890ff',
+                  color: '#fff',
+                }}
+              >
+                有待审核的修改
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
       {/* 1. 顶部数据 - 白色卡片 */}

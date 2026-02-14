@@ -1,0 +1,494 @@
+# 移动端（用户端）接口设计文档
+
+## 基础信息
+
+- **Base URL**: `http://localhost:3000/api/v1`
+- **认证方式**: 无需认证，所有接口均为公开
+- **数据格式**: JSON
+
+## 统一响应格式
+
+所有接口返回统一的信封格式：
+
+```json
+{
+  "code": 200,
+  "msg": "操作成功",
+  "data": {}
+}
+```
+
+**状态码说明：**
+
+| 状态码 | 说明       |
+| ------ | ---------- |
+| 200    | 成功       |
+| 400    | 请求错误   |
+| 404    | 资源不存在 |
+| 500    | 服务器错误 |
+
+---
+
+## 接口列表
+
+| 接口           | 方法 | 路径                    | 说明                           |
+| -------------- | ---- | ----------------------- | ------------------------------ |
+| 获取Banner列表 | GET  | /mobile/banners         | 获取首页轮播图（写死数据）     |
+| 搜索酒店       | GET  | /mobile/hotels/search   | 关键字搜索酒店                 |
+| 获取酒店列表   | GET  | /mobile/hotels          | 获取已发布酒店列表（支持筛选） |
+| 获取酒店详情   | GET  | /mobile/hotels/:id      | 获取酒店详细信息               |
+| 获取筛选选项   | GET  | /mobile/filters/options | 获取筛选条件选项               |
+| 获取快捷标签   | GET  | /mobile/filters/tags    | 获取快捷标签列表               |
+
+---
+
+## 接口详细设计
+
+### 一、Banner模块
+
+#### 1. 获取Banner列表
+
+**接口地址**: `GET /mobile/banners`
+
+**说明**: 获取首页轮播的Banner列表。当前版本为写死数据，后续可在PC管理员后台配置。
+
+**请求参数**: 无
+
+**成功响应** (200):
+
+```json
+{
+  "code": 200,
+  "msg": "查询成功",
+  "data": {
+    "banners": [
+      {
+        "id": 1,
+        "title": "杭州西湖希尔顿酒店",
+        "subtitle": "限时特惠 8折起",
+        "imageUrl": "https://example.com/banner1.jpg",
+        "hotelId": 1
+      },
+      {
+        "id": 2,
+        "title": "夏日海岛度假",
+        "subtitle": "精选海景房",
+        "imageUrl": "https://example.com/banner2.jpg",
+        "hotelId": 2
+      }
+    ]
+  }
+}
+```
+
+**字段说明：**
+
+| 字段名   | 类型   | 说明       |
+| -------- | ------ | ---------- |
+| id       | number | Banner ID  |
+| title    | string | 标题       |
+| subtitle | string | 副标题     |
+| imageUrl | string | 图片URL    |
+| hotelId  | number | 关联酒店ID |
+
+---
+
+### 二、酒店搜索模块
+
+#### 1. 搜索酒店（关键字搜索）
+
+**接口地址**: `GET /mobile/hotels/search`
+
+**说明**: 根据关键字搜索已发布的酒店，支持酒店名、地址模糊搜索。
+
+**请求参数**:
+
+| 参数名  | 类型   | 必填 | 说明             |
+| ------- | ------ | ---- | ---------------- |
+| keyword | string | 是   | 搜索关键字       |
+| page    | number | 否   | 页码，默认1      |
+| limit   | number | 否   | 每页数量，默认10 |
+
+**请求示例**:
+
+```
+GET /mobile/hotels/search?keyword=杭州&page=1&limit=10
+```
+
+**成功响应** (200):
+
+```json
+{
+  "code": 200,
+  "msg": "查询成功",
+  "data": {
+    "list": [
+      {
+        "id": 1,
+        "nameZh": "杭州西湖希尔顿酒店",
+        "nameEn": "Hilton Hangzhou West Lake",
+        "address": "浙江省杭州市西湖区曙光路120号",
+        "starRating": 5,
+        "price": 688,
+        "mainImage": "https://example.com/hotel1.jpg",
+        "tags": ["豪华", "湖景", "免费停车"]
+      }
+    ],
+    "pagination": {
+      "page": 1,
+      "pageSize": 10,
+      "total": 50,
+      "totalPages": 5
+    }
+  }
+}
+```
+
+---
+
+#### 2. 获取酒店列表（支持筛选）
+
+**接口地址**: `GET /mobile/hotels`
+
+**说明**: 获取状态为 `published`（已发布）的酒店列表，支持多种筛选条件和排序。
+
+**请求参数**:
+
+| 参数名     | 类型   | 必填 | 说明                                                              |
+| ---------- | ------ | ---- | ----------------------------------------------------------------- |
+| city       | string | 否   | 城市名称                                                          |
+| starRating | number | 否   | 星级筛选：1-5，多个用逗号分隔，如"4,5"                            |
+| minPrice   | number | 否   | 最低价格                                                          |
+| maxPrice   | number | 否   | 最高价格                                                          |
+| tags       | string | 否   | 快捷标签，多个用逗号分隔，如"亲子,豪华"                           |
+| sortBy     | string | 否   | 排序方式：price-asc(价格升序), price-desc(价格降序), default-默认 |
+| page       | number | 否   | 页码，默认1                                                       |
+| limit      | number | 否   | 每页数量，默认10                                                  |
+
+**请求示例**:
+
+```
+GET /mobile/hotels?city=杭州&starRating=4,5&minPrice=500&maxPrice=1000&sortBy=price-asc&page=1&limit=10
+```
+
+**成功响应** (200):
+
+```json
+{
+  "code": 200,
+  "msg": "查询成功",
+  "data": {
+    "list": [
+      {
+        "id": 1,
+        "nameZh": "杭州西湖希尔顿酒店",
+        "nameEn": "Hilton Hangzhou West Lake",
+        "address": "浙江省杭州市西湖区曙光路120号",
+        "starRating": 5,
+        "price": 688,
+        "originalPrice": 888,
+        "discountInfo": {
+          "type": "percentage",
+          "name": "春节特惠",
+          "value": 80
+        },
+        "mainImage": "https://example.com/hotel1.jpg",
+        "images": ["https://example.com/hotel1-1.jpg", "https://example.com/hotel1-2.jpg"],
+        "tags": ["豪华", "湖景", "免费停车"],
+        "facilities": ["WiFi", "游泳池", "健身房"]
+      }
+    ],
+    "pagination": {
+      "page": 1,
+      "pageSize": 10,
+      "total": 50,
+      "totalPages": 5
+    }
+  }
+}
+```
+
+**字段说明：**
+
+| 字段名        | 类型   | 说明                         |
+| ------------- | ------ | ---------------------------- |
+| id            | number | 酒店ID                       |
+| nameZh        | string | 酒店中文名                   |
+| nameEn        | string | 酒店英文名                   |
+| address       | string | 酒店地址                     |
+| starRating    | number | 酒店星级（1-5）              |
+| price         | number | 当前最低价格（根据房型计算） |
+| originalPrice | number | 原价（有优惠时）             |
+| discountInfo  | object | 优惠信息                     |
+| mainImage     | string | 主图URL（images的第一张）    |
+| images        | array  | 图片列表                     |
+| tags          | array  | 标签列表                     |
+| facilities    | array  | 设施列表                     |
+
+---
+
+#### 3. 获取酒店详情
+
+**接口地址**: `GET /mobile/hotels/:id`
+
+**说明**: 获取酒店详细信息，仅返回 `status` 为 `published` 的酒店。
+
+**请求参数**:
+
+| 参数名 | 类型   | 必填 | 说明               |
+| ------ | ------ | ---- | ------------------ |
+| id     | number | 是   | 酒店ID（路径参数） |
+
+**请求示例**:
+
+```
+GET /mobile/hotels/1
+```
+
+**成功响应** (200):
+
+```json
+{
+  "code": 200,
+  "msg": "查询成功",
+  "data": {
+    "id": 1,
+    "nameZh": "杭州西湖希尔顿酒店",
+    "nameEn": "Hilton Hangzhou West Lake",
+    "address": "浙江省杭州市西湖区曙光路120号",
+    "starRating": 5,
+    "openDate": "2018-06-01",
+    "description": "杭州西湖希尔顿酒店坐落于风景秀丽的西湖畔...",
+    "price": 688,
+    "originalPrice": 888,
+    "discountInfo": {
+      "type": "percentage",
+      "name": "春节特惠",
+      "value": 80,
+      "description": "春节期间入住享8折优惠",
+      "startDate": "2026-01-25",
+      "endDate": "2026-02-10"
+    },
+    "images": [
+      "https://example.com/hotel1-1.jpg",
+      "https://example.com/hotel1-2.jpg",
+      "https://example.com/hotel1-3.jpg"
+    ],
+    "facilities": ["WiFi", "空调", "电视", "游泳池", "健身房", "免费停车", "餐厅"],
+    "tags": ["豪华", "湖景", "亲子", "商务"],
+    "nearby": {
+      "attractions": [
+        { "name": "西湖", "distance": "0.5km" },
+        { "name": "灵隐寺", "distance": "3.2km" }
+      ],
+      "transport": [
+        { "name": "地铁1号线龙翔桥站", "distance": "0.8km" },
+        { "name": "杭州东站", "distance": "8.5km" }
+      ],
+      "malls": [
+        { "name": "银泰百货", "distance": "1.2km" },
+        { "name": "湖滨银泰", "distance": "1.5km" }
+      ]
+    },
+    "roomTypes": [
+      {
+        "name": "豪华大床房",
+        "price": 688,
+        "originalPrice": 888,
+        "area": 35,
+        "bedType": "大床",
+        "bedSize": "1.8m",
+        "maxGuests": 2,
+        "facilities": ["WiFi", "空调", "电视", "独立卫浴", "迷你吧"],
+        "images": ["https://example.com/room1-1.jpg"],
+        "breakfast": true
+      },
+      {
+        "name": "豪华双床房",
+        "price": 728,
+        "originalPrice": 928,
+        "area": 38,
+        "bedType": "双床",
+        "bedSize": "1.2m*2",
+        "maxGuests": 2,
+        "facilities": ["WiFi", "空调", "电视", "独立卫浴", "迷你吧"],
+        "images": ["https://example.com/room2-1.jpg"],
+        "breakfast": true
+      }
+    ]
+  }
+}
+```
+
+**字段说明：**
+
+**酒店基本信息**
+
+| 字段名        | 类型   | 说明                   |
+| ------------- | ------ | ---------------------- |
+| id            | number | 酒店ID                 |
+| nameZh        | string | 酒店中文名             |
+| nameEn        | string | 酒店英文名             |
+| address       | string | 酒店地址               |
+| starRating    | number | 酒店星级               |
+| openDate      | string | 开业时间               |
+| description   | string | 酒店描述               |
+| price         | number | 最低价格（房型最低价） |
+| originalPrice | number | 原价                   |
+| discountInfo  | object | 优惠信息               |
+| images        | array  | 酒店图片列表           |
+| facilities    | array  | 设施列表               |
+| tags          | array  | 标签列表               |
+
+**周边信息 (nearby)**
+
+| 字段名      | 类型  | 说明     |
+| ----------- | ----- | -------- |
+| attractions | array | 附近景点 |
+| transport   | array | 附近交通 |
+| malls       | array | 附近商场 |
+
+**房型信息 (roomTypes)** - 按价格从低到高排序
+
+| 字段名        | 类型    | 说明           |
+| ------------- | ------- | -------------- |
+| name          | string  | 房型名称       |
+| price         | number  | 价格           |
+| originalPrice | number  | 原价           |
+| area          | number  | 面积（平方米） |
+| bedType       | string  | 床型           |
+| bedSize       | string  | 床尺寸         |
+| maxGuests     | number  | 最大入住人数   |
+| facilities    | array   | 房间设施       |
+| images        | array   | 房型图片       |
+| breakfast     | boolean | 是否含早餐     |
+
+---
+
+### 三、筛选配置模块
+
+#### 1. 获取筛选选项
+
+**接口地址**: `GET /mobile/filters/options`
+
+**说明**: 获取酒店筛选条件选项，用于筛选区域展示。
+
+**请求参数**: 无
+
+**成功响应** (200):
+
+```json
+{
+  "code": 200,
+  "msg": "查询成功",
+  "data": {
+    "starRatings": [
+      { "value": 5, "label": "五星级" },
+      { "value": 4, "label": "四星级" },
+      { "value": 3, "label": "三星级" },
+      { "value": 2, "label": "二星级" },
+      { "value": 1, "label": "一星级" }
+    ],
+    "priceRanges": [
+      { "min": 0, "max": 200, "label": "¥200以下" },
+      { "min": 200, "max": 500, "label": "¥200-500" },
+      { "min": 500, "max": 1000, "label": "¥500-1000" },
+      { "min": 1000, "max": 2000, "label": "¥1000-2000" },
+      { "min": 2000, "max": null, "label": "¥2000以上" }
+    ],
+    "sortOptions": [
+      { "value": "default", "label": "综合推荐" },
+      { "value": "price-asc", "label": "价格从低到高" },
+      { "value": "price-desc", "label": "价格从高到低" }
+    ]
+  }
+}
+```
+
+---
+
+#### 2. 获取快捷标签
+
+**接口地址**: `GET /mobile/filters/tags`
+
+**说明**: 获取快捷标签列表，用于首页快捷筛选。
+
+**请求参数**: 无
+
+**成功响应** (200):
+
+```json
+{
+  "code": 200,
+  "msg": "查询成功",
+  "data": {
+    "tags": [
+      { "id": 1, "name": "亲子", "icon": "baby" },
+      { "id": 2, "name": "豪华", "icon": "crown" },
+      { "id": 3, "name": "湖景", "icon": "waves" },
+      { "id": 4, "name": "山景", "icon": "mountain" },
+      { "id": 5, "name": "免费停车", "icon": "car" },
+      { "id": 6, "name": "商务", "icon": "briefcase" },
+      { "id": 7, "name": "度假", "icon": "umbrella" },
+      { "id": 8, "name": "网红", "icon": "camera" }
+    ]
+  }
+}
+```
+
+---
+
+## 数据来源说明
+
+### 1. 酒店列表/详情数据来源
+
+所有移动端酒店数据均来自 PC 端商户发布的酒店信息：
+
+- **数据来源表**: `Hotel` 表
+- **筛选条件**: `status = 'published'`（仅展示已发布酒店）
+- **价格计算**: 取 `roomTypes` 中最低价格
+- **图片**: 取 `images` 字段（JSON 数组）
+- **标签**: 根据酒店属性动态生成或从配置读取
+
+### 2. Banner 数据来源
+
+当前版本为**写死数据**，直接返回预设的 Banner 列表。后续可在 PC 管理员后台添加 Banner 管理功能。
+
+### 3. 筛选选项数据来源
+
+- **星级**: 固定选项（1-5星）
+- **价格区间**: 固定区间配置
+- **排序**: 固定排序选项
+- **快捷标签**: 固定标签列表（可从配置文件读取）
+
+---
+
+## 接口实现要点
+
+### 1. 酒店列表查询
+
+- 必须筛选 `status = 'published'`
+- 支持分页（page/limit）
+- 支持多条件组合筛选
+- 房型价格从低到高排序
+
+### 2. 酒店详情查询
+
+- 必须验证 `status = 'published'`，否则返回 404
+- 房型按价格从低到高排序
+- 返回完整的酒店信息（包含周边、房型等）
+
+### 3. 搜索功能
+
+- 支持酒店名模糊搜索
+- 支持地址模糊搜索
+- 仅搜索已发布酒店
+
+---
+
+## 后续扩展建议
+
+1. **Banner 管理**: PC 管理员后台添加 Banner 配置功能
+2. **标签管理**: 将标签配置化，支持后台管理
+3. **缓存优化**: 酒店列表和详情添加 Redis 缓存
+4. **搜索优化**: 使用 Elasticsearch 实现全文搜索

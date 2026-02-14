@@ -12,6 +12,7 @@ import HotelDetailModal from '@/components/AdminList/HotelDetailModal'
 import { useAdminStore } from '@/store/adminStore'
 import type { HotelWithCreator, HotelStatus, Hotel } from '@/types'
 import adminAuditApi from '@/api/admin-audit'
+import { useAutoRefresh } from '@/hooks/useAutoRefresh'
 
 const { TextArea } = Input
 
@@ -24,6 +25,7 @@ const AdminHotelList: React.FC = () => {
   const [detailModalOpen, setDetailModalOpen] = useState(false)
   const [currentHotelDetail, setCurrentHotelDetail] = useState<Hotel | null>(null)
   const [detailLoading, setDetailLoading] = useState(false)
+  const [lastUpdateTime, setLastUpdateTime] = useState<Date>(new Date())
 
   const {
     hotelList,
@@ -57,7 +59,29 @@ const AdminHotelList: React.FC = () => {
     }
 
     getHotels(params)
+    setLastUpdateTime(new Date())
   }, [activeTab, pagination.page, pagination.pageSize, searchKeyword, getHotels])
+
+  // 使用自动刷新 Hook，每 30 秒刷新一次
+  const { refresh } = useAutoRefresh(
+    async () => {
+      await fetchHotels()
+    },
+    {
+      interval: 30000, // 30秒
+      refreshOnVisible: true, // 页面可见时立即刷新
+      enabled: true,
+    }
+  )
+
+  // 格式化更新时间
+  const formatUpdateTime = (date: Date) => {
+    return date.toLocaleTimeString('zh-CN', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    })
+  }
 
   useEffect(() => {
     fetchHotels()
@@ -333,7 +357,13 @@ const AdminHotelList: React.FC = () => {
         <TabSwitcher activeTab={activeTab} onTabChange={setActiveTab} />
       </div>
 
-      <Toolbar onSearch={handleSearch} onFilter={handleFilter} />
+      <Toolbar
+        onSearch={handleSearch}
+        onFilter={handleFilter}
+        onRefresh={refresh}
+        lastUpdateTime={formatUpdateTime(lastUpdateTime)}
+        loading={loading}
+      />
 
       <Spin spinning={loading}>
         <TableCard
