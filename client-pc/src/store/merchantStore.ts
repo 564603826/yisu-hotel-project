@@ -45,6 +45,7 @@ export const useMerchantStore = create<MerchantState & MerchantActions>()((set) 
     return hotelInfo
   },
   updateHotelInfo: async (data) => {
+    console.log('更新酒店信息请求参数', data)
     const hotelInfo = await updateHotel(data)
     return hotelInfo
   },

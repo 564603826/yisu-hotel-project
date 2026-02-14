@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import { Form, Button, Space, message, Modal, Tag, Alert } from 'antd'
 import {
   Save,
@@ -11,6 +11,7 @@ import {
   Eye,
   Edit3,
   AlertCircle,
+  RefreshCw,
 } from 'lucide-react'
 import styles from './MerchantHotelForm.module.scss'
 import dayjs from 'dayjs'
@@ -23,6 +24,7 @@ import MarketingForm from '@/components/MerchantForm/MarketingForm'
 import { useMerchantStore } from '@/store'
 import { type RoomType } from '@/types'
 import uploadImageApi from '@/api/upload-image'
+import { useAutoRefresh } from '@/hooks/useAutoRefresh'
 
 // 判断是否为已发布/已下线状态（有版本控制）
 const hasVersionControl = (status: string) => {
@@ -40,6 +42,9 @@ const MerchantHotelForm: React.FC = () => {
   const [viewingPublishedVersion, setViewingPublishedVersion] = useState(false)
   // 查看驳回原因弹窗
   const [rejectReasonModalOpen, setRejectReasonModalOpen] = useState(false)
+  // 自动刷新相关状态
+  const [loading, setLoading] = useState(false)
+  const [lastUpdateTime, setLastUpdateTime] = useState<Date>(new Date())
 
   const { hotelInfo } = useMerchantStore((state) => state)
   const getHotelInfo = useMerchantStore((state) => state.getHotelInfo)
@@ -50,13 +55,50 @@ const MerchantHotelForm: React.FC = () => {
   const updateRoomType = useMerchantStore((state) => state.updateRoomType)
   const deleteRoomType = useMerchantStore((state) => state.deleteRoomType)
 
-  useEffect(() => {
-    getHotelInfo()
+  // 获取酒店信息的函数 - 使用 useCallback 避免无限循环
+  const fetchHotelData = useCallback(async () => {
+    setLoading(true)
+    try {
+      await getHotelInfo()
+      setLastUpdateTime(new Date())
+    } catch (error) {
+      console.error('获取酒店信息失败:', error)
+    } finally {
+      setLoading(false)
+    }
   }, [getHotelInfo])
+
+  // 使用自动刷新 Hook，每 30 秒刷新一次
+  const { refresh } = useAutoRefresh(fetchHotelData, {
+    interval: 30000, // 30秒
+    refreshOnVisible: true, // 页面可见时立即刷新
+    enabled: true,
+  })
+
+  useEffect(() => {
+    fetchHotelData()
+  }, [fetchHotelData])
+
+  // 格式化更新时间
+  const formatUpdateTime = (date: Date) => {
+    return date.toLocaleTimeString('zh-CN', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    })
+  }
 
   // 获取当前展示的数据（主数据或草稿数据）
   const displayData = useMemo(() => {
     if (!hotelInfo) return null
+
+    // 审核中状态且有草稿数据：展示草稿数据（最新修改）
+    if (hotelInfo.status === 'pending' && hotelInfo.draftData) {
+      return {
+        ...hotelInfo,
+        ...hotelInfo.draftData,
+      }
+    }
 
     // 已发布/已下线酒店且有草稿数据时
     if (hasVersionControl(hotelInfo.status) && hotelInfo.draftData) {
@@ -316,6 +358,17 @@ const MerchantHotelForm: React.FC = () => {
         </div>
 
         <Space className={styles.optionButton}>
+          {/* 刷新按钮和状态 */}
+          <span style={{ fontSize: 12, color: '#78716c', marginRight: 8 }}>
+            {loading ? '更新中...' : `上次更新: ${formatUpdateTime(lastUpdateTime)}`}
+          </span>
+          <Button
+            type="text"
+            icon={<RefreshCw size={16} className={loading ? 'spin' : ''} />}
+            onClick={refresh}
+            disabled={loading}
+            title="立即刷新"
+          />
           {hotelInfo?.status === 'draft' && (
             <>
               <Button size="large" onClick={update} disabled={saving}>
@@ -375,7 +428,25 @@ const MerchantHotelForm: React.FC = () => {
       {/* 版本控制切换按钮（仅已发布/已下线酒店显示） */}
       {hotelInfo && hasVersionControl(hotelInfo.status) && (
         <div className={styles.versionToggle}>
-          <Space>
+          <Space size="middle" align="center">
+            {/* 版本控制提示 */}
+            {hasPendingDraft && (
+              <Alert
+                title="您有未提交的修改"
+                type="info"
+                showIcon
+                style={{ padding: '4px 8px', fontSize: 13 }}
+              />
+            )}
+            {/* 查看模式提示 */}
+            {viewingPublishedVersion && (
+              <Alert
+                title="查看模式 - 不可编辑"
+                type="warning"
+                showIcon
+                style={{ padding: '4px 8px', fontSize: 13 }}
+              />
+            )}
             <Button
               type={viewingPublishedVersion ? 'primary' : 'default'}
               icon={<Eye size={16} />}
@@ -392,28 +463,6 @@ const MerchantHotelForm: React.FC = () => {
             </Button>
           </Space>
         </div>
-      )}
-
-      {/* 版本控制提示 */}
-      {hasPendingDraft && (
-        <Alert
-          message="您有未提交的修改"
-          description="当前酒店有已保存但未提交的修改，提交审核后客户端将展示新版本。"
-          type="info"
-          showIcon
-          style={{ marginBottom: 16 }}
-        />
-      )}
-
-      {/* 查看模式提示 */}
-      {viewingPublishedVersion && (
-        <Alert
-          message="查看模式"
-          description="当前展示的是客户端正在展示的线上版本，此模式下不能编辑。"
-          type="warning"
-          showIcon
-          style={{ marginBottom: 16 }}
-        />
       )}
 
       {/* 驳回原因弹窗 */}

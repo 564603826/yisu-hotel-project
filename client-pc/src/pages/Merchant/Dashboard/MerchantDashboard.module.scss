@@ -49,6 +49,20 @@
   box-shadow: 0 0 0 4px rgba(197, 142, 83, 0.1);
 }
 
+// 刷新按钮旋转动画
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spinning {
+  animation: spin 1s linear infinite;
+}
+
 .activityText {
   font-size: 14px;
   color: #292524;
