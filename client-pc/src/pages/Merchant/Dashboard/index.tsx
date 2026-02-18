@@ -75,47 +75,37 @@ const MerchantDashboard: React.FC = () => {
         {hotelInfo && (
           <div style={{ marginTop: '12px' }}>
             <span
-              style={{
-                padding: '4px 12px',
-                borderRadius: '4px',
-                fontSize: '12px',
-                backgroundColor:
-                  hotelInfo.status === 'published'
-                    ? '#52c41a'
-                    : hotelInfo.status === 'pending'
-                      ? '#faad14'
-                      : hotelInfo.status === 'rejected'
-                        ? '#f5222d'
-                        : '#d9d9d9',
-                color: '#fff',
-              }}
+              className={`${styles.statusTag} ${
+                hotelInfo.status === 'draft'
+                  ? styles.statusDraft
+                  : hotelInfo.status === 'pending'
+                    ? styles.statusPending
+                    : hotelInfo.status === 'approved'
+                      ? styles.statusApproved
+                      : hotelInfo.status === 'published'
+                        ? styles.statusPublished
+                        : hotelInfo.status === 'rejected'
+                          ? styles.statusRejected
+                          : hotelInfo.status === 'offline'
+                            ? styles.statusOffline
+                            : styles.statusDraft
+              }`}
             >
-              {hotelInfo.status === 'published'
-                ? '已发布'
+              {hotelInfo.status === 'draft'
+                ? '草稿'
                 : hotelInfo.status === 'pending'
                   ? '审核中'
-                  : hotelInfo.status === 'rejected'
-                    ? '审核不通过'
-                    : hotelInfo.status === 'draft'
-                      ? '草稿'
-                      : hotelInfo.status === 'offline'
-                        ? '已下线'
-                        : hotelInfo.status}
+                  : hotelInfo.status === 'approved'
+                    ? '审核通过'
+                    : hotelInfo.status === 'published'
+                      ? '已发布'
+                      : hotelInfo.status === 'rejected'
+                        ? '已驳回'
+                        : hotelInfo.status === 'offline'
+                          ? '已下线'
+                          : hotelInfo.status}
             </span>
-            {hotelInfo.draftData && (
-              <span
-                style={{
-                  marginLeft: '8px',
-                  padding: '4px 12px',
-                  borderRadius: '4px',
-                  fontSize: '12px',
-                  backgroundColor: '#1890ff',
-                  color: '#fff',
-                }}
-              >
-                有待审核的修改
-              </span>
-            )}
+            {hotelInfo.draftData && <span className={styles.draftBadge}>有待审核的修改</span>}
           </div>
         )}
       </div>

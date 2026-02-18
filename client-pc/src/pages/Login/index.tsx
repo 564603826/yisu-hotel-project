@@ -39,8 +39,23 @@ const Login = () => {
       localStorage.removeItem('yisu-login-info')
     }
     const loginData = { username: values.username, password: values.password }
-    await login(loginData)
-    navigate(redirect, { replace: true })
+    const res = await login(loginData)
+
+    // 判断 redirect 是否可用（是否属于当前用户角色）
+    const userRole = res.userInfo?.role
+    const isRedirectValid =
+      redirect &&
+      redirect !== '/' &&
+      ((userRole === 'admin' && redirect.startsWith('/admin')) ||
+        (userRole === 'merchant' && redirect.startsWith('/merchant')))
+
+    // 如果 redirect 有效则跳转到原页面，否则跳转到角色对应首页
+    const targetRoute = isRedirectValid
+      ? redirect
+      : userRole === 'admin'
+        ? '/admin/dashboard'
+        : '/merchant/dashboard'
+    navigate(targetRoute, { replace: true })
   }
 
   return (

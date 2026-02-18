@@ -1,7 +1,6 @@
-import React from 'react'
 import { Table } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
-import '@/components/AdminList/index.scss'
+import styles from './TableCard.module.scss'
 
 interface TableCardProps<T> {
   columns: ColumnsType<T>
@@ -12,8 +11,14 @@ interface TableCardProps<T> {
 
 function TableCard<T>({ columns, dataSource, rowKey, pagination }: TableCardProps<T>) {
   return (
-    <div className="table-card">
-      <Table columns={columns} dataSource={dataSource} rowKey={rowKey} pagination={pagination} />
+    <div className={styles.tableCard}>
+      <Table
+        columns={columns}
+        dataSource={dataSource}
+        rowKey={rowKey}
+        pagination={pagination}
+        scroll={{ x: 1000 }}
+      />
     </div>
   )
 }

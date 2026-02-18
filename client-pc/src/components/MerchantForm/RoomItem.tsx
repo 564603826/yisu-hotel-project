@@ -1,13 +1,21 @@
 import React from 'react'
-import { Button, Space, Tag } from 'antd'
-import { Info, Trash2, BedDouble, Maximize } from 'lucide-react'
+import { Button, Space, Tag, Image } from 'antd'
+import { Info, Trash2, BedDouble, Maximize, Eye } from 'lucide-react'
 import '@/components/MerchantForm/index.scss'
 import type { RoomType } from '@/types'
+import type { ImageItem } from './MultiImageUpload'
 
-interface RoomItemProps extends RoomType {
+// 扩展 RoomType 支持 ImageItem
+interface RoomTypeWithImageItems extends Omit<RoomType, 'images'> {
+  images?: (string | ImageItem)[]
+}
+
+interface RoomItemProps extends RoomTypeWithImageItems {
   index: number
   onEdit?: (index: number) => void
   onDelete?: (index: number) => void
+  disabled?: boolean
+  viewMode?: boolean // 查看模式（只显示查看按钮，不禁用）
 }
 
 const RoomItem: React.FC<RoomItemProps> = ({
@@ -17,21 +25,57 @@ const RoomItem: React.FC<RoomItemProps> = ({
   area,
   bedType,
   facilities,
+  images,
   onEdit,
   onDelete,
+  disabled,
+  viewMode,
 }) => {
   // 生成描述文本
   const descriptionParts: string[] = []
   if (area) descriptionParts.push(`${area}m²`)
   if (bedType) descriptionParts.push(bedType)
 
+  // 获取图片URL（处理相对路径、blob URL 和 ImageItem）
+  const getImageUrl = (img: string | ImageItem | undefined) => {
+    if (!img) return ''
+    const url = typeof img === 'string' ? img : img.url
+    if (!url) return ''
+    // blob URL 直接返回
+    if (url.startsWith('blob:')) return url
+    // 完整 http URL 直接返回
+    if (url.startsWith('http')) return url
+    // 相对路径添加后端前缀
+    const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000'
+    return `${backendUrl}${url}`
+  }
+
+  // 第一张图片作为封面
+  const coverImage = images && images.length > 0 ? getImageUrl(images[0]) : null
+
   return (
     <div className="room-item">
       <div style={{ display: 'flex', gap: 16, alignItems: 'center', flex: 1 }}>
-        {/* 房型图标 */}
-        <div className="room-icon">
-          <BedDouble size={24} />
-        </div>
+        {/* 房型图片或图标 */}
+        {coverImage ? (
+          <div className="room-image-preview">
+            <Image
+              src={coverImage}
+              alt={name}
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              preview={{
+                src: coverImage,
+              }}
+            />
+            {images && images.length > 1 && (
+              <div className="room-image-count">+{images.length - 1}</div>
+            )}
+          </div>
+        ) : (
+          <div className="room-icon">
+            <BedDouble size={24} />
+          </div>
+        )}
 
         <div style={{ flex: 1 }}>
           {/* 房型名称 */}
@@ -85,8 +129,34 @@ const RoomItem: React.FC<RoomItemProps> = ({
       </div>
 
       <Space>
-        <Button icon={<Info size={16} />} type="text" onClick={() => onEdit?.(index)} />
-        <Button icon={<Trash2 size={16} />} type="text" danger onClick={() => onDelete?.(index)} />
+        {viewMode ? (
+          // 查看模式：只显示查看按钮，可点击
+          <Button
+            icon={<Eye size={16} />}
+            type="text"
+            onClick={() => onEdit?.(index)}
+            title="查看房型"
+          />
+        ) : (
+          // 编辑模式：显示编辑和删除按钮
+          <>
+            <Button
+              icon={<Info size={16} />}
+              type="text"
+              onClick={() => onEdit?.(index)}
+              disabled={disabled}
+              title="编辑房型"
+            />
+            <Button
+              icon={<Trash2 size={16} />}
+              type="text"
+              danger
+              onClick={() => onDelete?.(index)}
+              disabled={disabled}
+              title="删除房型"
+            />
+          </>
+        )}
       </Space>
     </div>
   )

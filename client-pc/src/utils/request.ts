@@ -6,7 +6,7 @@ import axios, {
 import { message } from '@/utils/staticAntd'
 import { useUserStore } from '@/store'
 import { type ApiResponse } from '@/types'
-import { getToken } from '@/utils/token'
+import { getToken, clearAuth } from '@/utils/auth'
 
 const service: AxiosInstance = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL,
@@ -61,12 +61,13 @@ service.interceptors.response.use(
     switch (status) {
       case 401:
         //  核心需求：401 未授权
-        useUserStore.getState().logout() // 清除 Token 和用户信息
+        clearAuth() // 清除 Token 和用户信息
+        useUserStore.getState().logout() // 触发状态更新和跳转
         message.error(errorMessage || '登录已过期，请重新登录')
         break
 
       case 403:
-        message.warning(errorMessage || '您没有权限执行此操作')
+        message.warning('您没有权限执行此操作，请重新登录')
         break
 
       case 500:

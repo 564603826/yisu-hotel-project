@@ -9,6 +9,58 @@
   }
 }
 
+// 状态标签样式
+.statusTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 6px;
+  border: none;
+}
+
+.statusDraft {
+  background-color: #f5f5f4;
+  color: #78716c;
+}
+
+.statusPending {
+  background-color: #fef3c7;
+  color: #d97706;
+}
+
+.statusApproved {
+  background-color: #dcfce7;
+  color: #16a34a;
+}
+
+.statusPublished {
+  background-color: #dcfce7;
+  color: #16a34a;
+}
+
+.statusRejected {
+  background-color: #fee2e2;
+  color: #dc2626;
+}
+
+.statusOffline {
+  background-color: #f5f5f4;
+  color: #78716c;
+}
+
+.draftBadge {
+  margin-left: 8px;
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  background-color: #dbeafe;
+  color: #2563eb;
+}
+
 .section {
   margin-top: 40px;
 }

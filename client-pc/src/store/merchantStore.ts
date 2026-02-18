@@ -1,72 +1,141 @@
 import { create } from 'zustand'
 import useMerchantAPI from '@/api/merchant-manage'
+import hotelImageApi, { type HotelImage } from '@/api/hotel-image'
+import type { ImageItem } from '@/components/MerchantForm/MultiImageUpload'
 import type {
   Hotel,
   UpdateHotelRequest,
+  SubmitAuditRequest,
   SubmitAuditResponse,
   RoomType,
   CancelAuditResponse,
-} from '@/types' // 引入你的类型定义
+} from '@/types'
 
 const { getHotel, updateHotel, submitAudit, cancelAudit } = useMerchantAPI
+
+// 扩展 RoomType 支持 ImageItem（用于本地编辑状态）
+interface RoomTypeWithImageItems extends Omit<RoomType, 'images'> {
+  images?: (string | ImageItem)[]
+}
+
+// 将 RoomTypeWithImageItems 转换为 RoomType（提取 URL string）
+const convertToRoomType = (room: RoomTypeWithImageItems): RoomType => {
+  const images: string[] = []
+  if (room.images) {
+    for (const img of room.images) {
+      if (typeof img === 'string') {
+        images.push(img)
+      } else if (img.url && !img.url.startsWith('blob:')) {
+        // ImageItem 且不是 blob URL
+        images.push(img.url)
+      }
+    }
+  }
+  return {
+    ...room,
+    images,
+  }
+}
+
 // 1. 定义数据 (State)
 interface MerchantState {
   hotelInfo: Hotel | null
+  draftImages: HotelImage[]
+  publishedImages: HotelImage[]
 }
 
 // 2. 定义动作 (Action)
 interface MerchantActions {
   setHotelInfo: (hotelInfo: Hotel) => void
-  getHotelInfo: () => Promise<Hotel>
+  getHotelInfo: (viewMode?: 'draft' | 'published') => Promise<Hotel>
   updateHotelInfo: (data: UpdateHotelRequest) => Promise<Hotel>
-  submitAudit: () => Promise<SubmitAuditResponse>
+  submitAudit: (data?: SubmitAuditRequest) => Promise<SubmitAuditResponse>
   cancelAudit: () => Promise<CancelAuditResponse>
-  addRoomType: (room: RoomType) => void
-  updateRoomType: (index: number, room: RoomType) => void
+  addRoomType: (room: RoomTypeWithImageItems) => void
+  updateRoomType: (index: number, room: RoomTypeWithImageItems) => void
   deleteRoomType: (index: number) => void
+  getDraftImages: () => Promise<HotelImage[]>
+  getPublishedImages: () => Promise<HotelImage[]>
+  copyToDraft: () => Promise<HotelImage[]>
+  publishImages: () => Promise<void>
+  updateImageSort: (imageIds: number[]) => Promise<void>
+  setDraftImages: (images: HotelImage[]) => void
+  setPublishedImages: (images: HotelImage[]) => void
 }
 
 // 3. 创建 Store
-export const useMerchantStore = create<MerchantState & MerchantActions>()((set) => ({
+export const useMerchantStore = create<MerchantState & MerchantActions>()((set, get) => ({
   hotelInfo: null,
-  // --- 同步方法 ---
+  draftImages: [],
+  publishedImages: [],
+
   setHotelInfo: (hotelInfo) => {
     set({ hotelInfo })
   },
 
-  getHotelInfo: async () => {
-    // 1. 调用 API (你封装好的)
-    const hotelInfo = await getHotel()
-    // 2. 拿到数据，更新 Store (Zustand 会自动同步到 LocalStorage)
-    set({
-      hotelInfo,
-    })
-    console.log('获取酒店信息成功', hotelInfo)
+  getHotelInfo: async (viewMode?: 'draft' | 'published') => {
+    const hotelInfo = await getHotel(viewMode)
+    set({ hotelInfo })
+
+    // 获取酒店信息后，根据 viewMode 获取相应图片
+    if (hotelInfo?.id) {
+      if (viewMode === 'published') {
+        // 查看线上版本：获取已发布图片
+        const publishedImages = await hotelImageApi.getImages(hotelInfo.id, {
+          status: 'published',
+          type: 'hotel_main',
+        })
+        set({ publishedImages })
+      } else {
+        // 编辑草稿模式：获取草稿图片
+        const draftImages = await hotelImageApi.getImages(hotelInfo.id, {
+          status: 'draft',
+          type: 'hotel_main',
+        })
+        set({ draftImages })
+      }
+    }
+
     return hotelInfo
   },
+
   updateHotelInfo: async (data) => {
-    console.log('更新酒店信息请求参数', data)
     const hotelInfo = await updateHotel(data)
+
+    // 更新成功后，刷新草稿图片
+    if (hotelInfo?.id) {
+      const draftImages = await hotelImageApi.getImages(hotelInfo.id, {
+        status: 'draft',
+        type: 'hotel_main',
+      })
+      set({ draftImages, hotelInfo })
+    }
+
     return hotelInfo
   },
-  submitAudit: async () => {
-    const auditRes = await submitAudit()
+
+  submitAudit: async (data) => {
+    // 提交审核时不应该发布图片，图片应该在审核通过时发布
+    // publishImages 应该在管理员审核通过时调用
+    const auditRes = await submitAudit(data)
     return auditRes
   },
+
   cancelAudit: async () => {
     const cancelRes = await cancelAudit()
     return cancelRes
   },
 
-  // --- 房型管理方法 ---
   addRoomType: (room) => {
     set((state) => {
       if (!state.hotelInfo) return state
       const currentRoomTypes = state.hotelInfo.roomTypes || []
+      // 转换为 RoomType（提取 URL string）
+      const roomType = convertToRoomType(room)
       return {
         hotelInfo: {
           ...state.hotelInfo,
-          roomTypes: [...currentRoomTypes, room],
+          roomTypes: [...currentRoomTypes, roomType],
         },
       }
     })
@@ -76,7 +145,8 @@ export const useMerchantStore = create<MerchantState & MerchantActions>()((set) 
     set((state) => {
       if (!state.hotelInfo) return state
       const currentRoomTypes = [...(state.hotelInfo.roomTypes || [])]
-      currentRoomTypes[index] = room
+      // 转换为 RoomType（提取 URL string）
+      currentRoomTypes[index] = convertToRoomType(room)
       return {
         hotelInfo: {
           ...state.hotelInfo,
@@ -98,5 +168,59 @@ export const useMerchantStore = create<MerchantState & MerchantActions>()((set) 
         },
       }
     })
+  },
+
+  getDraftImages: async () => {
+    const hotelInfo = get().hotelInfo
+    if (!hotelInfo) return []
+
+    const images = await hotelImageApi.getImages(hotelInfo.id, {
+      status: 'draft',
+      type: 'hotel_main',
+    })
+    set({ draftImages: images })
+    return images
+  },
+
+  getPublishedImages: async () => {
+    const hotelInfo = get().hotelInfo
+    if (!hotelInfo) return []
+
+    const images = await hotelImageApi.getImages(hotelInfo.id, {
+      status: 'published',
+      type: 'hotel_main',
+    })
+    set({ publishedImages: images })
+    return images
+  },
+
+  copyToDraft: async () => {
+    const hotelInfo = get().hotelInfo
+    if (!hotelInfo) return []
+
+    const images = await hotelImageApi.copyToDraft(hotelInfo.id)
+    // 只过滤出酒店主图，不包含房型图片
+    const hotelMainImages = images.filter((img) => img.type === 'hotel_main')
+    set({ draftImages: hotelMainImages })
+    return hotelMainImages
+  },
+
+  publishImages: async () => {
+    const hotelInfo = get().hotelInfo
+    if (!hotelInfo) return
+
+    await hotelImageApi.publish(hotelInfo.id)
+  },
+
+  updateImageSort: async (imageIds: number[]) => {
+    await hotelImageApi.updateSort(imageIds)
+  },
+
+  setDraftImages: (images) => {
+    set({ draftImages: images })
+  },
+
+  setPublishedImages: (images) => {
+    set({ publishedImages: images })
   },
 }))

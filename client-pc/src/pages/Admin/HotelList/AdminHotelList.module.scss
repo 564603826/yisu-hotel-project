@@ -1,3 +1,41 @@
 .container {
   padding-bottom: 40px;
 }
+
+.welcomeSection {
+  margin-bottom: 24px;
+
+  h2 {
+    margin-bottom: 8px !important;
+  }
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 24px;
+
+  h2 {
+    margin-bottom: 0 !important;
+  }
+}
+
+.pageDesc {
+  font-size: 14px;
+  color: #78716c;
+  margin-top: 4px;
+}
+
+.spinning {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}

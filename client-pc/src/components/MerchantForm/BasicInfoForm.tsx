@@ -1,13 +1,14 @@
-import React, { useState } from 'react'
-import { Form, Input, Row, Col, Rate, DatePicker, Button } from 'antd'
+import React, { useState, useCallback } from 'react'
+import { Form, Input, Row, Col, Rate, DatePicker } from 'antd'
 import { MapPin } from 'lucide-react'
-import UploadArea from './UploadArea'
+import MultiImageUpload from './MultiImageUpload'
 import LocationPicker from '../Location/LocationPicker'
+import type { ImageItem } from './MultiImageUpload'
 
 interface BasicInfoFormProps {
-  pendingCoverFile?: File | null
-  onPendingCoverFileChange?: (file: File | null) => void
   disabled?: boolean
+  initialImages?: ImageItem[]
+  onImagesChange?: (images: ImageItem[]) => void
 }
 
 interface LocationData {
@@ -16,15 +17,48 @@ interface LocationData {
   lat: number
 }
 
+// 内部组件，用于管理图片状态
+const ImageUploadSection: React.FC<{
+  initialImages: ImageItem[]
+  disabled: boolean
+  onChange: (images: ImageItem[]) => void
+}> = ({ initialImages, disabled, onChange }) => {
+  const [images, setImages] = useState<ImageItem[]>(initialImages)
+  const form = Form.useFormInstance()
+
+  // 使用回调函数来处理图片变化
+  const handleChange = useCallback(
+    (newImages: ImageItem[]) => {
+      setImages(newImages)
+
+      // 更新表单字段
+      const imageUrls = newImages.map((img) => img.url)
+      form.setFields([
+        { name: 'images', value: imageUrls },
+        { name: 'coverImage', value: imageUrls[0] || '' },
+      ])
+
+      onChange(newImages)
+    },
+    [form, onChange]
+  )
+
+  return (
+    <MultiImageUpload value={images} onChange={handleChange} maxCount={10} disabled={disabled} />
+  )
+}
+
 const BasicInfoForm: React.FC<BasicInfoFormProps> = ({
-  pendingCoverFile,
-  onPendingCoverFileChange,
   disabled = false,
+  initialImages = [],
+  onImagesChange,
 }) => {
   const [locationPickerOpen, setLocationPickerOpen] = useState(false)
   const [currentLocation, setCurrentLocation] = useState<LocationData | null>(null)
-
   const form = Form.useFormInstance()
+
+  // 监听地址字段变化
+  const addressValue = Form.useWatch('address', form)
 
   const handleLocationConfirm = (location: LocationData) => {
     setCurrentLocation(location)
@@ -34,6 +68,7 @@ const BasicInfoForm: React.FC<BasicInfoFormProps> = ({
   return (
     <>
       <Row gutter={48}>
+        {/* 左侧：基本信息 */}
         <Col xs={24} lg={12}>
           <Form.Item label="酒店中文名称" name="nameZh" rules={[{ required: true }]}>
             <Input size="large" placeholder="请输入酒店中文名称" disabled={disabled} />
@@ -54,38 +89,55 @@ const BasicInfoForm: React.FC<BasicInfoFormProps> = ({
             </Col>
           </Row>
           <Form.Item label="酒店简介" name="description">
-            <Input.TextArea rows={4} placeholder="请输入酒店描述..." disabled={disabled} />
+            <Input.TextArea rows={5} placeholder="请输入酒店描述..." disabled={disabled} />
           </Form.Item>
         </Col>
 
+        {/* 右侧：详细地址、定位和图片上传 */}
         <Col xs={24} lg={12}>
+          {/* 详细地址 */}
           <Form.Item label="详细地址" name="address" rules={[{ required: true }]}>
-            <Input
-              size="large"
-              prefix={<MapPin size={16} style={{ color: '#a8a29e' }} />}
-              suffix={
-                !disabled && (
-                  <Button
-                    size="small"
-                    type="text"
-                    onClick={() => setLocationPickerOpen(true)}
-                    style={{ color: '#c58e53' }}
-                  >
-                    定位
-                  </Button>
-                )
-              }
-              placeholder="点击定位按钮选择地址"
-              disabled={disabled}
-            />
+            <Input size="large" placeholder="请输入详细地址" disabled={disabled} />
           </Form.Item>
 
-          <Form.Item label="酒店封面图" name="coverImage">
-            <UploadArea
-              pendingFile={pendingCoverFile}
-              onPendingFileChange={onPendingCoverFileChange}
+          {/* 地图定位区域 */}
+          <div style={{ marginBottom: 18 }}>
+            <div
+              style={{
+                height: 180,
+                background: '#f5f5f5',
+                borderRadius: 8,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                border: '1px dashed #d9d9d9',
+                cursor: disabled ? 'not-allowed' : 'pointer',
+              }}
+              onClick={() => !disabled && setLocationPickerOpen(true)}
+            >
+              <div style={{ textAlign: 'center', color: '#999' }}>
+                <MapPin size={32} style={{ marginBottom: 8, color: '#c58e53' }} />
+                <div>点击选择酒店位置</div>
+                <div style={{ fontSize: 12, marginTop: 4 }}>{addressValue || '未设置位置'}</div>
+              </div>
+            </div>
+          </div>
+
+          {/* 酒店图片上传 */}
+          <Form.Item label="酒店图片" name="images" style={{ marginBottom: 0 }}>
+            <ImageUploadSection
+              key={initialImages.map((img) => img.url).join(',')}
+              initialImages={initialImages}
               disabled={disabled}
+              onChange={onImagesChange || (() => {})}
             />
+          </Form.Item>
+          <div style={{ fontSize: 12, color: '#a8a29e', marginTop: 5 }}>
+            最多上传10张图片，第一张将作为封面图
+          </div>
+
+          <Form.Item label="酒店封面图" name="coverImage" hidden>
+            <Input />
           </Form.Item>
         </Col>
       </Row>

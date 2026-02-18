@@ -8,6 +8,8 @@ type UserRole = 'merchant' | 'admin'
 
 type HotelStatus = 'draft' | 'pending' | 'approved' | 'rejected' | 'published' | 'offline'
 
+type ImageType = 'hotel_main' | 'hotel_room' | 'hotel_banner' | 'user_avatar'
+
 type UserLoginRequest = {
   username: string
   password: string
@@ -43,6 +45,7 @@ type RoomType = {
   area?: number
   bedType?: string
   facilities?: string[]
+  images?: string[] // 房型图片列表
 }
 
 type Discount = {
@@ -88,14 +91,22 @@ type Hotel = {
   description?: string
   status: HotelStatus
   rejectReason?: string
+  auditInfo?: string // 商户提交的审核信息
   draftData?: DraftData | null // 版本控制：已发布/已下线酒店的草稿数据
+
+  // Banner 相关字段
+  isBanner?: boolean
+  bannerSort?: number
+  bannerTitle?: string
+  bannerDesc?: string
+
   creatorId: number
   createdAt: string
   updatedAt: string
 }
 
 type HotelWithCreator = Hotel & {
-  creator?: {
+  user?: {
     id: number
     username: string
     role?: UserRole
@@ -117,9 +128,51 @@ type UpdateHotelRequest = {
   images?: string[]
   description?: string
 }
+type SubmitAuditRequest = {
+  auditInfo?: string // 商户提交的审核信息
+}
+
 type SubmitAuditResponse = {
   id: number
   status: HotelStatus
+}
+
+// Banner 相关类型
+type SetBannerRequest = {
+  isBanner: boolean
+  bannerSort?: number
+  bannerTitle?: string
+  bannerDesc?: string
+}
+
+type SetBannerResponse = {
+  id: number
+  nameZh: string
+  status: HotelStatus
+  isBanner: boolean
+  bannerSort: number
+  bannerTitle?: string
+  bannerDesc?: string
+}
+
+type UpdateBannerInfoRequest = {
+  bannerSort?: number
+  bannerTitle?: string
+  bannerDesc?: string
+}
+
+type BannerItem = {
+  id: number
+  nameZh: string
+  nameEn?: string
+  status: HotelStatus
+  bannerSort: number
+  bannerTitle?: string
+  bannerDesc?: string
+  imageUrl: string
+  price: string
+  starRating: number
+  updatedAt: string
 }
 
 type PaginationParams = {
@@ -173,6 +226,7 @@ type RestoreResponse = {
 type UploadImageResponse = {
   url: string
   filename: string
+  id?: number // 图片ID，用于排序和版本控制
 }
 type CancelAuditResponse = {
   id: number
@@ -184,6 +238,7 @@ export type {
   ApiResponse,
   UserRole,
   HotelStatus,
+  ImageType,
   UserLoginRequest,
   UserRegisterRequest,
   UserInfo,
@@ -207,4 +262,10 @@ export type {
   UploadImageResponse,
   UploadImagesResponse,
   CancelAuditResponse,
+  SubmitAuditRequest,
+  // Banner 相关
+  SetBannerRequest,
+  SetBannerResponse,
+  UpdateBannerInfoRequest,
+  BannerItem,
 }
