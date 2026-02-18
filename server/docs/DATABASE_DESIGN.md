@@ -62,7 +62,12 @@
 | description       | TEXT          | NULL                        | -               | 酒店描述（可选）       |
 | status            | ENUM          | NOT NULL                    | 'draft'         | 酒店状态               |
 | rejectReason      | VARCHAR(255)  | NULL                        | -               | 审核不通过原因         |
+| auditInfo         | VARCHAR(500)  | NULL                        | -               | 商户提交的审核信息     |
 | draftData         | JSON          | NULL                        | -               | 草稿数据（版本控制）   |
+| isBanner          | BOOLEAN       | NOT NULL                    | false           | 是否设为 Banner        |
+| bannerSort        | INT           | NOT NULL                    | 0               | Banner 排序位置        |
+| bannerTitle       | VARCHAR(100)  | NULL                        | -               | Banner 标题            |
+| bannerDesc        | VARCHAR(200)  | NULL                        | -               | Banner 描述/副标题     |
 | creatorId         | INT           | UNIQUE, FOREIGN KEY         | -               | 创建者ID（商户，唯一） |
 | createdAt         | DATETIME      | NOT NULL                    | NOW()           | 创建时间               |
 | updatedAt         | DATETIME      | NOT NULL                    | NOW() ON UPDATE | 更新时间               |
@@ -197,6 +202,43 @@
 | published | 已发布     | 已发布上线，用户可见   |
 | offline   | 已下线     | 已下线，用户不可见     |
 
+**auditInfo**（审核信息）
+
+- 类型: VARCHAR(500)
+- 约束: NULL
+- 说明: 商户提交审核时填写的备注信息，供管理员查看
+- 示例: "本次更新了酒店图片和房型价格，请审核"
+
+**isBanner**（Banner 标记）
+
+- 类型: BOOLEAN
+- 约束: NOT NULL
+- 默认值: false
+- 说明: 标记该酒店是否设为首页 Banner 展示
+- 注意: 只有已发布状态的酒店才能设为 Banner
+
+**bannerSort**（Banner 排序）
+
+- 类型: INT
+- 约束: NOT NULL
+- 默认值: 0
+- 说明: Banner 展示顺序，数字越小越靠前
+- 示例: 1, 2, 3...
+
+**bannerTitle**（Banner 标题）
+
+- 类型: VARCHAR(100)
+- 约束: NULL
+- 说明: Banner 展示标题，默认使用酒店名称，可自定义
+- 示例: "杭州西湖希尔顿 - 限时特惠"
+
+**bannerDesc**（Banner 描述）
+
+- 类型: VARCHAR(200)
+- 约束: NULL
+- 说明: Banner 副标题/描述，用于展示促销信息或卖点
+- 示例: "春节特惠 8折起，立即预订"
+
 **draftData**（版本控制）
 
 - 类型: JSON
@@ -237,6 +279,145 @@
 | uq_creator      | creatorId  | UNIQUE  | 创建者唯一索引（一个商户一个酒店） |
 | idx_status      | status     | INDEX   | 状态索引                           |
 | idx_star_rating | starRating | INDEX   | 星级索引                           |
+| idx_is_banner   | isBanner   | INDEX   | Banner 标记索引                    |
+
+---
+
+### 3. HotelImage 表（新增）
+
+酒店图片表，用于管理酒店的多张图片，支持分类存储和房型关联。
+
+#### 表结构
+
+| 字段名    | 类型         | 约束                        | 默认值          | 说明           |
+| --------- | ------------ | --------------------------- | --------------- | -------------- |
+| id        | INT          | PRIMARY KEY, AUTO_INCREMENT | -               | 图片ID，主键   |
+| hotelId   | INT          | FOREIGN KEY, NOT NULL       | -               | 所属酒店ID     |
+| url       | VARCHAR(500) | NOT NULL                    | -               | 图片URL        |
+| type      | ENUM         | NOT NULL                    | 'hotel_main'    | 图片类型       |
+| roomType  | VARCHAR(100) | NULL                        | -               | 房型名称       |
+| version   | INT          | NOT NULL                    | 1               | 版本号         |
+| status    | ENUM         | NOT NULL                    | 'draft'         | 图片状态       |
+| sortOrder | INT          | NOT NULL                    | 0               | 排序顺序       |
+| filename  | VARCHAR(255) | NULL                        | -               | 文件名         |
+| fileSize  | INT          | NULL                        | -               | 文件大小(字节) |
+| mimeType  | VARCHAR(100) | NULL                        | -               | MIME类型       |
+| createdBy | INT          | FOREIGN KEY, NOT NULL       | -               | 创建者ID       |
+| updatedBy | INT          | FOREIGN KEY, NOT NULL       | -               | 更新者ID       |
+| createdAt | DATETIME     | NOT NULL                    | NOW()           | 创建时间       |
+| updatedAt | DATETIME     | NOT NULL                    | NOW() ON UPDATE | 更新时间       |
+
+#### 图片类型说明
+
+| 类型         | 存储路径                                          | 说明       |
+| ------------ | ------------------------------------------------- | ---------- |
+| hotel_main   | uploads/hotels/{hotelId}/main/{date}/             | 酒店主图   |
+| hotel_room   | uploads/hotels/{hotelId}/rooms/{roomType}/{date}/ | 房型图片   |
+| hotel_banner | uploads/banners/{hotelId}/{date}/                 | Banner图片 |
+| user_avatar  | uploads/avatars/{userId}/{date}/                  | 用户头像   |
+
+#### 图片状态说明
+
+| 状态      | 说明                 |
+| --------- | -------------------- |
+| draft     | 草稿状态，编辑时使用 |
+| published | 已发布状态，线上展示 |
+| archived  | 已归档，保留历史版本 |
+
+#### 字段详细说明
+
+**type**（图片类型）
+
+- 类型: ENUM
+- 约束: NOT NULL
+- 默认值: 'hotel_main'
+- 说明: 标记图片的用途分类
+- 用途:
+  - `hotel_main`: 酒店主图，用于封面、详情页展示
+  - `hotel_room`: 房型图片，关联到具体房型
+  - `hotel_banner`: Banner专用图，用于首页轮播
+  - `user_avatar`: 用户头像
+
+**roomType**（房型名称）
+
+- 类型: VARCHAR(100)
+- 约束: NULL
+- 说明: 当 type 为 `hotel_room` 时使用，标记该图片属于哪个房型
+- 示例: "标准间", "豪华套房"
+
+**version**（版本号）
+
+- 类型: INT
+- 约束: NOT NULL
+- 默认值: 1
+- 说明: 图片版本号，每次发布时递增
+- 用途: 用于版本控制和历史追溯
+
+**status**（图片状态）
+
+- 类型: ENUM
+- 约束: NOT NULL
+- 默认值: 'draft'
+- 说明: 图片状态
+- 可选值: draft（草稿）、published（已发布）、archived（已归档）
+
+**sortOrder**（排序顺序）
+
+- 类型: INT
+- 约束: NOT NULL
+- 默认值: 0
+- 说明: 图片展示顺序，数字越小越靠前
+- 用途: 控制图片在前端的展示顺序
+
+**filename**（文件名）
+
+- 类型: VARCHAR(255)
+- 约束: NULL
+- 说明: 原始文件名
+
+**fileSize**（文件大小）
+
+- 类型: INT
+- 约束: NULL
+- 说明: 文件大小（字节）
+
+**mimeType**（MIME类型）
+
+- 类型: VARCHAR(100)
+- 约束: NULL
+- 说明: 文件MIME类型，如 image/jpeg、image/png
+
+**createdBy**（创建者）
+
+- 类型: INT
+- 约束: NOT NULL
+- 说明: 创建该图片记录的用户ID
+
+**updatedBy**（更新者）
+
+- 类型: INT
+- 约束: NOT NULL
+- 说明: 最后更新该图片记录的用户ID
+
+#### 索引
+
+| 索引名                | 字段                           | 类型    | 说明                 |
+| --------------------- | ------------------------------ | ------- | -------------------- |
+| PRIMARY               | id                             | PRIMARY | 主键索引             |
+| idx_hotel_type_status | (hotelId, type, status)        | INDEX   | 酒店ID+类型+状态索引 |
+| idx_hotel_room_sort   | (hotelId, roomType, sortOrder) | INDEX   | 酒店ID+房型+排序索引 |
+| idx_type_status       | (type, status)                 | INDEX   | 类型+状态索引        |
+
+#### 关系说明
+
+```
+Hotel (1) ---- (0..n) HotelImage
+  │                    │
+  │                    │
+  └── id ──────────────┘ (hotelId, FOREIGN KEY, CASCADE DELETE)
+```
+
+**一个酒店可以有多张图片**（一对多关系）。
 
 ---
 
@@ -270,7 +451,7 @@ published (已发布，新版本)
 
 ## SQL 建表语句
 
-```sql
+````sql
 CREATE TABLE `Hotel` (
   `id` INT NOT NULL AUTO_INCREMENT,
   `nameZh` VARCHAR(100) NOT NULL COMMENT '酒店中文名',
@@ -288,7 +469,12 @@ CREATE TABLE `Hotel` (
   `description` TEXT NULL COMMENT '酒店描述',
   `status` ENUM('draft', 'pending', 'approved', 'rejected', 'published', 'offline') NOT NULL DEFAULT 'draft' COMMENT '酒店状态',
   `rejectReason` VARCHAR(255) NULL COMMENT '审核不通过原因',
+  `auditInfo` VARCHAR(500) NULL COMMENT '商户提交的审核信息',
   `draftData` JSON NULL COMMENT '草稿数据（版本控制）',
+  `isBanner` BOOLEAN NOT NULL DEFAULT false COMMENT '是否设为Banner',
+  `bannerSort` INT NOT NULL DEFAULT 0 COMMENT 'Banner排序位置',
+  `bannerTitle` VARCHAR(100) NULL COMMENT 'Banner标题',
+  `bannerDesc` VARCHAR(200) NULL COMMENT 'Banner描述',
   `creatorId` INT NOT NULL COMMENT '创建者ID',
   `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
   `updatedAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',
@@ -296,9 +482,35 @@ CREATE TABLE `Hotel` (
   UNIQUE INDEX `uq_creator` (`creatorId`),
   INDEX `idx_status` (`status`),
   INDEX `idx_star_rating` (`starRating`),
+  INDEX `idx_is_banner` (`isBanner`),
   CONSTRAINT `fk_hotel_creator` FOREIGN KEY (`creatorId`) REFERENCES `User` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci COMMENT='酒店信息表';
-```
+
+CREATE TABLE `HotelImage` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `hotelId` INT NOT NULL COMMENT '所属酒店ID',
+  `url` VARCHAR(500) NOT NULL COMMENT '图片URL',
+  `type` ENUM('hotel_main', 'hotel_room', 'hotel_banner', 'user_avatar') NOT NULL DEFAULT 'hotel_main' COMMENT '图片类型',
+  `roomType` VARCHAR(100) NULL COMMENT '房型名称（当type为hotel_room时使用）',
+  `version` INT NOT NULL DEFAULT 1 COMMENT '版本号',
+  `status` ENUM('draft', 'published', 'archived') NOT NULL DEFAULT 'draft' COMMENT '图片状态',
+  `sortOrder` INT NOT NULL DEFAULT 0 COMMENT '排序顺序',
+  `filename` VARCHAR(255) NULL COMMENT '文件名',
+  `fileSize` INT NULL COMMENT '文件大小(字节)',
+  `mimeType` VARCHAR(100) NULL COMMENT 'MIME类型',
+  `createdBy` INT NOT NULL COMMENT '创建者ID',
+  `updatedBy` INT NOT NULL COMMENT '更新者ID',
+  `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
+  `updatedAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  INDEX `idx_hotel_id` (`hotelId`),
+  INDEX `idx_type` (`type`),
+  INDEX `idx_room_type` (`roomType`),
+  INDEX `idx_status` (`status`),
+  CONSTRAINT `fk_hotel_image_hotel` FOREIGN KEY (`hotelId`) REFERENCES `Hotel` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `fk_hotel_image_creator` FOREIGN KEY (`createdBy`) REFERENCES `User` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
+  CONSTRAINT `fk_hotel_image_updater` FOREIGN KEY (`updatedBy`) REFERENCES `User` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci COMMENT='酒店图片表';
 
 ---
 
@@ -347,7 +559,15 @@ model Hotel {
   description        String?
   status             HotelStatus  @default(draft)
   rejectReason       String?      @db.VarChar(255)
+  auditInfo          String?      @db.VarChar(500)  // 商户提交的审核信息
   draftData          Json?
+
+  // Banner 相关字段
+  isBanner           Boolean      @default(false)   // 是否设为 Banner
+  bannerSort         Int          @default(0)       // Banner 排序（0表示未设置）
+  bannerTitle        String?      @db.VarChar(100)  // Banner 标题（默认酒店名）
+  bannerDesc         String?      @db.VarChar(200)  // Banner 描述/副标题
+
   creatorId          Int          @unique
   creator            User         @relation(fields: [creatorId], references: [id])
   createdAt          DateTime     @default(now())
@@ -355,22 +575,78 @@ model Hotel {
 
   @@index([status])
   @@index([starRating])
+  @@index([isBanner])
   @@map("Hotel")
 }
-```
+
+// 图片类型枚举
+enum ImageType {
+  hotel_main      // 酒店主图（封面、详情展示）
+  hotel_room      // 房型图片
+  hotel_banner    // Banner专用图
+  user_avatar     // 用户头像
+}
+
+// 图片状态枚举
+enum ImageStatus {
+  draft       // 草稿
+  published   // 已发布
+  archived    // 已归档
+}
+
+// 酒店图片表（用于管理多张图片）
+model HotelImage {
+  id         Int         @id @default(autoincrement())
+  hotelId    Int
+  hotel      Hotel       @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  url        String      @db.VarChar(500)  // 图片URL
+  type       ImageType   @default(hotel_main)  // 图片类型
+  roomType   String?     @db.VarChar(100)  // 房型名称（当type为hotel_room时使用）
+
+  // 版本控制
+  version    Int         @default(1)
+  status     ImageStatus @default(draft)
+
+  // 排序
+  sortOrder  Int         @default(0)
+
+  // 元数据
+  filename   String?     @db.VarChar(255)
+  fileSize   Int?
+  mimeType   String?     @db.VarChar(100)
+
+  // 审计字段
+  createdBy  Int
+  updatedBy  Int
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+
+  @@index([hotelId, type, status])
+  @@index([hotelId, roomType, sortOrder])
+  @@index([type, status])
+  @@map("HotelImage")
+}
 
 ---
 
 ## 数据关系
 
-```
+````
+
 User (1) ---- (0..1) Hotel
-  │                    │
-  │                    │
-  └── creatorId ───────┘ (UNIQUE)
+│ │
+│ │
+└── creatorId ───────┘ (UNIQUE)
+
+Hotel (1) ---- (0..n) HotelImage
+│ │
+│ │
+└── id ──────────────┘ (hotelId, FOREIGN KEY, CASCADE DELETE)
+
 ```
 
-**一个商户账号只对应一个酒店**（一对一关系）。
+- **一个商户账号只对应一个酒店**（一对一关系）
+- **一个酒店可以有多张图片**（一对多关系）
 
 ---
 
@@ -419,3 +695,6 @@ User (1) ---- (0..1) Hotel
 6. **价格精度**: 使用 DECIMAL(10,2) 确保价格计算精确
 7. **审核记录**: rejectReason 仅在审核不通过时记录原因
 8. **版本控制**: draftData 用于已上线酒店的修改版本控制
+9. **图片管理**: HotelImage 表用于管理酒店的多张图片，支持分类存储和房型关联
+10. **级联删除**: 删除酒店时会自动删除关联的 HotelImage 记录（ON DELETE CASCADE）
+```

@@ -1,4 +1,10 @@
-import type { Hotel, UpdateHotelRequest, SubmitAuditResponse, CancelAuditResponse } from '@/types'
+import type {
+  Hotel,
+  UpdateHotelRequest,
+  SubmitAuditRequest,
+  SubmitAuditResponse,
+  CancelAuditResponse,
+} from '@/types'
 import service from '@/utils/request.ts'
 
 const URL = {
@@ -9,8 +15,10 @@ const URL = {
 }
 
 export default {
-  getHotel: () => service.get<any, Hotel>(URL.GET_HOTEL),
+  getHotel: (viewMode?: 'draft' | 'published') =>
+    service.get<any, Hotel>(URL.GET_HOTEL, { params: { viewMode } }),
   updateHotel: (data: UpdateHotelRequest) => service.put<any, Hotel>(URL.UPDATE_HOTEL, data),
-  submitAudit: () => service.put<any, SubmitAuditResponse>(URL.SUBMIT_AUDIT),
+  submitAudit: (data?: SubmitAuditRequest) =>
+    service.put<any, SubmitAuditResponse>(URL.SUBMIT_AUDIT, data),
   cancelAudit: () => service.put<any, CancelAuditResponse>(URL.CANCEL_AUDIT),
 }

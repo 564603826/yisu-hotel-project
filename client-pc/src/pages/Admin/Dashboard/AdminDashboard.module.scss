@@ -2,6 +2,13 @@
   padding-bottom: 40px;
 }
 
+.welcomeSection {
+  margin-bottom: 32px;
+  h2 {
+    margin-bottom: 8px !important;
+  }
+}
+
 .header {
   display: flex;
   justify-content: space-between;
@@ -17,4 +24,29 @@
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.section {
+  margin-top: 40px;
+}
+
+.sectionTitle {
+  margin-bottom: 20px !important;
+  font-weight: bold !important;
+  color: #292524;
+  border-left: 4px solid #c58e53;
+  padding-left: 12px;
+}
+
+.spinning {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }

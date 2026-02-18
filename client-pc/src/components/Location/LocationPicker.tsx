@@ -227,7 +227,7 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
           />
           <Button
             type="primary"
-            icon={<Locate size={16} />}
+            icon={<Locate size={18} style={{ marginTop: 3 }} />}
             onClick={handleLocate}
             style={{ marginTop: 4 }}
           >

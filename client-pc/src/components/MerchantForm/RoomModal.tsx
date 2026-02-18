@@ -1,15 +1,23 @@
 import React, { useEffect, useState, useMemo } from 'react'
 import { Form, Input, InputNumber, Select, Button } from 'antd'
-import { Plus, Star } from 'lucide-react'
+import { Plus, Star, X } from 'lucide-react'
 import type { RoomType } from '@/types'
+import MultiImageUpload from './MultiImageUpload'
+import type { ImageItem } from './MultiImageUpload'
 import '@/components/MerchantForm/index.scss'
+
+// 扩展 RoomType 支持 ImageItem
+interface RoomTypeWithImageItems extends Omit<RoomType, 'images'> {
+  images?: (string | ImageItem)[]
+}
 
 interface RoomModalProps {
   open: boolean
   onCancel: () => void
-  onSubmit: (room: RoomType) => void
-  initialValues?: RoomType
+  onSubmit?: (room: RoomTypeWithImageItems) => void
+  initialValues?: RoomTypeWithImageItems
   title?: string
+  disabled?: boolean // 只读模式
 }
 
 const RoomModal: React.FC<RoomModalProps> = ({
@@ -18,10 +26,13 @@ const RoomModal: React.FC<RoomModalProps> = ({
   onSubmit,
   initialValues,
   title = '添加房型',
+  disabled = false,
 }) => {
   const [form] = Form.useForm()
   const [facilities, setFacilities] = useState<string[]>([])
   const [newFacility, setNewFacility] = useState('')
+  // 本地图片列表（包含文件对象）
+  const [localImages, setLocalImages] = useState<ImageItem[]>([])
 
   // 使用 useMemo 计算初始 facilities，避免在 useEffect 中调用 setState
   const initialFacilities = useMemo(() => {
@@ -36,25 +47,61 @@ const RoomModal: React.FC<RoomModalProps> = ({
         // 使用 requestAnimationFrame 延迟 setState 到渲染完成后
         requestAnimationFrame(() => {
           setFacilities(initialValues.facilities || [])
+          // 初始化房型图片 - 将 (string | ImageItem)[] 转换为 ImageItem[]
+          const images = initialValues.images || []
+          setLocalImages(
+            images.map((img, index) => {
+              if (typeof img === 'string') {
+                // string URL
+                return {
+                  url: img,
+                  uid: `room-${index}`,
+                  status: 'done' as const,
+                }
+              } else {
+                // ImageItem
+                return img
+              }
+            })
+          )
         })
       } else {
         form.resetFields()
         requestAnimationFrame(() => {
           setFacilities([])
+          setLocalImages([])
         })
       }
     }
   }, [open, initialValues, form, initialFacilities])
 
   const handleSubmit = async () => {
+    if (disabled) return
+
     try {
       const values = await form.validateFields()
-      onSubmit({
+
+      // 处理图片：已上传的（status: 'done'）转为 URL string
+      // 新上传的（status: 'pending'）保持为 ImageItem
+      const processedImages: (string | ImageItem)[] = localImages.map((img) => {
+        if (img.status === 'done' && img.url && !img.url.startsWith('blob:')) {
+          // 已上传的图片，返回 URL string
+          return img.url
+        }
+        // 新上传的图片，返回 ImageItem
+        return img
+      })
+
+      onSubmit?.({
         ...values,
         facilities,
+        images: processedImages,
       })
+
+      // 重置状态
       form.resetFields()
       setFacilities([])
+      setLocalImages([])
     } catch (error) {
       console.error('表单验证失败:', error)
     }
@@ -63,10 +110,12 @@ const RoomModal: React.FC<RoomModalProps> = ({
   const handleCancel = () => {
     form.resetFields()
     setFacilities([])
+    setLocalImages([])
     onCancel()
   }
 
   const addFacility = () => {
+    if (disabled) return
     if (newFacility.trim()) {
       setFacilities([...facilities, newFacility.trim()])
       setNewFacility('')
@@ -74,6 +123,7 @@ const RoomModal: React.FC<RoomModalProps> = ({
   }
 
   const removeFacility = (index: number) => {
+    if (disabled) return
     setFacilities(facilities.filter((_, i) => i !== index))
   }
 
@@ -82,15 +132,15 @@ const RoomModal: React.FC<RoomModalProps> = ({
   return (
     <div className="room-modal-overlay">
       <div className="room-modal-backdrop" onClick={handleCancel} />
-      <div className="room-modal-container">
+      <div className="room-modal-container" style={{ maxWidth: 600 }}>
         {/* Modal Header */}
         <div className="room-modal-header">
           <div className="header-decoration">
             <Star size={100} className="decoration-icon" />
           </div>
           <div>
-            <h3 className="header-title">{title}</h3>
-            <p className="header-subtitle">Room Configuration</p>
+            <h3 className="header-title">{disabled ? '查看房型' : title}</h3>
+            <p className="header-subtitle">{disabled ? 'Room Details' : 'Room Configuration'}</p>
           </div>
         </div>
 
@@ -107,7 +157,12 @@ const RoomModal: React.FC<RoomModalProps> = ({
               }
               rules={[{ required: true, message: '请输入房型名称' }]}
             >
-              <Input className="form-input" placeholder="如: 豪华海景大床房" />
+              <Input
+                className="form-input"
+                placeholder="如: 豪华海景大床房"
+                disabled={disabled || !!initialValues}
+                title={initialValues ? '已有房型不能修改名称' : ''}
+              />
             </Form.Item>
 
             {/* Price & Area Grid */}
@@ -132,6 +187,7 @@ const RoomModal: React.FC<RoomModalProps> = ({
                     const parsed = value.replace(/[^0-9]/g, '')
                     return parsed ? Number(parsed) : 0
                   }}
+                  disabled={disabled}
                 />
               </Form.Item>
 
@@ -142,19 +198,39 @@ const RoomModal: React.FC<RoomModalProps> = ({
                   min={1}
                   placeholder="50"
                   suffix="m²"
+                  disabled={disabled}
                 />
               </Form.Item>
             </div>
 
             {/* Bed Type */}
             <Form.Item name="bedType" label={<span className="form-label">床型配置</span>}>
-              <Select className="form-input" placeholder="请选择床型" allowClear>
+              <Select
+                className="form-input"
+                placeholder="请选择床型"
+                allowClear
+                disabled={disabled}
+              >
                 <Select.Option value="大床">大床 (1.8m)</Select.Option>
                 <Select.Option value="双床">双床 (1.2m × 2)</Select.Option>
                 <Select.Option value="单床">单床 (1.2m)</Select.Option>
                 <Select.Option value="特大床">特大床 (2.2m)</Select.Option>
               </Select>
             </Form.Item>
+
+            {/* Room Images */}
+            <div className="form-section" style={{ marginBottom: 24 }}>
+              <label className="form-label">房型图片</label>
+              <MultiImageUpload
+                value={localImages}
+                onChange={disabled ? () => {} : setLocalImages}
+                maxCount={5}
+                disabled={disabled}
+              />
+              <div style={{ fontSize: 12, color: '#a8a29e', marginTop: 8 }}>
+                {disabled ? '房型图片展示' : '最多上传5张图片，展示房型实景（保存时统一上传）'}
+              </div>
+            </div>
 
             {/* Facilities */}
             <div className="facilities-section">
@@ -163,26 +239,31 @@ const RoomModal: React.FC<RoomModalProps> = ({
                 {facilities.map((fac, idx) => (
                   <span key={idx} className="facility-tag">
                     {fac}
-                    <button
-                      type="button"
-                      className="tag-remove"
-                      onClick={() => removeFacility(idx)}
-                    ></button>
+                    {!disabled && (
+                      <button
+                        type="button"
+                        className="tag-remove"
+                        onClick={() => removeFacility(idx)}
+                      >
+                        <X size={12} />
+                      </button>
+                    )}
                   </span>
                 ))}
-                <div className="add-facility">
-                  <input
-                    type="text"
-                    value={newFacility}
-                    onChange={(e) => setNewFacility(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addFacility())}
-                    placeholder="添加设施..."
-                    className="add-facility-input"
-                  />
-                  <button type="button" className="add-facility-btn" onClick={addFacility}>
-                    <Plus size={14} />
-                  </button>
-                </div>
+                {!disabled && (
+                  <div className="add-facility">
+                    <Input
+                      className="add-facility-input"
+                      placeholder="添加设施"
+                      value={newFacility}
+                      onChange={(e) => setNewFacility(e.target.value)}
+                      onPressEnter={addFacility}
+                    />
+                    <Button className="add-facility-btn" onClick={addFacility}>
+                      <Plus size={16} />
+                    </Button>
+                  </div>
+                )}
               </div>
             </div>
           </Form>
@@ -190,12 +271,14 @@ const RoomModal: React.FC<RoomModalProps> = ({
 
         {/* Modal Footer */}
         <div className="room-modal-footer">
-          <Button className="cancel-btn" onClick={handleCancel}>
-            取消
-          </Button>
-          <Button className="submit-btn" type="primary" onClick={handleSubmit}>
-            {initialValues ? '确认修改' : '确认添加'}
-          </Button>
+          <button className="cancel-btn" onClick={handleCancel}>
+            {disabled ? '关闭' : '取消'}
+          </button>
+          {!disabled && (
+            <button className="submit-btn" onClick={handleSubmit}>
+              确认
+            </button>
+          )}
         </div>
       </div>
     </div>

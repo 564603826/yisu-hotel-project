@@ -1,9 +1,7 @@
 import { redirect } from 'react-router-dom'
-import { useUserStore } from '@/store/userStore'
-import { getToken } from '@/utils/token'
+import { getToken, getUserRole } from '@/utils/auth'
 import { message } from 'antd'
 
-const getUserRole = () => useUserStore.getState().userInfo?.role
 /**
  * 角色鉴权 Loader 工厂 (核心逻辑)
  * 作用：生成一个专门检查特定角色的 Loader
@@ -13,14 +11,13 @@ export const checkRoleLoader = (allowedRoles: string[]) => {
   // 返回一个标准的 Loader 函数
   return () => {
     const token = getToken()
+    const currentRole = getUserRole()
 
     // 1. 没登录则去登录
     if (!token) {
       message.error('请先登录')
       return redirect('/login')
     }
-
-    const currentRole = getUserRole()
 
     // 2. 角色在不在白名单里？
     if (currentRole && !allowedRoles.includes(currentRole)) {

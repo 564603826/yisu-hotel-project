@@ -1,6 +1,7 @@
 import React from 'react'
 import { Modal, Descriptions, Tag, Image, Row, Col, Rate, Divider, Alert } from 'antd'
-import { MapPin, Train, ShoppingBag, Calendar, DollarSign, FileEdit } from 'lucide-react'
+import { ClockCircleOutlined, CloseCircleOutlined } from '@ant-design/icons'
+import { MapPin, Train, ShoppingBag, Calendar } from 'lucide-react'
 import type { Hotel } from '@/types'
 import '@/components/AdminList/index.scss'
 
@@ -19,20 +20,26 @@ const HotelDetailModal: React.FC<HotelDetailModalProps> = ({
 }) => {
   if (!hotel) return null
 
-  // 审核中状态且有草稿数据：展示草稿数据（最新修改）
+  // 审核中或已驳回状态且有草稿数据：展示草稿数据（被审核/被驳回的版本）
   const displayHotel =
-    hotel.status === 'pending' && hotel.draftData ? { ...hotel, ...hotel.draftData } : hotel
+    (hotel.status === 'pending' || hotel.status === 'rejected') && hotel.draftData
+      ? { ...hotel, ...hotel.draftData }
+      : hotel
 
-  const statusMap: Record<string, { color: string; text: string }> = {
-    pending: { color: 'gold', text: '待审核' },
-    approved: { color: 'green', text: '已通过' },
-    rejected: { color: 'red', text: '已驳回' },
-    draft: { color: 'default', text: '草稿' },
-    published: { color: 'blue', text: '已发布' },
-    offline: { color: 'default', text: '已下线' },
+  const statusMap: Record<string, { bgColor: string; textColor: string; text: string }> = {
+    pending: { bgColor: '#fef3c7', textColor: '#d97706', text: '待审核' },
+    approved: { bgColor: '#dbeafe', textColor: '#2563eb', text: '已通过' },
+    rejected: { bgColor: '#fee2e2', textColor: '#dc2626', text: '已驳回' },
+    draft: { bgColor: '#f5f5f4', textColor: '#78716c', text: '草稿' },
+    published: { bgColor: '#dcfce7', textColor: '#16a34a', text: '已发布' },
+    offline: { bgColor: '#f5f5f4', textColor: '#78716c', text: '已下线' },
   }
 
-  const status = statusMap[hotel.status] || { color: 'default', text: hotel.status }
+  const status = statusMap[hotel.status] || {
+    bgColor: '#f5f5f4',
+    textColor: '#78716c',
+    text: hotel.status,
+  }
 
   // 构建图片 URL
   const getImageUrl = (url: string) => {
@@ -60,11 +67,23 @@ const HotelDetailModal: React.FC<HotelDetailModalProps> = ({
         {/* 审核中提示 */}
         {hotel.status === 'pending' && hotel.draftData && (
           <Alert
-            message="待审核版本"
-            description="当前展示的是商户提交的最新修改版本，审核通过后将替换线上版本。"
+            title="待审核版本"
+            description="当前展示的是商户提交的最新修改版本，审核通过并发布后将替换线上版本。"
             type="info"
             showIcon
-            icon={<FileEdit size={16} />}
+            icon={<ClockCircleOutlined />}
+            style={{ marginBottom: 16 }}
+          />
+        )}
+
+        {/* 已驳回提示 */}
+        {hotel.status === 'rejected' && hotel.draftData && (
+          <Alert
+            title="被驳回的版本"
+            description="当前展示的是被驳回时的修改版本，商户可基于此版本继续修改后重新提交。"
+            type="warning"
+            showIcon
+            icon={<CloseCircleOutlined />}
             style={{ marginBottom: 16 }}
           />
         )}
@@ -77,8 +96,26 @@ const HotelDetailModal: React.FC<HotelDetailModalProps> = ({
             <Rate value={displayHotel.starRating} disabled style={{ color: '#c58e53' }} />
           </Descriptions.Item>
           <Descriptions.Item label="状态">
-            <Tag color={status.color}>{status.text}</Tag>
+            <Tag
+              style={{
+                backgroundColor: status.bgColor,
+                color: status.textColor,
+                border: 'none',
+                borderRadius: 12,
+                padding: '2px 12px',
+                fontSize: 13,
+                fontWeight: 500,
+              }}
+            >
+              {status.text}
+            </Tag>
           </Descriptions.Item>
+          {/* 审核信息 - 只在待审核状态显示 */}
+          {hotel.status === 'pending' && hotel.auditInfo && (
+            <Descriptions.Item label="审核信息" span={2}>
+              <div style={{ color: '#666', lineHeight: 1.6 }}>{hotel.auditInfo}</div>
+            </Descriptions.Item>
+          )}
           <Descriptions.Item label="参考价格" span={2}>
             <span style={{ color: '#c58e53', fontSize: 18, fontWeight: 'bold' }}>
               ¥{displayHotel.price}
@@ -86,14 +123,19 @@ const HotelDetailModal: React.FC<HotelDetailModalProps> = ({
             <span style={{ color: '#999', marginLeft: 4 }}>起</span>
           </Descriptions.Item>
           <Descriptions.Item label="详细地址" span={2}>
-            <MapPin size={14} style={{ marginRight: 4, color: '#c58e53' }} />
-            {displayHotel.address || '-'}
+            <span style={{ display: 'flex', alignItems: 'center' }}>
+              <MapPin size={14} style={{ marginRight: 4, color: '#c58e53' }} />
+              {displayHotel.address || '-'}
+            </span>
           </Descriptions.Item>
           <Descriptions.Item label="开业时间" span={2}>
-            <Calendar size={14} style={{ marginRight: 4, color: '#c58e53' }} />
-            {displayHotel.openDate || '-'}
+            <span style={{ display: 'flex', alignItems: 'center' }}>
+              <Calendar size={14} style={{ marginRight: 4, color: '#c58e53' }} />
+              {displayHotel.openDate ? displayHotel.openDate.split('T')[0] : '-'}
+            </span>
           </Descriptions.Item>
-          {hotel.rejectReason && (
+          {/* 只在已驳回状态下显示驳回原因 */}
+          {hotel.status === 'rejected' && hotel.rejectReason && (
             <Descriptions.Item label="驳回原因" span={2}>
               <span style={{ color: '#dc2626' }}>{hotel.rejectReason}</span>
             </Descriptions.Item>
@@ -117,26 +159,66 @@ const HotelDetailModal: React.FC<HotelDetailModalProps> = ({
                       border: '1px solid #e7e5e4',
                     }}
                   >
-                    <div style={{ fontWeight: 'bold', marginBottom: 8 }}>{room.name}</div>
-                    <div style={{ color: '#c58e53', fontSize: 16, marginBottom: 8 }}>
-                      <DollarSign size={14} style={{ verticalAlign: 'middle' }} />¥{room.price}
-                      <span style={{ color: '#999', fontSize: 12, marginLeft: 4 }}>/晚</span>
-                    </div>
-                    <div style={{ fontSize: 13, color: '#666', marginBottom: 4 }}>
-                      面积: {room.area ? `${room.area}㎡` : '未设置'}
-                    </div>
-                    <div style={{ fontSize: 13, color: '#666', marginBottom: 4 }}>
-                      床型: {room.bedType || '未设置'}
-                    </div>
-                    {room.facilities && room.facilities.length > 0 && (
-                      <div style={{ marginTop: 8 }}>
-                        {room.facilities.map((facility, idx) => (
-                          <Tag key={idx} style={{ margin: '0 4px 4px 0' }}>
-                            {facility}
-                          </Tag>
-                        ))}
-                      </div>
-                    )}
+                    <Row gutter={[12, 0]}>
+                      {/* 左侧图片区域 */}
+                      {room.images && room.images.length > 0 && (
+                        <Col span={10}>
+                          <Image.PreviewGroup>
+                            <div
+                              style={{
+                                display: 'grid',
+                                gridTemplateColumns: room.images.length > 1 ? '1fr 1fr' : '1fr',
+                                gap: 6,
+                              }}
+                            >
+                              {room.images.slice(0, 4).map((imgUrl, imgIndex) => (
+                                <Image
+                                  key={imgIndex}
+                                  src={getImageUrl(imgUrl)}
+                                  alt={`${room.name} 图片 ${imgIndex + 1}`}
+                                  style={{
+                                    width: '100%',
+                                    height: room.images?.length === 1 ? 140 : 67,
+                                    objectFit: 'cover',
+                                    borderRadius: 6,
+                                  }}
+                                  fallback="https://via.placeholder.com/100x80?text=No+Image"
+                                  preview={{ mask: '查看' }}
+                                />
+                              ))}
+                            </div>
+                          </Image.PreviewGroup>
+                        </Col>
+                      )}
+                      {/* 右侧信息区域 */}
+                      <Col span={room.images && room.images.length > 0 ? 14 : 24}>
+                        <div style={{ fontWeight: 'bold', fontSize: 15, marginBottom: 10 }}>
+                          {room.name}
+                        </div>
+                        <div style={{ color: '#c58e53', fontSize: 18, marginBottom: 10 }}>
+                          ¥{room.price}
+                          <span style={{ color: '#999', fontSize: 13, marginLeft: 4 }}>/晚</span>
+                        </div>
+                        <div style={{ fontSize: 13, color: '#666', marginBottom: 6 }}>
+                          面积: {room.area ? `${room.area}㎡` : '未设置'}
+                        </div>
+                        <div style={{ fontSize: 13, color: '#666', marginBottom: 8 }}>
+                          床型: {room.bedType || '未设置'}
+                        </div>
+                        {room.facilities && room.facilities.length > 0 && (
+                          <div>
+                            {room.facilities.slice(0, 4).map((facility, idx) => (
+                              <Tag key={idx} style={{ margin: '0 4px 4px 0', fontSize: 11 }}>
+                                {facility}
+                              </Tag>
+                            ))}
+                            {room.facilities.length > 4 && (
+                              <Tag style={{ fontSize: 11 }}>+{room.facilities.length - 4}</Tag>
+                            )}
+                          </div>
+                        )}
+                      </Col>
+                    </Row>
                   </div>
                 </Col>
               ))}
@@ -151,16 +233,22 @@ const HotelDetailModal: React.FC<HotelDetailModalProps> = ({
         {/* 周边信息 */}
         <Descriptions title="周边信息" column={1} bordered>
           <Descriptions.Item label="附近景点">
-            <MapPin size={14} style={{ marginRight: 4, color: '#c58e53' }} />
-            {displayHotel.nearbyAttractions || '-'}
+            <span style={{ display: 'flex', alignItems: 'center' }}>
+              <MapPin size={14} style={{ marginRight: 4, color: '#c58e53' }} />
+              {displayHotel.nearbyAttractions || '-'}
+            </span>
           </Descriptions.Item>
           <Descriptions.Item label="附近交通">
-            <Train size={14} style={{ marginRight: 4, color: '#c58e53' }} />
-            {displayHotel.nearbyTransport || '-'}
+            <span style={{ display: 'flex', alignItems: 'center' }}>
+              <Train size={14} style={{ marginRight: 4, color: '#c58e53' }} />
+              {displayHotel.nearbyTransport || '-'}
+            </span>
           </Descriptions.Item>
           <Descriptions.Item label="附近商圈">
-            <ShoppingBag size={14} style={{ marginRight: 4, color: '#c58e53' }} />
-            {displayHotel.nearbyMalls || '-'}
+            <span style={{ display: 'flex', alignItems: 'center' }}>
+              <ShoppingBag size={14} style={{ marginRight: 4, color: '#c58e53' }} />
+              {displayHotel.nearbyMalls || '-'}
+            </span>
           </Descriptions.Item>
         </Descriptions>
 

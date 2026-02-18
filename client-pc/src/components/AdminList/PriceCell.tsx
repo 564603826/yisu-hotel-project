@@ -9,9 +9,10 @@ interface PriceCellProps {
 const PriceCell: React.FC<PriceCellProps> = ({ location, price }) => {
   return (
     <div className="price-cell">
-      <div>{location}</div>
+      <div className="location">{location}</div>
       <div className="price">
-        ¥{price} <span className="unit">起</span>
+        ¥{price}
+        <span className="unit">起</span>
       </div>
     </div>
   )

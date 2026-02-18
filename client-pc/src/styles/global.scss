@@ -39,9 +39,57 @@
 // 通用的输入框聚焦效果 (配合 Antd Input 使用)
 .ant-input:focus,
 .ant-input-focused,
+.ant-input-textarea:focus,
+.ant-input-textarea-focused,
 .ant-select-focused .ant-select-selector {
   border-color: #c58e53 !important; // Gold-500
   box-shadow: 0 0 0 2px rgba(197, 142, 83, 0.1) !important;
+}
+
+// 针对 textarea 的 focus 样式
+textarea.ant-input:focus {
+  border-color: #c58e53 !important;
+  box-shadow: 0 0 0 2px rgba(197, 142, 83, 0.1) !important;
+}
+
+// 审核信息弹窗专用样式
+.audit-info-textarea {
+  &.ant-input:focus,
+  &:focus {
+    border-color: #c58e53 !important;
+    box-shadow: 0 0 0 2px rgba(197, 142, 83, 0.1) !important;
+  }
+}
+
+// TextArea 字数统计样式修复
+.ant-input-textarea-show-count {
+  .ant-input-data-count {
+    bottom: -20px;
+    right: 0;
+  }
+}
+
+// Modal 中的 TextArea 底部留白，避免字数统计被遮挡
+.ant-modal-confirm-body {
+  .ant-input-textarea-show-count {
+    margin-bottom: 24px;
+  }
+}
+
+// Modal 中的 TextArea 样式
+.ant-modal-body {
+  .ant-input-textarea-show-count {
+    margin-bottom: 10px;
+
+    textarea.ant-input {
+      border-radius: 8px;
+
+      &:focus {
+        border-color: #c58e53 !important;
+        box-shadow: 0 0 0 2px rgba(197, 142, 83, 0.1) !important;
+      }
+    }
+  }
 }
 
 // 通用主按钮 (金色渐变)

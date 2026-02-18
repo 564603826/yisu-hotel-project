@@ -1,95 +1,483 @@
 const { PrismaClient } = require('@prisma/client')
-const { upload, getImageUrl } = require('../utils/upload')
+const path = require('path')
+const { createUploadMiddleware, deleteImageFile, uploadDir } = require('../utils/upload')
 const responseHandler = require('../utils/response')
 const { ResponseMessage } = require('../constants/response')
 
 const prisma = new PrismaClient()
 
-const getStatusMessage = (status) => {
-  const statusMap = {
-    draft: '草稿',
-    pending: '审核中',
-    approved: '审核通过',
-    rejected: '审核不通过',
-    published: '已发布',
-    offline: '已下线',
+// 将绝对路径转换为相对 URL 路径
+const getRelativeUrl = (absolutePath) => {
+  if (!absolutePath) return ''
+  // 如果已经是相对路径，直接返回
+  if (absolutePath.startsWith('/uploads/')) {
+    return absolutePath
   }
-  return statusMap[status] || status
+  // 从绝对路径中提取相对路径
+  const relativePath = absolutePath.replace(uploadDir, '').replace(/\\/g, '/')
+  return `/uploads${relativePath}`
 }
 
-const checkHotelStatus = async (req, res, next) => {
+const getHotelImages = async (req, res) => {
   try {
-    if (req.user.role === 'admin') {
-      return next()
+    const hotelId = req.params.hotelId
+    const { status = 'draft', type = 'hotel_main', roomType, includeArchived } = req.query
+
+    let where = {
+      hotelId: parseInt(hotelId),
+      type: type,
     }
 
-    const hotel = await prisma.hotel.findUnique({
-      where: { creatorId: req.user.userId },
+    // 只有在明确需要时才包含 archived（用于审核中的酒店查看草稿）
+    if (includeArchived === 'true' && (status === 'draft' || status === 'published')) {
+      where.status = { in: [status, 'archived'] }
+    } else {
+      where.status = status
+    }
+
+    if (roomType) {
+      where.roomType = roomType
+    }
+
+    const images = await prisma.hotelimage.findMany({
+      where,
+      orderBy: { sortOrder: 'asc' },
     })
 
-    if (!hotel) {
-      return responseHandler.badRequest(res, '您还没有酒店信息')
-    }
-
-    const allowedStatuses = ['draft', 'rejected', 'published', 'offline']
-    if (!allowedStatuses.includes(hotel.status)) {
-      return responseHandler.badRequest(
-        res,
-        `当前酒店状态为「${getStatusMessage(hotel.status)}」，只有草稿、审核不通过、已发布或已下线状态才能上传图片`
-      )
-    }
-
-    next()
-  } catch (error) {
-    console.error('Check hotel status error:', error)
-    return responseHandler.error(res, ResponseMessage.INTERNAL_ERROR)
-  }
-}
-
-const uploadImage = (req, res) => {
-  try {
-    if (!req.file) {
-      return responseHandler.badRequest(res, '请选择要上传的文件')
-    }
-
-    const imageUrl = getImageUrl(req.file.filename)
-
-    return responseHandler.success(
-      res,
-      {
-        url: imageUrl,
-        filename: req.file.filename,
-      },
-      ResponseMessage.UPLOAD_SUCCESS
-    )
-  } catch (error) {
-    console.error('Upload error:', error)
-    return responseHandler.error(res, ResponseMessage.UPLOAD_FAILED)
-  }
-}
-
-const uploadMultipleImages = (req, res) => {
-  try {
-    if (!req.files || req.files.length === 0) {
-      return responseHandler.badRequest(res, '请选择要上传的文件')
-    }
-
-    const urls = req.files.map((file) => ({
-      url: getImageUrl(file.filename),
-      filename: file.filename,
+    // 转换所有图片 URL 为相对路径（兼容旧数据）
+    const normalizedImages = images.map((img) => ({
+      ...img,
+      url: getRelativeUrl(img.url),
     }))
 
-    return responseHandler.success(res, urls, ResponseMessage.UPLOAD_SUCCESS)
+    responseHandler.success(res, normalizedImages, ResponseMessage.SUCCESS)
   } catch (error) {
-    console.error('Upload error:', error)
-    return responseHandler.error(res, ResponseMessage.UPLOAD_FAILED)
+    console.error('Get hotel images error:', error)
+    responseHandler.error(res, ResponseMessage.INTERNAL_SERVER_ERROR)
   }
 }
 
+const uploadHotelImage = async (req, res) => {
+  try {
+    const hotelId = req.params.hotelId
+    const userId = req.user.userId
+    // 从查询参数或表单字段读取 type 和 roomType
+    const type = req.query.type || req.body.type || 'hotel_main'
+    const roomType = req.query.roomType || req.body.roomType || null
+
+    const maxSortOrderResult = await prisma.hotelimage.findFirst({
+      where: {
+        hotelId: parseInt(hotelId),
+        type: type,
+        roomType: roomType || null,
+        status: 'draft',
+      },
+      orderBy: { sortOrder: 'desc' },
+      select: { sortOrder: true },
+    })
+
+    const newSortOrder = maxSortOrderResult ? maxSortOrderResult.sortOrder + 1 : 0
+
+    const image = await prisma.hotelimage.create({
+      data: {
+        hotelId: parseInt(hotelId),
+        url: getRelativeUrl(req.file.path),
+        type: type,
+        roomType: roomType || null,
+        sortOrder: newSortOrder,
+        status: 'draft',
+        version: 1,
+        filename: req.file.originalname,
+        fileSize: req.file.size,
+        mimeType: req.file.mimetype,
+        createdBy: userId,
+        updatedBy: userId,
+      },
+    })
+
+    responseHandler.success(res, image, ResponseMessage.UPLOAD_SUCCESS)
+  } catch (error) {
+    console.error('Upload hotel image error:', error)
+    responseHandler.error(res, ResponseMessage.INTERNAL_SERVER_ERROR)
+  }
+}
+
+const deleteHotelImage = async (req, res) => {
+  try {
+    const imageId = req.params.id
+
+    const image = await prisma.hotelimage.findUnique({
+      where: { id: parseInt(imageId) },
+    })
+
+    if (!image) {
+      return responseHandler.error(res, ResponseMessage.NOT_FOUND)
+    }
+
+    if (image.url) {
+      await deleteImageFile(image.url)
+    }
+
+    await prisma.hotelimage.delete({
+      where: { id: parseInt(imageId) },
+    })
+
+    responseHandler.success(res, null, ResponseMessage.DELETE_SUCCESS)
+  } catch (error) {
+    console.error('Delete hotel image error:', error)
+    responseHandler.error(res, ResponseMessage.INTERNAL_SERVER_ERROR)
+  }
+}
+
+const updateImageSortOrder = async (req, res) => {
+  try {
+    const { imageIds } = req.body
+    const userId = req.user.userId
+
+    for (let i = 0; i < imageIds.length; i++) {
+      await prisma.hotelimage.update({
+        where: { id: parseInt(imageIds[i]) },
+        data: {
+          sortOrder: i,
+          updatedBy: userId,
+        },
+      })
+    }
+
+    responseHandler.success(res, null, ResponseMessage.SUCCESS)
+  } catch (error) {
+    console.error('Update image sort order error:', error)
+    responseHandler.error(res, ResponseMessage.INTERNAL_SERVER_ERROR)
+  }
+}
+
+const copyPublishedToDraft = async (req, res) => {
+  try {
+    const hotelId = req.params.hotelId
+    const userId = req.user.userId
+
+    const publishedImages = await prisma.hotelimage.findMany({
+      where: {
+        hotelId: parseInt(hotelId),
+        status: 'published',
+      },
+    })
+
+    if (publishedImages.length === 0) {
+      return responseHandler.success(res, [], ResponseMessage.SUCCESS)
+    }
+
+    await prisma.hotelimage.deleteMany({
+      where: {
+        hotelId: parseInt(hotelId),
+        status: 'draft',
+      },
+    })
+
+    const draftImages = await Promise.all(
+      publishedImages.map((img) =>
+        prisma.hotelimage.create({
+          data: {
+            hotelId: img.hotelId,
+            url: getRelativeUrl(img.url),
+            type: img.type,
+            roomType: img.roomType,
+            sortOrder: img.sortOrder,
+            status: 'draft',
+            version: img.version + 1,
+            filename: img.filename,
+            fileSize: img.fileSize,
+            mimeType: img.mimeType,
+            createdBy: userId,
+            updatedBy: userId,
+          },
+        })
+      )
+    )
+
+    // 返回时统一转换为相对路径
+    const normalizedImages = draftImages.map((img) => ({
+      ...img,
+      url: getRelativeUrl(img.url),
+    }))
+
+    responseHandler.success(res, normalizedImages, ResponseMessage.SUCCESS)
+  } catch (error) {
+    console.error('Copy published to draft error:', error)
+    responseHandler.error(res, ResponseMessage.INTERNAL_SERVER_ERROR)
+  }
+}
+
+const publishImages = async (req, res) => {
+  try {
+    const hotelId = req.params.hotelId
+    const userId = req.user.userId
+
+    await prisma.hotelimage.updateMany({
+      where: {
+        hotelId: parseInt(hotelId),
+        status: 'published',
+      },
+      data: {
+        status: 'archived',
+        updatedBy: userId,
+      },
+    })
+
+    await prisma.hotelimage.updateMany({
+      where: {
+        hotelId: parseInt(hotelId),
+        status: 'draft',
+      },
+      data: {
+        status: 'published',
+        updatedBy: userId,
+      },
+    })
+
+    responseHandler.success(res, null, ResponseMessage.SUCCESS)
+  } catch (error) {
+    console.error('Publish images error:', error)
+    responseHandler.error(res, ResponseMessage.INTERNAL_SERVER_ERROR)
+  }
+}
+
+const approveImages = async (hotelId, userId) => {
+  try {
+    await prisma.hotelimage.updateMany({
+      where: {
+        hotelId: parseInt(hotelId),
+        status: 'published',
+      },
+      data: {
+        status: 'archived',
+        updatedBy: userId,
+      },
+    })
+
+    await prisma.hotelimage.updateMany({
+      where: {
+        hotelId: parseInt(hotelId),
+        status: 'draft',
+      },
+      data: {
+        status: 'published',
+        updatedBy: userId,
+      },
+    })
+  } catch (error) {
+    console.error('Approve images error:', error)
+    throw error
+  }
+}
+
+const getImagesForHotel = async (hotelId, status = 'published', includeArchived = false) => {
+  try {
+    // 构建查询条件
+    let whereCondition = {
+      hotelId: parseInt(hotelId),
+      type: 'hotel_main',
+    }
+
+    // 只有在明确需要时才包含 archived（用于审核中的酒店查看草稿）
+    if (includeArchived && (status === 'draft' || status === 'published')) {
+      whereCondition.status = { in: [status, 'archived'] }
+    } else {
+      whereCondition.status = status
+    }
+
+    const images = await prisma.hotelimage.findMany({
+      where: whereCondition,
+      orderBy: { sortOrder: 'asc' },
+    })
+    return images.map((img) => img.url)
+  } catch (error) {
+    console.error('Get images for hotel error:', error)
+    return []
+  }
+}
+
+const getRoomImages = async (hotelId, roomType, status = 'published') => {
+  try {
+    const images = await prisma.hotelimage.findMany({
+      where: {
+        hotelId: parseInt(hotelId),
+        type: 'hotel_room',
+        roomType: roomType,
+        status: status,
+      },
+      orderBy: { sortOrder: 'asc' },
+    })
+    return images.map((img) => img.url)
+  } catch (error) {
+    console.error('Get room images error:', error)
+    return []
+  }
+}
+
+// 驳回时处理图片 - 保留草稿图片，让商户可以继续修改
+const rejectImages = async (hotelId, userId) => {
+  try {
+    // 驳回时不需要修改图片状态
+    // 草稿图片保留，商户可以继续修改
+    // 已发布的图片保持发布状态
+    console.log(`Hotel ${hotelId} rejected, draft images preserved`)
+  } catch (error) {
+    console.error('Reject images error:', error)
+    throw error
+  }
+}
+
+// 同步酒店图片 - 根据提交的图片列表同步数据库
+const syncHotelImages = async (req, res) => {
+  try {
+    const hotelId = req.params.hotelId
+    const userId = req.user.userId
+    const { images, type = 'hotel_main', roomType } = req.body
+
+    // 1. 获取当前草稿图片
+    const currentDraftImages = await prisma.hotelimage.findMany({
+      where: {
+        hotelId: parseInt(hotelId),
+        type: type,
+        roomType: roomType || null,
+        status: 'draft',
+      },
+    })
+
+    // 2. 找出需要删除的图片（在当前草稿中但不在新列表中）
+    const currentUrls = currentDraftImages.map((img) => img.url)
+    const newUrls = images || []
+    const urlsToDelete = currentUrls.filter((url) => !newUrls.includes(url))
+
+    // 3. 删除不在新列表中的图片
+    if (urlsToDelete.length > 0) {
+      await prisma.hotelimage.deleteMany({
+        where: {
+          hotelId: parseInt(hotelId),
+          url: { in: urlsToDelete },
+          status: 'draft',
+        },
+      })
+    }
+
+    // 4. 对新列表去重（避免传入重复URL）
+    const uniqueNewUrls = [...new Set(newUrls)]
+
+    // 5. 找出需要新增的图片（在新列表中但不在当前草稿中）
+    const urlsToAdd = uniqueNewUrls.filter((url) => !currentUrls.includes(url))
+
+    // 5. 创建新图片记录
+    for (let i = 0; i < urlsToAdd.length; i++) {
+      const url = urlsToAdd[i]
+      const existingImage = await prisma.hotelimage.findFirst({
+        where: {
+          hotelId: parseInt(hotelId),
+          url: url,
+          status: 'draft',
+        },
+      })
+
+      if (!existingImage) {
+        // 从 URL 中提取文件名
+        const urlParts = url.split('/')
+        const filename = urlParts[urlParts.length - 1]
+
+        await prisma.hotelimage.create({
+          data: {
+            hotelId: parseInt(hotelId),
+            url: url,
+            type: type,
+            roomType: roomType || null,
+            sortOrder: newUrls.indexOf(url),
+            status: 'draft',
+            version: 1,
+            filename: filename,
+            fileSize: 0,
+            mimeType: 'image/png',
+            createdBy: userId,
+            updatedBy: userId,
+          },
+        })
+      }
+    }
+
+    // 6. 更新排序（使用去重后的列表）
+    for (let i = 0; i < uniqueNewUrls.length; i++) {
+      await prisma.hotelimage.updateMany({
+        where: {
+          hotelId: parseInt(hotelId),
+          url: uniqueNewUrls[i],
+          status: 'draft',
+        },
+        data: {
+          sortOrder: i,
+          updatedBy: userId,
+        },
+      })
+    }
+
+    responseHandler.success(res, null, ResponseMessage.SUCCESS)
+  } catch (error) {
+    console.error('Sync hotel images error:', error)
+    responseHandler.error(res, ResponseMessage.INTERNAL_SERVER_ERROR)
+  }
+}
+
+// 删除所有草稿图片（放弃草稿时调用）
+const deleteAllDraftImages = async (req, res) => {
+  try {
+    const hotelId = req.params.hotelId
+    const { type = 'hotel_main', roomType } = req.body
+
+    // 获取要删除的草稿图片
+    const draftImages = await prisma.hotelimage.findMany({
+      where: {
+        hotelId: parseInt(hotelId),
+        type: type,
+        roomType: roomType || null,
+        status: 'draft',
+      },
+    })
+
+    // 删除物理文件
+    for (const image of draftImages) {
+      if (image.url) {
+        await deleteImageFile(image.url)
+      }
+    }
+
+    // 删除数据库记录
+    await prisma.hotelimage.deleteMany({
+      where: {
+        hotelId: parseInt(hotelId),
+        type: type,
+        roomType: roomType || null,
+        status: 'draft',
+      },
+    })
+
+    responseHandler.success(res, null, ResponseMessage.SUCCESS)
+  } catch (error) {
+    console.error('Delete all draft images error:', error)
+    responseHandler.error(res, ResponseMessage.INTERNAL_SERVER_ERROR)
+  }
+}
+
+const uploadMiddleware = createUploadMiddleware('hotels')
+
 module.exports = {
-  uploadImage,
-  uploadMultipleImages,
-  uploadMiddleware: upload.single('image'),
-  uploadMultipleMiddleware: upload.array('images', 10),
-  checkHotelStatus,
+  uploadMiddleware,
+  getHotelImages,
+  uploadHotelImage,
+  deleteHotelImage,
+  updateImageSortOrder,
+  copyPublishedToDraft,
+  publishImages,
+  approveImages,
+  rejectImages,
+  syncHotelImages,
+  deleteAllDraftImages,
+  getImagesForHotel,
+  getRoomImages,
 }

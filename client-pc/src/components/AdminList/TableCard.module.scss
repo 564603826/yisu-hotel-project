@@ -1,0 +1,76 @@
+.tableCard {
+  background: #fffdfb;
+  border: 1px solid rgba(223, 194, 153, 0.6);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 24px rgba(197, 142, 83, 0.06);
+
+  :global(.ant-table) {
+    min-width: auto;
+  }
+
+  // 固定列阴影
+  :global(.ant-table-cell-fix-right) {
+    background: #fffdfb !important;
+    box-shadow: -4px 0 8px rgba(0, 0, 0, 0.05);
+  }
+
+  :global(.ant-table-cell-fix-right-first) {
+    background: #fffdfb !important;
+    box-shadow: -4px 0 8px rgba(0, 0, 0, 0.05);
+  }
+
+  // 表头固定列
+  :global(.ant-table-thead .ant-table-cell-fix-right) {
+    background: #fafaf9 !important;
+  }
+
+  // 分页样式 - 简洁设计
+  :global(.ant-pagination) {
+    padding: 12px 16px;
+    margin: 0;
+    background: #fffdfb;
+    border-top: 1px solid rgba(223, 194, 153, 0.3);
+
+    // 分页文字颜色
+    :global(.ant-pagination-total-text) {
+      color: #78716c;
+    }
+
+    // 分页按钮样式
+    :global(.ant-pagination-item) {
+      border-color: rgba(223, 194, 153, 0.5);
+      background: #fff;
+      border-radius: 8px;
+
+      &:hover {
+        border-color: #c58e53;
+        color: #c58e53;
+      }
+
+      &:global(.ant-pagination-item-active) {
+        background: #c58e53;
+        border-color: #c58e53;
+
+        a {
+          color: #fff;
+        }
+      }
+    }
+
+    // 上一页/下一页按钮
+    :global(.ant-pagination-prev),
+    :global(.ant-pagination-next) {
+      button {
+        border-color: rgba(223, 194, 153, 0.5);
+        border-radius: 8px;
+        background: #fff;
+
+        &:hover {
+          border-color: #c58e53;
+          color: #c58e53;
+        }
+      }
+    }
+  }
+}

@@ -1,6 +1,6 @@
-import React from 'react'
-import { Row, Col, Typography, Table, Tag, Button, Space } from 'antd'
-import { FileClock, CheckCircle2, Building } from 'lucide-react'
+import React, { useEffect, useState } from 'react'
+import { Row, Col, Typography, Table, Tag, Button, Space, Spin } from 'antd'
+import { FileClock, CheckCircle2, Building, RefreshCw } from 'lucide-react'
 import type { ColumnsType } from 'antd/es/table'
 import styles from './AdminDashboard.module.scss'
 import { useNavigate } from 'react-router-dom'
@@ -8,121 +8,182 @@ import StatCardRed from '@/components/AdminDashboard/StatCardRed'
 import StatCardGreen from '@/components/AdminDashboard/StatCardGreen'
 import StatCardStone from '@/components/AdminDashboard/StatCardStone'
 import TableCard from '@/components/AdminDashboard/TableCard'
+import adminAuditApi from '@/api/admin-audit'
+import { useAdminStore } from '@/store'
+import type { HotelWithCreator } from '@/types'
 
 const { Title, Text } = Typography
 
-// Mock Data
-interface DataType {
-  key: string
-  hotelName: string
-  submitter: string
-  time: string
-  status: string
+interface DashboardStats {
+  pendingCount: number
+  todayApprovedCount: number
+  totalHotels: number
+  lastUpdateTime: string
 }
-
-const data: DataType[] = [
-  {
-    key: '1',
-    hotelName: '云端喜来登度假村',
-    submitter: '王经理',
-    time: '2023-10-24 10:30',
-    status: 'pending',
-  },
-  {
-    key: '2',
-    hotelName: '西湖雅致精品酒店',
-    submitter: '李女士',
-    time: '2023-10-24 09:15',
-    status: 'pending',
-  },
-  {
-    key: '3',
-    hotelName: '星际商务公寓',
-    submitter: '张先生',
-    time: '2023-10-23 18:45',
-    status: 'pending',
-  },
-  {
-    key: '4',
-    hotelName: '莫干山隐居',
-    submitter: '赵老板',
-    time: '2023-10-23 14:20',
-    status: 'approved',
-  },
-]
-
-const columns: ColumnsType<DataType> = [
-  {
-    title: '酒店名称',
-    dataIndex: 'hotelName',
-    key: 'hotelName',
-    render: (text) => (
-      <span style={{ fontWeight: 'bold', fontFamily: 'Playfair Display', color: '#292524' }}>
-        {text}
-      </span>
-    ),
-  },
-  {
-    title: '提交人',
-    dataIndex: 'submitter',
-    key: 'submitter',
-    render: (text) => <span style={{ color: '#57534e' }}>{text}</span>,
-  },
-  {
-    title: '提交时间',
-    dataIndex: 'time',
-    key: 'time',
-    render: (text) => (
-      <span className="font-mono text-stone-400" style={{ fontSize: 12 }}>
-        {text}
-      </span>
-    ),
-  },
-  {
-    title: '状态',
-    dataIndex: 'status',
-    key: 'status',
-    render: (status) => (
-      <Tag
-        color={status === 'pending' ? 'gold' : 'green'}
-        style={{ borderRadius: 4, border: 'none', padding: '0 8px' }}
-      >
-        {status === 'pending' ? '待审核' : '已通过'}
-      </Tag>
-    ),
-  },
-  {
-    title: '操作',
-    key: 'action',
-    align: 'right',
-    render: () => (
-      <Space>
-        <Button
-          size="small"
-          type="primary"
-          ghost
-          style={{ borderColor: '#c58e53', color: '#c58e53' }}
-        >
-          审核
-        </Button>
-      </Space>
-    ),
-  },
-]
 
 const AdminDashboard: React.FC = () => {
   const navigate = useNavigate()
+  const { hotelList, getHotels } = useAdminStore()
+
+  const [stats, setStats] = useState<DashboardStats>({
+    pendingCount: 0,
+    todayApprovedCount: 0,
+    totalHotels: 0,
+    lastUpdateTime: new Date().toISOString(),
+  })
+  const [loading, setLoading] = useState(false)
+  const [pendingHotels, setPendingHotels] = useState<HotelWithCreator[]>([])
+  const [lastUpdateTime, setLastUpdateTime] = useState<Date>(new Date())
+
+  // 初始加载
+  useEffect(() => {
+    // 获取 Dashboard 统计数据
+    const fetchDashboardStats = async () => {
+      try {
+        const data = await adminAuditApi.getDashboardStats()
+        setStats(data)
+      } catch (error) {
+        console.error('获取统计数据失败:', error)
+      }
+    }
+
+    // 获取待审核酒店列表（前5条）
+    const fetchPendingHotels = async () => {
+      setLoading(true)
+      try {
+        await getHotels({ page: 1, pageSize: 5, status: 'pending' })
+      } catch (error) {
+        console.error('获取待审核列表失败:', error)
+      } finally {
+        setLoading(false)
+        setLastUpdateTime(new Date())
+      }
+    }
+
+    fetchDashboardStats()
+    fetchPendingHotels()
+  }, [getHotels])
+
+  // 当 hotelList 更新时，更新待审核列表
+  useEffect(() => {
+    setPendingHotels(hotelList)
+  }, [hotelList])
+
+  // 格式化时间
+  const formatTime = (timeStr: string) => {
+    const date = new Date(timeStr)
+    return date.toLocaleString('zh-CN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    })
+  }
+
+  // 刷新数据
+  const handleRefresh = async () => {
+    setLoading(true)
+    try {
+      const data = await adminAuditApi.getDashboardStats()
+      setStats(data)
+      await getHotels({ page: 1, pageSize: 5, status: 'pending' })
+      setLastUpdateTime(new Date())
+    } catch (error) {
+      console.error('刷新数据失败:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const columns: ColumnsType<HotelWithCreator> = [
+    {
+      title: '酒店名称',
+      dataIndex: 'nameZh',
+      key: 'nameZh',
+      render: (text) => (
+        <span style={{ fontWeight: 'bold', fontFamily: 'Playfair Display', color: '#292524' }}>
+          {text}
+        </span>
+      ),
+    },
+    {
+      title: '提交人',
+      key: 'submitter',
+      render: (_, record) => (
+        <span style={{ color: '#57534e' }}>{record.user?.username || '未知'}</span>
+      ),
+    },
+    {
+      title: '提交时间',
+      key: 'submitTime',
+      render: (_, record) => (
+        <span className="font-mono text-stone-400" style={{ fontSize: 12 }}>
+          {record.updatedAt ? formatTime(record.updatedAt) : '-'}
+        </span>
+      ),
+    },
+    {
+      title: '状态',
+      key: 'status',
+      render: () => (
+        <Tag
+          style={{
+            backgroundColor: '#fef3c7',
+            color: '#d97706',
+            borderRadius: 12,
+            border: 'none',
+            padding: '2px 12px',
+            fontSize: 13,
+            fontWeight: 500,
+          }}
+        >
+          待审核
+        </Tag>
+      ),
+    },
+    {
+      title: '操作',
+      key: 'action',
+      align: 'right',
+      render: (_, record) => (
+        <Space>
+          <Button
+            size="small"
+            type="primary"
+            ghost
+            style={{ borderColor: '#c58e53', color: '#c58e53' }}
+            onClick={() => navigate(`/admin/audit?hotelId=${record.id}`)}
+          >
+            审核
+          </Button>
+        </Space>
+      ),
+    },
+  ]
 
   return (
     <div className={styles.container}>
-      {/* 顶部标题栏 */}
-      <div className={styles.header}>
-        <Title level={2}>平台概览</Title>
-        <div className={styles.date}>
-          <Text type="secondary">系统最后更新: </Text>
-          <Text strong style={{ color: '#c58e53' }}>
-            2023-10-24 14:00:23
-          </Text>
+      {/* 欢迎语 */}
+      <div className={styles.welcomeSection}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div>
+            <Title level={2}>平台概览</Title>
+            <Text type="secondary">管理平台资源与审核队列。</Text>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            {loading && <Spin size="small" />}
+            <Text type="secondary" style={{ fontSize: '12px' }}>
+              上次更新: {formatTime(lastUpdateTime.toISOString())}
+            </Text>
+            <RefreshCw
+              size={18}
+              style={{ cursor: 'pointer', color: '#c58e53' }}
+              onClick={handleRefresh}
+              className={loading ? styles.spinning : ''}
+            />
+          </div>
         </div>
       </div>
 
@@ -130,35 +191,59 @@ const AdminDashboard: React.FC = () => {
       <Row gutter={[24, 24]} style={{ marginBottom: 32 }}>
         {/* 1. 待审核 - 红色卡片 */}
         <Col xs={24} md={8}>
-          <StatCardRed title="待审核酒店" value="12" icon={<FileClock size={28} />} />
+          <StatCardRed
+            title="待审核酒店"
+            value={stats.pendingCount}
+            icon={<FileClock size={28} />}
+          />
         </Col>
 
         {/* 2. 今日通过 - 绿色卡片 */}
         <Col xs={24} md={8}>
-          <StatCardGreen title="今日通过" value="05" icon={<CheckCircle2 size={28} />} />
+          <StatCardGreen
+            title="今日通过"
+            value={stats.todayApprovedCount}
+            icon={<CheckCircle2 size={28} />}
+          />
         </Col>
 
         {/* 3. 平台总数 - 暖灰色卡片 */}
         <Col xs={24} md={8}>
-          <StatCardStone title="平台收录总数" value="1,240" icon={<Building size={28} />} />
+          <StatCardStone
+            title="平台收录总数"
+            value={stats.totalHotels.toLocaleString()}
+            icon={<Building size={28} />}
+          />
         </Col>
       </Row>
 
       {/* 底部表格区 */}
-      <TableCard
-        title="审核队列预览"
-        titleExtra={
-          <Button
-            type="link"
-            style={{ color: '#c58e53', border: '1px solid #c58e53' }}
-            onClick={() => navigate('/admin/audit')}
+      <div className={styles.section}>
+        <Title level={4} className={styles.sectionTitle}>
+          审核队列预览
+        </Title>
+        <Spin spinning={loading}>
+          <TableCard
+            titleExtra={
+              <Button
+                type="link"
+                style={{ color: '#c58e53', border: '1px solid #c58e53' }}
+                onClick={() => navigate('/admin/audit')}
+              >
+                查看全部 &rarr;
+              </Button>
+            }
           >
-            查看全部 &rarr;
-          </Button>
-        }
-      >
-        <Table columns={columns} dataSource={data} pagination={false} rowKey="key" />
-      </TableCard>
+            <Table
+              columns={columns}
+              dataSource={pendingHotels}
+              pagination={false}
+              rowKey="id"
+              locale={{ emptyText: '暂无待审核酒店' }}
+            />
+          </TableCard>
+        </Spin>
+      </div>
     </div>
   )
 }

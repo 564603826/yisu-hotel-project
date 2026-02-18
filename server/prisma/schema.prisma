@@ -8,55 +8,103 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum Role {
+model hotel {
+  id                Int          @id @default(autoincrement())
+  nameZh            String       @db.VarChar(100)
+  nameEn            String       @db.VarChar(100)
+  address           String       @db.VarChar(255)
+  starRating        Int
+  roomTypes         Json
+  price             Decimal      @db.Decimal(10, 2)
+  openDate          DateTime     @db.Date
+  nearbyAttractions String?
+  nearbyTransport   String?
+  nearbyMalls       String?
+  discounts         Json?
+  description       String?
+  status            hotel_status @default(draft)
+  rejectReason      String?      @db.VarChar(255)
+  creatorId         Int          @unique(map: "Hotel_creatorId_key")
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime
+  auditInfo         String?      @db.VarChar(500)
+  bannerDesc        String?      @db.VarChar(200)
+  bannerSort        Int          @default(0)
+  bannerTitle       String?      @db.VarChar(100)
+  draftData         Json?
+  isBanner          Boolean      @default(false)
+  user              user         @relation(fields: [creatorId], references: [id], map: "Hotel_creatorId_fkey")
+  hotelimage        hotelimage[]
+
+  @@index([isBanner], map: "Hotel_isBanner_idx")
+  @@index([starRating], map: "Hotel_starRating_idx")
+  @@index([status], map: "Hotel_status_idx")
+}
+
+model hotelimage {
+  id        Int             @id @default(autoincrement())
+  hotelId   Int
+  url       String          @db.VarChar(500)
+  type      hotelimage_type @default(hotel_main)
+  roomType  String?         @db.VarChar(100)
+  
+  // 版本控制
+  version   Int             @default(1)
+  status    image_status    @default(draft)
+  
+  // 排序
+  sortOrder Int             @default(0)
+  
+  // 元数据
+  filename  String?         @db.VarChar(255)
+  fileSize  Int?
+  mimeType  String?         @db.VarChar(100)
+  
+  // 审计字段
+  createdBy Int
+  updatedBy Int
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+  
+  hotel     hotel           @relation(fields: [hotelId], references: [id], onDelete: Cascade, map: "HotelImage_hotelId_fkey")
+
+  @@index([hotelId, type, status])
+  @@index([hotelId, roomType, sortOrder])
+  @@index([type, status])
+}
+
+model user {
+  id        Int       @id @default(autoincrement())
+  username  String    @unique(map: "User_username_key") @db.VarChar(50)
+  password  String    @db.VarChar(255)
+  role      user_role @default(merchant)
+  createdAt DateTime  @default(now())
+  hotel     hotel?
+}
+
+enum hotelimage_type {
+  hotel_main
+  hotel_room
+  hotel_banner
+  user_avatar
+}
+
+enum image_status {
+  draft
+  published
+  archived
+}
+
+enum user_role {
   merchant
   admin
 }
 
-enum HotelStatus {
+enum hotel_status {
   draft
   pending
   approved
   rejected
   published
   offline
-}
-
-model User {
-  id        Int      @id @default(autoincrement())
-  username  String   @unique @db.VarChar(50)
-  password  String   @db.VarChar(255)
-  role      Role     @default(merchant)
-  createdAt DateTime @default(now())
-  hotel     Hotel?
-
-  @@map("User")
-}
-
-model Hotel {
-  id                 Int          @id @default(autoincrement())
-  nameZh             String       @db.VarChar(100)
-  nameEn             String       @db.VarChar(100)
-  address            String       @db.VarChar(255)
-  starRating         Int
-  roomTypes          Json
-  price              Decimal      @db.Decimal(10, 2)
-  openDate           DateTime     @db.Date
-  nearbyAttractions  String?
-  nearbyTransport    String?
-  nearbyMalls        String?
-  discounts          Json?
-  images             Json?
-  description        String?
-  status             HotelStatus  @default(draft)
-  rejectReason       String?      @db.VarChar(255)
-  draftData          Json?
-  creatorId          Int          @unique
-  creator            User         @relation(fields: [creatorId], references: [id])
-  createdAt          DateTime     @default(now())
-  updatedAt          DateTime     @updatedAt
-
-  @@index([status])
-  @@index([starRating])
-  @@map("Hotel")
 }

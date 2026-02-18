@@ -26,7 +26,8 @@ interface DashboardLayoutProps {
 
 const DashboardLayout: React.FC<DashboardLayoutProps> = () => {
   const [collapsed, setCollapsed] = useState(false)
-  const role = useUserStore((state) => state.userInfo?.role)
+  const userInfo = useUserStore((state) => state.userInfo)
+  const role = userInfo?.role
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -141,9 +142,11 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = () => {
                 <div
                   style={{ fontWeight: 'bold', fontFamily: 'Playfair Display', color: '#292524' }}
                 >
-                  {role === 'merchant' ? '四季御苑' : 'Admin'}
+                  {userInfo?.username || (role === 'merchant' ? '商户' : '管理员')}
                 </div>
-                <div style={{ fontSize: 12, color: '#78716c' }}>Manager</div>
+                <div style={{ fontSize: 12, color: '#78716c' }}>
+                  {role === 'merchant' ? '商户' : '管理员'}
+                </div>
               </div>
             </div>
           </div>

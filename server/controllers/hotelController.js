@@ -1,6 +1,7 @@
 const { PrismaClient } = require('@prisma/client')
 const responseHandler = require('../utils/response')
 const { ResponseCode, ResponseMessage } = require('../constants/response')
+const { getImagesForHotel } = require('./uploadController')
 
 const prisma = new PrismaClient()
 
@@ -79,8 +80,8 @@ const hasDataChanged = (currentData, newData) => {
     'nearbyTransport',
     'nearbyMalls',
     'discounts',
-    'images',
     'description',
+    'images',
   ]
 
   for (const field of fieldsToCompare) {
@@ -112,12 +113,15 @@ const hasDataChanged = (currentData, newData) => {
 const getMyHotel = async (req, res) => {
   try {
     const userId = req.user.userId
+    // 获取查看模式参数：'draft' 表示编辑草稿，'published' 表示查看线上版本
+    const viewMode = req.query.viewMode || 'draft'
 
     let hotel = await prisma.hotel.findUnique({
       where: { creatorId: userId },
     })
 
     if (!hotel) {
+      const now = new Date()
       hotel = await prisma.hotel.create({
         data: {
           nameZh: '',
@@ -126,13 +130,99 @@ const getMyHotel = async (req, res) => {
           starRating: 0,
           roomTypes: [],
           price: 0,
-          openDate: new Date(),
+          openDate: now,
+          updatedAt: now,
           creatorId: userId,
         },
       })
     }
 
-    return responseHandler.success(res, hotel, ResponseMessage.HOTEL_QUERY_SUCCESS)
+    // 根据查看模式获取酒店图片
+    let hotelImages
+    if (viewMode === 'published') {
+      // 查看线上版本：只获取已发布图片
+      hotelImages = await getImagesForHotel(hotel.id, 'published')
+    } else {
+      // 编辑草稿模式：优先获取草稿图片，如果没有则获取已发布图片
+      const draftImages = await getImagesForHotel(hotel.id, 'draft')
+      if (draftImages.length > 0) {
+        hotelImages = draftImages
+      } else {
+        hotelImages = await getImagesForHotel(hotel.id, 'published')
+      }
+    }
+
+    // 获取房型数据
+    let roomTypesWithImages
+    if (viewMode === 'published') {
+      // 查看线上版本：使用已发布房型数据
+      roomTypesWithImages = hotel.roomTypes || []
+    } else {
+      // 编辑草稿模式：优先使用 draftData 中的房型数据
+      roomTypesWithImages = hotel.draftData?.roomTypes || hotel.roomTypes || []
+    }
+
+    if (roomTypesWithImages.length > 0) {
+      // 获取房型图片
+      let roomImages
+      if (viewMode === 'published') {
+        // 查看线上版本：只获取已发布房型图片
+        roomImages = await prisma.hotelimage.findMany({
+          where: {
+            hotelId: hotel.id,
+            type: 'hotel_room',
+            status: 'published',
+          },
+          orderBy: { sortOrder: 'asc' },
+        })
+      } else {
+        // 编辑草稿模式：优先获取草稿房型图片
+        roomImages = await prisma.hotelimage.findMany({
+          where: {
+            hotelId: hotel.id,
+            type: 'hotel_room',
+            status: 'draft',
+          },
+          orderBy: { sortOrder: 'asc' },
+        })
+        // 如果没有草稿图片，则获取已发布图片
+        if (roomImages.length === 0) {
+          roomImages = await prisma.hotelimage.findMany({
+            where: {
+              hotelId: hotel.id,
+              type: 'hotel_room',
+              status: 'published',
+            },
+            orderBy: { sortOrder: 'asc' },
+          })
+        }
+      }
+
+      // 按房型分组图片
+      roomTypesWithImages = roomTypesWithImages.map((room) => {
+        const imageUrls = roomImages
+          .filter((img) => img.roomType === room.name)
+          .map((img) => img.url)
+
+        // 合并图片：优先使用数据库中存储的 images，然后补充图片表中的图片
+        // 这样可以避免房型名称不匹配导致图片丢失的问题
+        const storedImages = room.images || []
+        const finalImages = storedImages.length > 0 ? storedImages : imageUrls
+
+        return {
+          ...room,
+          images: finalImages,
+        }
+      })
+    }
+
+    const hotelWithImages = {
+      ...hotel,
+      images: hotelImages,
+      roomTypes: roomTypesWithImages,
+    }
+
+    return responseHandler.success(res, hotelWithImages, ResponseMessage.HOTEL_QUERY_SUCCESS)
   } catch (error) {
     console.error('Get my hotel error:', error)
     return responseHandler.error(res, ResponseMessage.INTERNAL_ERROR)
@@ -143,6 +233,11 @@ const updateMyHotel = async (req, res) => {
   try {
     const userId = req.user.userId
     const updateData = req.body
+
+    // 删除 images 字段，因为图片存储在 hotelimage 表中，不在 hotel 表中
+    if (updateData.images !== undefined) {
+      delete updateData.images
+    }
 
     const hotel = await prisma.hotel.findUnique({
       where: { creatorId: userId },
@@ -160,7 +255,12 @@ const updateMyHotel = async (req, res) => {
       )
     }
 
-    if (updateData.starRating !== undefined) {
+    // 验证星级：如果提供了星级且不为0，则必须在1-5之间
+    if (
+      updateData.starRating !== undefined &&
+      updateData.starRating !== 0 &&
+      updateData.starRating !== null
+    ) {
       if (updateData.starRating < 1 || updateData.starRating > 5) {
         return responseHandler.badRequest(res, '酒店星级必须在1-5之间')
       }
@@ -189,13 +289,9 @@ const updateMyHotel = async (req, res) => {
         nearbyTransport: hotel.nearbyTransport,
         nearbyMalls: hotel.nearbyMalls,
         discounts: hotel.discounts,
-        images: hotel.images,
         description: hotel.description,
-      }
-
-      // 检查数据是否有变化
-      if (!hasDataChanged(currentData, updateData)) {
-        return responseHandler.badRequest(res, '酒店信息未发生任何变化，无需更新')
+        // 优先使用已发布图片，如果 draftData 中有图片且不为空，则使用 draftData 中的图片
+        images: hotel.draftData?.images?.length > 0 ? hotel.draftData.images : hotel.images,
       }
 
       const newDraftData = {
@@ -207,34 +303,16 @@ const updateMyHotel = async (req, res) => {
         where: { creatorId: userId },
         data: {
           draftData: newDraftData,
+          updatedAt: new Date(),
         },
       })
     } else {
-      const currentData = {
-        nameZh: hotel.nameZh,
-        nameEn: hotel.nameEn,
-        address: hotel.address,
-        starRating: hotel.starRating,
-        roomTypes: hotel.roomTypes,
-        openDate: hotel.openDate,
-        nearbyAttractions: hotel.nearbyAttractions,
-        nearbyTransport: hotel.nearbyTransport,
-        nearbyMalls: hotel.nearbyMalls,
-        discounts: hotel.discounts,
-        images: hotel.images,
-        description: hotel.description,
-      }
-
-      // 检查数据是否有变化
-      if (!hasDataChanged(currentData, updateData)) {
-        return responseHandler.badRequest(res, '酒店信息未发生任何变化，无需更新')
-      }
-
       updatedHotel = await prisma.hotel.update({
         where: { creatorId: userId },
         data: {
           ...updateData,
           status: 'draft',
+          updatedAt: new Date(),
         },
       })
     }
@@ -249,6 +327,7 @@ const updateMyHotel = async (req, res) => {
 const submitMyHotel = async (req, res) => {
   try {
     const userId = req.user.userId
+    const { auditInfo } = req.body
 
     const hotel = await prisma.hotel.findUnique({
       where: { creatorId: userId },
@@ -296,6 +375,8 @@ const submitMyHotel = async (req, res) => {
       where: { creatorId: userId },
       data: {
         status: 'pending',
+        auditInfo: auditInfo || null,
+        updatedAt: new Date(),
       },
     })
 
@@ -338,7 +419,10 @@ const cancelSubmitMyHotel = async (req, res) => {
 
     const updatedHotel = await prisma.hotel.update({
       where: { creatorId: userId },
-      data: updateData,
+      data: {
+        ...updateData,
+        updatedAt: new Date(),
+      },
     })
 
     return responseHandler.success(res, updatedHotel, '取消提交成功')
