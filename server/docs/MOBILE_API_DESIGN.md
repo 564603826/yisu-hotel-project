@@ -33,7 +33,7 @@
 
 | 接口           | 方法 | 路径                    | 说明                           |
 | -------------- | ---- | ----------------------- | ------------------------------ |
-| 获取Banner列表 | GET  | /mobile/banners         | 获取首页轮播图（写死数据）     |
+| 获取Banner列表 | GET  | /mobile/banners         | 获取首页轮播图（从数据库读取） |
 | 搜索酒店       | GET  | /mobile/hotels/search   | 关键字搜索酒店                 |
 | 获取酒店列表   | GET  | /mobile/hotels          | 获取已发布酒店列表（支持筛选） |
 | 获取酒店详情   | GET  | /mobile/hotels/:id      | 获取酒店详细信息               |
@@ -50,7 +50,14 @@
 
 **接口地址**: `GET /mobile/banners`
 
-**说明**: 获取首页轮播的Banner列表。当前版本为写死数据，后续可在PC管理员后台配置。
+**说明**: 获取首页轮播的Banner列表。数据由PC端管理员后台配置，从数据库读取已发布且设为Banner的酒店。
+
+**数据规则**:
+
+- 只返回已发布状态的酒店
+- 按 `bannerSort` 字段升序排列
+- 最多返回5个Banner
+- 图片使用酒店的第一张图片
 
 **请求参数**: 无
 
@@ -64,16 +71,16 @@
     "banners": [
       {
         "id": 1,
-        "title": "杭州西湖希尔顿酒店",
-        "subtitle": "限时特惠 8折起",
-        "imageUrl": "https://example.com/banner1.jpg",
+        "title": "杭州西湖希尔顿 - 限时特惠",
+        "subtitle": "春节特惠 8折起，立即预订",
+        "imageUrl": "https://example.com/hotel1.jpg",
         "hotelId": 1
       },
       {
         "id": 2,
-        "title": "夏日海岛度假",
-        "subtitle": "精选海景房",
-        "imageUrl": "https://example.com/banner2.jpg",
+        "title": "外滩华尔道夫",
+        "subtitle": "奢华体验，尽享黄浦江景",
+        "imageUrl": "https://example.com/hotel2.jpg",
         "hotelId": 2
       }
     ]
@@ -83,13 +90,20 @@
 
 **字段说明：**
 
-| 字段名   | 类型   | 说明       |
-| -------- | ------ | ---------- |
-| id       | number | Banner ID  |
-| title    | string | 标题       |
-| subtitle | string | 副标题     |
-| imageUrl | string | 图片URL    |
-| hotelId  | number | 关联酒店ID |
+| 字段名   | 类型   | 说明                            |
+| -------- | ------ | ------------------------------- |
+| id       | number | Banner ID（即酒店ID）           |
+| title    | string | Banner标题（管理员自定义）      |
+| subtitle | string | 副标题/描述（管理员自定义）     |
+| imageUrl | string | 酒店封面图URL（酒店第一张图片） |
+| hotelId  | number | 关联酒店ID，点击跳转酒店详情页  |
+
+**数据来源**：
+
+- `title`: 管理员在后台设置的 `bannerTitle`，默认使用酒店名称
+- `subtitle`: 管理员在后台设置的 `bannerDesc`
+- `imageUrl`: 从 `HotelImage` 表获取的酒店主图（type='hotel_main'，status='published'）
+- 只有 `isBanner=true` 且 `status='published'` 的酒店才会返回
 
 ---
 
@@ -444,15 +458,23 @@ GET /mobile/hotels/1
 
 所有移动端酒店数据均来自 PC 端商户发布的酒店信息：
 
-- **数据来源表**: `Hotel` 表
+- **数据来源表**: `Hotel` 表 + `HotelImage` 表
 - **筛选条件**: `status = 'published'`（仅展示已发布酒店）
 - **价格计算**: 取 `roomTypes` 中最低价格
-- **图片**: 取 `images` 字段（JSON 数组）
+- **图片**: 从 `HotelImage` 表获取，筛选 `status = 'published'` 的图片
+  - 酒店主图: `type = 'hotel_main'`
+  - 房型图片: `type = 'hotel_room'` 且 `roomType = 房型名`
 - **标签**: 根据酒店属性动态生成或从配置读取
 
 ### 2. Banner 数据来源
 
-当前版本为**写死数据**，直接返回预设的 Banner 列表。后续可在 PC 管理员后台添加 Banner 管理功能。
+从数据库读取已发布且设为 Banner 的酒店：
+
+- **数据来源表**: `Hotel` 表 + `HotelImage` 表
+- **筛选条件**: `isBanner = true` 且 `status = 'published'`
+- **排序**: 按 `bannerSort` 升序
+- **数量限制**: 最多 5 个
+- **图片**: 从 `HotelImage` 表获取酒店主图
 
 ### 3. 筛选选项数据来源
 
@@ -460,6 +482,25 @@ GET /mobile/hotels/1
 - **价格区间**: 固定区间配置
 - **排序**: 固定排序选项
 - **快捷标签**: 固定标签列表（可从配置文件读取）
+
+---
+
+## 图片管理说明
+
+### 图片状态
+
+| 状态      | 说明                 |
+| --------- | -------------------- |
+| draft     | 草稿状态，编辑时使用 |
+| published | 已发布状态，线上展示 |
+| archived  | 已归档，保留历史版本 |
+
+### 移动端图片获取规则
+
+- 移动端只展示 `status = 'published'` 的图片
+- 图片按 `sortOrder` 升序排列
+- 酒店主图: `type = 'hotel_main'`
+- 房型图片: `type = 'hotel_room'` 且 `roomType = 房型名`
 
 ---
 

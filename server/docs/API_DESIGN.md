@@ -42,6 +42,21 @@
 
 ---
 
+### 图片管理模块（商户端）
+
+| 接口                 | 方法   | 路径                                         | 说明                     | 权限     |
+| -------------------- | ------ | -------------------------------------------- | ------------------------ | -------- |
+| 获取酒店图片         | GET    | /upload/hotels/:hotelId/images               | 获取酒店图片列表         | merchant |
+| 上传酒店图片         | POST   | /upload/hotels/:hotelId/images               | 上传酒店图片             | merchant |
+| 删除酒店图片         | DELETE | /upload/images/:id                           | 删除单张酒店图片         | merchant |
+| 删除所有草稿图片     | DELETE | /upload/hotels/:hotelId/images               | 放弃草稿时删除所有草稿图 | merchant |
+| 同步酒店图片         | POST   | /upload/hotels/:hotelId/images/sync          | 保存时同步图片到数据库   | merchant |
+| 更新图片排序         | PUT    | /upload/images/sort                          | 更新图片排序             | merchant |
+| 复制已发布图片为草稿 | POST   | /upload/hotels/:hotelId/images/copy-to-draft | 进入编辑时调用           | merchant |
+| 发布图片             | POST   | /upload/hotels/:hotelId/images/publish       | 审核通过时调用           | merchant |
+
+---
+
 ### 酒店审核模块（管理员端）
 
 | 接口         | 方法 | 路径                      | 说明             | 权限  |
@@ -56,12 +71,19 @@
 
 ---
 
-### 文件上传模块
+### Banner 管理模块（管理员端）
 
-| 接口     | 方法 | 路径           | 说明         | 权限           |
-| -------- | ---- | -------------- | ------------ | -------------- |
-| 单图上传 | POST | /upload/image  | 上传单张图片 | merchant/admin |
-| 多图上传 | POST | /upload/images | 上传多张图片 | merchant/admin |
+| 接口             | 方法 | 路径                          | 说明              | 权限  |
+| ---------------- | ---- | ----------------------------- | ----------------- | ----- |
+| 设为/取消 Banner | PUT  | /admin/hotels/:id/banner      | 设置酒店为 Banner | admin |
+| 更新 Banner 信息 | PUT  | /admin/hotels/:id/banner-info | 更新 Banner 信息  | admin |
+| 获取 Banner 列表 | GET  | /admin/banners                | 获取所有 Banner   | admin |
+
+### Dashboard 模块（管理员端）
+
+| 接口         | 方法 | 路径                   | 说明                    | 权限  |
+| ------------ | ---- | ---------------------- | ----------------------- | ----- |
+| 获取统计数据 | GET  | /admin/dashboard/stats | 获取 Dashboard 统计数据 | admin |
 
 ---
 
@@ -108,7 +130,7 @@ Authorization: Bearer <token>
     "nearbyTransport": null,
     "nearbyMalls": null,
     "discounts": null,
-    "images": null,
+    "images": [],
     "description": null,
     "status": "draft",
     "rejectReason": null,
@@ -124,6 +146,7 @@ Authorization: Bearer <token>
 
 | 字段名    | 说明                                       |
 | --------- | ------------------------------------------ |
+| images    | 从 HotelImage 表获取的图片URL列表          |
 | draftData | 草稿数据，已上线酒店修改后存储新数据的位置 |
 
 ---
@@ -155,10 +178,9 @@ Content-Type: application/json
 | nearbyTransport   | string | 否   | 附近交通               |
 | nearbyMalls       | string | 否   | 附近商场               |
 | discounts         | array  | 否   | 优惠信息               |
-| images            | array  | 否   | 酒店图片URL列表        |
 | description       | string | 否   | 酒店描述               |
 
-> **注意**: `price` 字段无需传入，系统会自动根据房型最低价格计算。
+> **注意**: `price` 字段无需传入，系统会自动根据房型最低价格计算。图片通过图片管理接口操作，不在这里更新。
 
 **请求示例**:
 
@@ -198,7 +220,6 @@ Content-Type: application/json
       "endDate": "2026-02-10"
     }
   ],
-  "images": ["https://example.com/hotel1.jpg", "https://example.com/hotel2.jpg"],
   "description": "杭州西湖希尔顿酒店坐落于风景秀丽的西湖畔..."
 }
 ```
@@ -233,30 +254,6 @@ Content-Type: application/json
 }
 ```
 
-**已发布酒店更新响应**:
-
-```json
-{
-  "code": 200,
-  "msg": "更新成功",
-  "data": {
-    "id": 1,
-    "nameZh": "杭州西湖希尔顿酒店（旧版）",
-    "status": "published",
-    "draftData": {
-      "nameZh": "杭州西湖希尔顿酒店（新版）",
-      "nameEn": "Hilton Hangzhou West Lake",
-      "address": "浙江省杭州市西湖区曙光路120号",
-      "starRating": 5,
-      "roomTypes": [...],
-      "price": 688,
-      ...
-    },
-    "updatedAt": "2026-02-12T07:00:00.000Z"
-  }
-}
-```
-
 ---
 
 #### 3. 提交审核
@@ -279,6 +276,7 @@ Authorization: Bearer <token>
   - `published`/`offline` 状态：必须有 `draftData` 才能提交
   - 提交后状态变为 `pending`，但主数据不变
 - 提交前会校验必须字段是否已填写
+- **注意**: 提交前需要先调用 `/upload/hotels/:hotelId/images/publish` 接口发布图片
 
 **成功响应** (200):
 
@@ -290,16 +288,6 @@ Authorization: Bearer <token>
     "id": 1,
     "status": "pending"
   }
-}
-```
-
-**错误响应** (400):
-
-```json
-{
-  "code": 400,
-  "msg": "请先修改酒店信息后再提交审核",
-  "data": null
 }
 ```
 
@@ -335,19 +323,345 @@ Authorization: Bearer <token>
 }
 ```
 
-**错误响应** (400):
+---
+
+### 三、图片管理接口（商户端）
+
+#### 1. 获取酒店图片
+
+**接口地址**: `GET /upload/hotels/:hotelId/images`
+
+**权限**: merchant
+
+**请求头**:
+
+```
+Authorization: Bearer <token>
+```
+
+**查询参数**:
+
+| 参数名   | 类型   | 必填 | 默认值     | 说明                                         |
+| -------- | ------ | ---- | ---------- | -------------------------------------------- |
+| status   | string | 否   | draft      | 图片状态: draft/published/archived           |
+| type     | string | 否   | hotel_main | 图片类型: hotel_main/hotel_room/hotel_banner |
+| roomType | string | 否   | -          | 房型ID（仅房型图片时使用）                   |
+
+**成功响应** (200):
 
 ```json
 {
-  "code": 400,
-  "msg": "当前酒店状态为「草稿」，只能取消审核中状态的酒店",
+  "code": 200,
+  "msg": "操作成功",
+  "data": [
+    {
+      "id": 1,
+      "hotelId": 1,
+      "url": "/uploads/hotels/1/main/2026-02-17/1739788800000_abc123.webp",
+      "type": "hotel_main",
+      "roomType": null,
+      "sortOrder": 0,
+      "status": "draft",
+      "version": 1,
+      "filename": "hotel1.jpg",
+      "fileSize": 1024000,
+      "mimeType": "image/jpeg",
+      "createdBy": 1,
+      "updatedBy": 1,
+      "createdAt": "2026-02-17T10:00:00.000Z",
+      "updatedAt": "2026-02-17T10:00:00.000Z"
+    }
+  ]
+}
+```
+
+---
+
+#### 2. 上传酒店图片
+
+**接口地址**: `POST /upload/hotels/:hotelId/images`
+
+**权限**: merchant
+
+**请求头**:
+
+```
+Authorization: Bearer <token>
+Content-Type: multipart/form-data
+```
+
+**请求参数** (Form Data):
+
+| 参数名   | 类型   | 必填 | 默认值     | 说明                                         |
+| -------- | ------ | ---- | ---------- | -------------------------------------------- |
+| image    | file   | 是   | -          | 图片文件                                     |
+| type     | string | 否   | hotel_main | 图片类型: hotel_main/hotel_room/hotel_banner |
+| roomType | string | 否   | -          | 房型ID（仅房型图片时使用）                   |
+
+**成功响应** (200):
+
+```json
+{
+  "code": 200,
+  "msg": "上传成功",
+  "data": {
+    "id": 1,
+    "hotelId": 1,
+    "url": "/uploads/hotels/1/main/2026-02-17/1739788800000_abc123.webp",
+    "type": "hotel_main",
+    "roomType": null,
+    "sortOrder": 0,
+    "status": "draft",
+    "version": 1,
+    "filename": "hotel1.jpg",
+    "fileSize": 1024000,
+    "mimeType": "image/jpeg",
+    "createdBy": 1,
+    "updatedBy": 1,
+    "createdAt": "2026-02-17T10:00:00.000Z",
+    "updatedAt": "2026-02-17T10:00:00.000Z"
+  }
+}
+```
+
+---
+
+#### 3. 删除酒店图片
+
+**接口地址**: `DELETE /upload/images/:id`
+
+**权限**: merchant
+
+**请求头**:
+
+```
+Authorization: Bearer <token>
+```
+
+**路径参数**:
+
+| 参数名 | 类型   | 必填 | 说明   |
+| ------ | ------ | ---- | ------ |
+| id     | number | 是   | 图片ID |
+
+**成功响应** (200):
+
+```json
+{
+  "code": 200,
+  "msg": "删除成功",
   "data": null
 }
 ```
 
 ---
 
-### 三、酒店审核接口（管理员端）
+#### 4. 更新图片排序
+
+**接口地址**: `PUT /upload/images/sort`
+
+**权限**: merchant
+
+**请求头**:
+
+```
+Authorization: Bearer <token>
+Content-Type: application/json
+```
+
+**请求参数**:
+
+| 参数名   | 类型  | 必填 | 说明                   |
+| -------- | ----- | ---- | ---------------------- |
+| imageIds | array | 是   | 按排序顺序的图片ID数组 |
+
+**请求示例**:
+
+```json
+{
+  "imageIds": [3, 1, 2]
+}
+```
+
+**成功响应** (200):
+
+```json
+{
+  "code": 200,
+  "msg": "操作成功",
+  "data": null
+}
+```
+
+---
+
+#### 5. 复制已发布图片为草稿
+
+**接口地址**: `POST /upload/hotels/:hotelId/images/copy-to-draft`
+
+**权限**: merchant
+
+**说明**: 进入编辑页面时调用，将已发布图片复制为草稿图片。如果没有已发布图片，则返回空数组。
+
+**请求头**:
+
+```
+Authorization: Bearer <token>
+```
+
+**路径参数**:
+
+| 参数名  | 类型   | 必填 | 说明   |
+| ------- | ------ | ---- | ------ |
+| hotelId | number | 是   | 酒店ID |
+
+**成功响应** (200):
+
+```json
+{
+  "code": 200,
+  "msg": "操作成功",
+  "data": [
+    {
+      "id": 1,
+      "url": "/uploads/hotels/1/main/2026-02-17/1739788800000_abc123.webp",
+      "type": "hotel_main",
+      "sortOrder": 0,
+      "status": "draft",
+      "version": 2
+    }
+  ]
+}
+```
+
+---
+
+#### 6. 发布图片
+
+**接口地址**: `POST /upload/hotels/:hotelId/images/publish`
+
+**权限**: merchant
+
+**说明**: 提交审核时调用，将草稿图片标记为已发布，原已发布图片标记为已归档。
+
+**请求头**:
+
+```
+Authorization: Bearer <token>
+```
+
+**路径参数**:
+
+| 参数名  | 类型   | 必填 | 说明   |
+| ------- | ------ | ---- | ------ |
+| hotelId | number | 是   | 酒店ID |
+
+**成功响应** (200):
+
+```json
+{
+  "code": 200,
+  "msg": "操作成功",
+  "data": null
+}
+```
+
+---
+
+#### 7. 同步酒店图片
+
+**接口地址**: `POST /upload/hotels/:hotelId/images/sync`
+
+**权限**: merchant
+
+**说明**: 保存酒店信息时调用，根据传入的图片列表同步数据库中的图片记录。会自动创建新图片记录、删除不存在的记录、更新排序。
+
+**请求头**:
+
+```
+Authorization: Bearer <token>
+Content-Type: application/json
+```
+
+**路径参数**:
+
+| 参数名  | 类型   | 必填 | 说明   |
+| ------- | ------ | ---- | ------ |
+| hotelId | number | 是   | 酒店ID |
+
+**请求参数**:
+
+| 参数名   | 类型   | 必填 | 默认值     | 说明                                         |
+| -------- | ------ | ---- | ---------- | -------------------------------------------- |
+| images   | array  | 是   | -          | 图片URL列表（按排序顺序）                    |
+| type     | string | 否   | hotel_main | 图片类型: hotel_main/hotel_room/hotel_banner |
+| roomType | string | 否   | -          | 房型ID（仅房型图片时使用）                   |
+
+**请求示例**:
+
+```json
+{
+  "images": [
+    "/uploads/temp/2026-02-17/1771355555396_eb531k.png",
+    "/uploads/temp/2026-02-17/1771355555397_xyz789.png"
+  ],
+  "type": "hotel_main"
+}
+```
+
+**成功响应** (200):
+
+```json
+{
+  "code": 200,
+  "msg": "操作成功",
+  "data": null
+}
+```
+
+---
+
+#### 8. 删除所有草稿图片
+
+**接口地址**: `DELETE /upload/hotels/:hotelId/images`
+
+**权限**: merchant
+
+**说明**: 放弃草稿时调用，删除该酒店的所有草稿图片（包括物理文件）。
+
+**请求头**:
+
+```
+Authorization: Bearer <token>
+Content-Type: application/json
+```
+
+**路径参数**:
+
+| 参数名  | 类型   | 必填 | 说明   |
+| ------- | ------ | ---- | ------ |
+| hotelId | number | 是   | 酒店ID |
+
+**请求参数**:
+
+| 参数名   | 类型   | 必填 | 默认值     | 说明                                         |
+| -------- | ------ | ---- | ---------- | -------------------------------------------- |
+| type     | string | 否   | hotel_main | 图片类型: hotel_main/hotel_room/hotel_banner |
+| roomType | string | 否   | -          | 房型ID（仅房型图片时使用）                   |
+
+**成功响应** (200):
+
+```json
+{
+  "code": 200,
+  "msg": "删除成功",
+  "data": null
+}
+```
+
+---
+
+### 四、酒店审核接口（管理员端）
 
 #### 1. 获取酒店列表
 
@@ -371,12 +685,6 @@ Authorization: Bearer <token>
 | keyword    | string | 否   | -      | 酒店名称关键词 |
 | starRating | number | 否   | -      | 星级筛选       |
 
-**请求示例**:
-
-```
-GET /admin/hotels?page=1&pageSize=10&status=pending&starRating=5
-```
-
 **成功响应** (200):
 
 ```json
@@ -394,6 +702,7 @@ GET /admin/hotels?page=1&pageSize=10&status=pending&starRating=5
         "price": "688",
         "status": "pending",
         "image": "http://localhost:3000/uploads/hotel-xxx.jpg",
+        "images": ["/uploads/hotels/1/main/..."],
         "creatorId": 15,
         "creator": {
           "id": 15,
@@ -413,7 +722,7 @@ GET /admin/hotels?page=1&pageSize=10&status=pending&starRating=5
 }
 ```
 
-> **说明**: `image` 字段为酒店 `images` 数组的第一张图片URL，方便前端列表展示。如无图片则返回 `null`。
+> **说明**: `image` 字段为酒店 `images` 数组的第一张图片URL，方便前端列表展示。`images` 从 HotelImage 表获取。
 
 ---
 
@@ -454,7 +763,7 @@ Authorization: Bearer <token>
     "nearbyTransport": "地铁1号线龙翔桥站,公交K4路",
     "nearbyMalls": "银泰百货,湖滨银泰",
     "discounts": [...],
-    "images": [...],
+    "images": ["/uploads/hotels/1/main/..."],
     "description": "杭州西湖希尔顿酒店坐落于...",
     "status": "pending",
     "rejectReason": null,
@@ -495,7 +804,7 @@ Authorization: Bearer <token>
 - 只能审核审核中状态的酒店
 - **版本控制机制**：
   - 如果有 `draftData`：将 `draftData` 合并到主数据，并清空 `draftData`
-  - 如果没有 `draftData`：只更新状态
+  - **图片处理**：同时处理图片状态，将 draft 图片标记为 published，原 published 图片标记为 archived
 
 **成功响应** (200):
 
@@ -506,7 +815,8 @@ Authorization: Bearer <token>
   "data": {
     "id": 1,
     "status": "approved",
-    "draftData": null
+    "draftData": null,
+    "images": ["/uploads/hotels/1/main/..."]
   }
 }
 ```
@@ -550,6 +860,7 @@ Content-Type: application/json
 
 - 只能审核审核中状态的酒店
 - 审核不通过后，`draftData` 保留供商户再次修改
+- **图片处理**：保留 draft 图片，商户可以继续编辑
 
 **成功响应** (200):
 
@@ -680,88 +991,166 @@ Authorization: Bearer <token>
 
 ---
 
-### 四、文件上传接口
+### 五、Banner 管理接口（管理员端）
 
-#### 1. 单图上传
+（略，保持原有文档）
 
-**接口地址**: `POST /upload/image`
+---
 
-**权限**: merchant/admin
+## 图片管理设计说明
 
-**请求头**:
+### 数据库设计
 
-```
-Authorization: Bearer <token>
-Content-Type: multipart/form-data
-```
+```prisma
+model hotelimage {
+  id        Int             @id @default(autoincrement())
+  hotelId   Int
+  url       String          @db.VarChar(500)
+  type      hotelimage_type @default(hotel_main)
+  roomType  String?         @db.VarChar(100)
 
-**请求参数**:
+  // 版本控制
+  version   Int             @default(1)
+  status    image_status    @default(draft)
 
-| 参数名 | 类型 | 必填 | 说明     |
-| ------ | ---- | ---- | -------- |
-| image  | file | 是   | 图片文件 |
+  // 排序
+  sortOrder Int             @default(0)
 
-**文件限制**:
+  // 元数据
+  filename  String?         @db.VarChar(255)
+  fileSize  Int?
+  mimeType  String?         @db.VarChar(100)
 
-- 支持格式: jpeg, jpg, png, gif, webp
-- 最大大小: 5MB
+  // 审计字段
+  createdBy Int
+  updatedBy Int
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
 
-**业务规则**:
+  hotel     hotel           @relation(fields: [hotelId], references: [id], onDelete: Cascade, map: "HotelImage_hotelId_fkey")
 
-- 商户上传时，酒店状态必须为：`draft`、`rejected`、`published`、`offline`
-
-**成功响应** (200):
-
-```json
-{
-  "code": 200,
-  "msg": "上传成功",
-  "data": {
-    "url": "/uploads/hotel-1234567890-123456789.jpg",
-    "filename": "hotel-1234567890-123456789.jpg"
-  }
+  @@index([hotelId, type, status])
+  @@index([hotelId, roomType, sortOrder])
+  @@index([type, status])
 }
+
+enum image_status {
+  draft
+  published
+  archived
+}
+```
+
+### 图片状态说明
+
+| 状态      | 说明                 |
+| --------- | -------------------- |
+| draft     | 草稿状态，编辑时使用 |
+| published | 已发布状态，线上展示 |
+| archived  | 已归档，保留历史版本 |
+
+### 图片类型说明
+
+| 类型         | 说明                        |
+| ------------ | --------------------------- |
+| hotel_main   | 酒店主图                    |
+| hotel_room   | 房型图片（需配合 roomType） |
+| hotel_banner | Banner图片                  |
+| user_avatar  | 用户头像                    |
+
+### 图片管理工作流
+
+#### 1. 进入编辑
+
+```
+进入编辑页面
+  ↓
+调用 /copy-to-draft 接口
+  ↓
+将 published 图片复制为 draft（version + 1）
+  ↓
+编辑时操作 draft 状态图片
+```
+
+#### 2. 提交审核
+
+```
+点击提交审核
+  ↓
+先调用 /publish 接口处理图片
+  ↓
+将 draft 图片 → published
+将原 published → archived
+  ↓
+再调用 /hotels/my/submit 接口
+```
+
+#### 3. 审核通过
+
+```
+管理员审核通过
+  ↓
+系统自动处理图片状态
+  ↓
+将 draft 图片 → published
+将原 published → archived
+  ↓
+图片正式上线展示
+```
+
+#### 4. 审核驳回
+
+```
+管理员审核驳回
+  ↓
+保留 draft 图片
+  ↓
+商户可以继续编辑
+  ↓
+再次提交时重新发布
 ```
 
 ---
 
-#### 2. 多图上传
+### 四、Dashboard 接口（管理员端）
 
-**接口地址**: `POST /upload/images`
+#### 1. 获取统计数据
 
-**权限**: merchant/admin
+**接口地址**: `GET /admin/dashboard/stats`
+
+**权限**: admin
+
+**说明**: 获取 Dashboard 首页所需的统计数据，包括待审核数量、今日通过数量、平台收录总数。
 
 **请求头**:
 
 ```
 Authorization: Bearer <token>
-Content-Type: multipart/form-data
 ```
-
-**请求参数**:
-
-| 参数名 | 类型   | 必填 | 说明                     |
-| ------ | ------ | ---- | ------------------------ |
-| images | file[] | 是   | 图片文件数组（最多10张） |
 
 **成功响应** (200):
 
 ```json
 {
   "code": 200,
-  "msg": "上传成功",
-  "data": [
-    {
-      "url": "/uploads/hotel-1234567890-123456789.jpg",
-      "filename": "hotel-1234567890-123456789.jpg"
-    },
-    {
-      "url": "/uploads/hotel-1234567891-987654321.jpg",
-      "filename": "hotel-1234567891-987654321.jpg"
-    }
-  ]
+  "msg": "获取统计数据成功",
+  "data": {
+    "pendingCount": 12,
+    "todayApprovedCount": 5,
+    "totalHotels": 1240,
+    "lastUpdateTime": "2026-02-18T10:30:00.000Z"
+  }
 }
 ```
+
+**字段说明**:
+
+| 字段名             | 类型   | 说明                          |
+| ------------------ | ------ | ----------------------------- |
+| pendingCount       | number | 待审核酒店数量                |
+| todayApprovedCount | number | 今日通过审核的酒店数量        |
+| totalHotels        | number | 平台收录总数（已发布+已下线） |
+| lastUpdateTime     | string | 最后更新时间（ISO 8601 格式） |
 
 ---
 
@@ -777,28 +1166,6 @@ Content-Type: multipart/form-data
 | 404       | 404  | 资源不存在           |
 | 409       | 409  | 资源冲突             |
 | 500       | 500  | 内部服务器错误       |
-
-### 业务错误码
-
-| Code | 说明                               |
-| ---- | ---------------------------------- |
-| 1001 | 用户不存在                         |
-| 1002 | 密码错误                           |
-| 1003 | 用户已存在                         |
-| 1004 | 角色无效                           |
-| 1005 | 缺少必填字段                       |
-| 1006 | 令牌已过期                         |
-| 1007 | 令牌无效                           |
-| 2001 | 酒店不存在                         |
-| 2002 | 无权操作此酒店                     |
-| 2003 | 酒店状态不允许此操作               |
-| 2005 | 只能提交草稿或审核不通过状态的酒店 |
-| 2006 | 只能审核审核中状态的酒店           |
-| 2007 | 只能发布审核通过状态的酒店         |
-| 2008 | 只能下线已发布状态的酒店           |
-| 2009 | 只能恢复已下线状态的酒店           |
-| 2010 | 文件上传失败                       |
-| 2011 | 请先完善酒店必填信息               |
 
 ---
 
@@ -827,50 +1194,6 @@ Content-Type: multipart/form-data
 | approved  | 发布       | published | -                            |
 | published | 下线       | offline   | -                            |
 | offline   | 恢复       | published | -                            |
-
----
-
-## 版本控制机制
-
-### 核心原理
-
-已发布/已下线的酒店，在审核期间保持原版本数据，客户端仍可正常访问。新修改的数据存储在 `draftData` 字段中，审核通过后才合并到主数据。
-
-### 数据存储规则
-
-| 酒店状态          | 修改操作 | 数据存储位置   |
-| ----------------- | -------- | -------------- |
-| draft/rejected    | 直接更新 | 主数据字段     |
-| published/offline | 更新草稿 | draftData 字段 |
-
-### 驳回原因保留机制
-
-驳回原因 `rejectReason` 会一直保留，直到下一次审核通过才会清除：
-
-| 操作         | rejectReason 变化 |
-| ------------ | ----------------- |
-| 审核不通过   | 记录驳回原因      |
-| 商户修改酒店 | 保留（不清除）    |
-| 商户提交审核 | 保留（不清除）    |
-| 审核通过     | 清除              |
-
-> **说明**: 这样设计是为了让前端能随时展示最近一次的驳回原因，即使商户已修改并重新提交审核。
-
-### 流程示例
-
-```
-已发布酒店
-    │
-    ├── 商户编辑 ──> 数据存入 draftData，主数据不变
-    │
-    ├── 商户提交审核 ──> 状态变为 pending
-    │                      │
-    │                      ├── 审核通过 ──> draftData 合并到主数据，draftData 清空，rejectReason 清空
-    │                      │
-    │                      └── 审核不通过 ──> 主数据不变，draftData 保留，rejectReason 记录
-    │
-    └── 客户端访问 ──> 始终展示主数据（原版本）
-```
 
 ---
 

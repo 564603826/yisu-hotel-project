@@ -1,5 +1,6 @@
 const { PrismaClient } = require('@prisma/client')
 const responseHandler = require('../utils/response')
+const { getImagesForHotel, getRoomImages } = require('./uploadController')
 
 const prisma = new PrismaClient()
 
@@ -21,10 +22,9 @@ const calculateMinPrice = (roomTypes) => {
  * @param {Object} hotel - 酒店原始数据
  * @returns {Object} 格式化后的酒店数据
  */
-const formatHotelListItem = (hotel) => {
+const formatHotelListItem = (hotel, images = []) => {
   const roomTypes = hotel.roomTypes || []
   const minPrice = calculateMinPrice(roomTypes)
-  const images = hotel.images || []
   const mainImage = images.length > 0 ? images[0] : ''
 
   // 解析优惠信息
@@ -74,10 +74,9 @@ const formatHotelListItem = (hotel) => {
  * @param {Object} hotel - 酒店原始数据
  * @returns {Object} 格式化后的酒店详情
  */
-const formatHotelDetail = (hotel) => {
+const formatHotelDetail = (hotel, images = [], roomTypeImages = {}) => {
   const roomTypes = hotel.roomTypes || []
   const minPrice = calculateMinPrice(roomTypes)
-  const images = hotel.images || []
 
   // 解析优惠信息
   let discountInfo = null
@@ -121,7 +120,7 @@ const formatHotelDetail = (hotel) => {
       bedSize: room.bedSize || '',
       maxGuests: room.maxGuests || 2,
       facilities: room.facilities || [],
-      images: room.images || [],
+      images: roomTypeImages[room.name] || [],
       breakfast: room.breakfast || false,
     }))
     .sort((a, b) => a.price - b.price)
@@ -174,34 +173,40 @@ const formatHotelDetail = (hotel) => {
 }
 
 /**
- * 获取 Banner 列表（写死数据）
+ * 获取 Banner 列表（从数据库读取）
  */
 const getBanners = async (req, res) => {
   try {
-    // 写死的 Banner 数据
-    const banners = [
-      {
-        id: 1,
-        title: '杭州西湖希尔顿酒店',
-        subtitle: '限时特惠 8折起',
-        imageUrl: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800',
-        hotelId: 1,
+    const hotels = await prisma.hotel.findMany({
+      where: {
+        isBanner: true,
+        status: 'published',
       },
-      {
-        id: 2,
-        title: '夏日海岛度假',
-        subtitle: '精选海景房',
-        imageUrl: 'https://images.unsplash.com/photo-1582719508461-905c673771fd?w=800',
-        hotelId: 2,
+      select: {
+        id: true,
+        nameZh: true,
+        bannerTitle: true,
+        bannerDesc: true,
+        price: true,
+        starRating: true,
       },
-      {
-        id: 3,
-        title: '商务出行首选',
-        subtitle: '市中心豪华酒店',
-        imageUrl: 'https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?w=800',
-        hotelId: 3,
-      },
-    ]
+      orderBy: { bannerSort: 'asc' },
+      take: 5,
+    })
+
+    // 为每个酒店获取图片
+    const banners = await Promise.all(
+      hotels.map(async (hotel) => {
+        const images = await getImagesForHotel(hotel.id, 'published')
+        return {
+          id: hotel.id,
+          title: hotel.bannerTitle || hotel.nameZh,
+          subtitle: hotel.bannerDesc,
+          imageUrl: images.length > 0 ? images[0] : '',
+          hotelId: hotel.id,
+        }
+      })
+    )
 
     return responseHandler.success(res, { banners }, '查询成功')
   } catch (error) {
@@ -246,8 +251,13 @@ const searchHotels = async (req, res) => {
       orderBy: { updatedAt: 'desc' },
     })
 
-    // 格式化数据
-    const list = hotels.map(formatHotelListItem)
+    // 为每个酒店获取图片并格式化数据
+    const list = await Promise.all(
+      hotels.map(async (hotel) => {
+        const images = await getImagesForHotel(hotel.id, 'published')
+        return formatHotelListItem(hotel, images)
+      })
+    )
 
     return responseHandler.success(
       res,
@@ -315,8 +325,13 @@ const getHotelList = async (req, res) => {
       orderBy: { updatedAt: 'desc' },
     })
 
-    // 格式化并过滤价格
-    let list = hotels.map(formatHotelListItem)
+    // 为每个酒店获取图片并格式化
+    let list = await Promise.all(
+      hotels.map(async (hotel) => {
+        const images = await getImagesForHotel(hotel.id, 'published')
+        return formatHotelListItem(hotel, images)
+      })
+    )
 
     // 价格区间筛选（在内存中过滤，因为价格是从roomTypes计算的）
     if (minPrice !== undefined && minPrice !== '') {
@@ -394,8 +409,21 @@ const getHotelDetail = async (req, res) => {
       return responseHandler.notFound(res, '酒店不存在或未发布')
     }
 
+    // 获取酒店主图
+    const images = await getImagesForHotel(hotelId, 'published')
+
+    // 获取每个房型的图片
+    const roomTypeImages = {}
+    if (hotel.roomTypes && Array.isArray(hotel.roomTypes)) {
+      for (const room of hotel.roomTypes) {
+        if (room.name) {
+          roomTypeImages[room.name] = await getRoomImages(hotelId, room.name, 'published')
+        }
+      }
+    }
+
     // 格式化数据
-    const detail = formatHotelDetail(hotel)
+    const detail = formatHotelDetail(hotel, images, roomTypeImages)
 
     return responseHandler.success(res, detail, '查询成功')
   } catch (error) {
