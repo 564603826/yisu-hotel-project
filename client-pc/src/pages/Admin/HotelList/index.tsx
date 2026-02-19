@@ -256,12 +256,19 @@ const AdminHotelList: React.FC = () => {
       title: '位置/价格',
       key: 'location',
       width: 120,
-      render: (_, record) => (
-        <PriceCell
-          location={record.address.split('市')[0] || record.address}
-          price={Number(record.price) || 0}
-        />
-      ),
+      render: (_, record) => {
+        // 审核中或已驳回状态且有草稿数据：展示草稿数据（被审核/被驳回的版本）
+        const displayHotel =
+          (record.status === 'pending' || record.status === 'rejected') && record.draftData
+            ? { ...record, ...record.draftData }
+            : record
+        return (
+          <PriceCell
+            location={displayHotel.address.split('市')[0] || displayHotel.address}
+            price={Number(displayHotel.price) || 0}
+          />
+        )
+      },
     },
     {
       title: '审核信息',
@@ -292,10 +299,15 @@ const AdminHotelList: React.FC = () => {
     {
       title: activeTab === 'audit' ? '提交时间' : '更新时间',
       width: 150,
-      dataIndex: 'createdAt',
       key: 'time',
-      render: (text) => {
-        const date = new Date(text)
+      render: (_, record) => {
+        // 审核中或已驳回状态且有草稿数据：展示草稿数据的提交时间
+        const displayHotel =
+          (record.status === 'pending' || record.status === 'rejected') && record.draftData
+            ? { ...record, ...record.draftData }
+            : record
+        const timeField = activeTab === 'audit' ? displayHotel.updatedAt : displayHotel.createdAt
+        const date = new Date(timeField)
         return (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
             <span style={{ fontSize: '14px', color: '#57534e', fontWeight: 500 }}>
