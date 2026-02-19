@@ -155,15 +155,16 @@ const MerchantHotelForm: React.FC = () => {
   // 表单值变化时的处理
   const handleFormValuesChange = useCallback(
     (_changedValues: any, allValues: any) => {
-      // 如果禁用草稿保存，直接返回
-      if (disableDraftSaveRef.current) {
-        return
-      }
       // 如果没有酒店ID，不保存草稿
       if (!hotelInfo?.id) {
         return
       }
+      // 标记有未保存的修改（即使在禁用期间也标记，确保用户知道有修改）
       setHasUnsavedChanges(true)
+      // 如果禁用草稿保存（保存后的初始化阶段），只标记状态但不保存草稿
+      if (disableDraftSaveRef.current) {
+        return
+      }
       // 使用 functional update 合并新的表单值
       setAllFormValues((prev: any) => {
         const newFormValues = { ...prev, ...allValues }
@@ -185,12 +186,12 @@ const MerchantHotelForm: React.FC = () => {
     disableDraftSaveRef.current = true
     // 重置初始数据加载标志，允许表单重新初始化
     initialDataLoadedRef.current = false
-    // 5秒后重置标志（给数据刷新足够的时间）
+    // 2秒后重置标志（给数据刷新足够的时间）
     setTimeout(() => {
       justSavedRef.current = false
       // 重新启用草稿保存
       disableDraftSaveRef.current = false
-    }, 5000)
+    }, 2000)
   }, [clearDraftStorage])
 
   // 恢复草稿对话框
