@@ -986,24 +986,22 @@ const MerchantHotelForm: React.FC = () => {
                   style={{ padding: '4px 12px', fontSize: 12 }}
                 />
               )}
-              <Button
-                type={viewingPublishedVersion ? 'default' : 'primary'}
-                size="small"
-                icon={<Edit3 size={14} />}
-                onClick={() => setViewingPublishedVersion(false)}
-                disabled={!viewingPublishedVersion}
-              >
-                编辑草稿
-              </Button>
-              <Button
-                type={viewingPublishedVersion ? 'primary' : 'default'}
-                size="small"
-                icon={<Eye size={14} />}
-                onClick={() => setViewingPublishedVersion(true)}
-                disabled={viewingPublishedVersion}
-              >
-                查看线上版本
-              </Button>
+              <div className="view-mode-tabs">
+                <button
+                  className={`view-mode-tab ${!viewingPublishedVersion ? 'active' : ''}`}
+                  onClick={() => setViewingPublishedVersion(false)}
+                >
+                  <Edit3 size={14} />
+                  <span>编辑草稿</span>
+                </button>
+                <button
+                  className={`view-mode-tab ${viewingPublishedVersion ? 'active' : ''}`}
+                  onClick={() => setViewingPublishedVersion(true)}
+                >
+                  <Eye size={14} />
+                  <span>查看线上版本</span>
+                </button>
+              </div>
             </Space>
           </div>
         )}

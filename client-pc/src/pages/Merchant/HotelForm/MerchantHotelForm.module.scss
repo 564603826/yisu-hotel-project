@@ -137,5 +137,49 @@
     .ant-select-item {
       font-size: 15px;
     }
+
+    // Tab 切换栏样式
+    .view-mode-tabs {
+      display: flex;
+      background: #f5efe0;
+      border-radius: 10px;
+      padding: 4px;
+      gap: 4px;
+      border: 1px solid #eadbc0;
+    }
+
+    .view-mode-tab {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      font-size: 13px;
+      font-weight: 500;
+      color: #78716c;
+      background: transparent;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.25s ease;
+
+      &:hover {
+        color: #b87544;
+        background: rgba(197, 142, 83, 0.1);
+      }
+
+      &.active {
+        background: linear-gradient(135deg, #c58e53 0%, #b87544 100%);
+        color: #ffffff;
+        box-shadow:
+          0 2px 8px rgba(197, 142, 83, 0.4),
+          inset 0 1px 0 rgba(255, 255, 255, 0.2);
+        font-weight: 600;
+        transform: translateY(-1px);
+      }
+
+      svg {
+        flex-shrink: 0;
+      }
+    }
   }
 }
