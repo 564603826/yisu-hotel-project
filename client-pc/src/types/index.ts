@@ -103,6 +103,8 @@ type Hotel = {
   creatorId: number
   createdAt: string
   updatedAt: string
+  longitude?: number // 经度
+  latitude?: number // 纬度
 }
 
 type HotelWithCreator = Hotel & {

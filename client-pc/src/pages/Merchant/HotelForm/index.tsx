@@ -433,16 +433,27 @@ const MerchantHotelForm: React.FC = () => {
     }
   }, [displayData, form, allFormValues])
 
-  // 当 displayData 变化但非首次加载时，只更新图片相关字段
+  // 当 displayData 变化但非首次加载时，更新非表单编辑中的字段
   useEffect(() => {
-    if (displayData?.id && initialDataLoadedRef.current) {
-      // 只更新图片相关字段，避免覆盖用户在其他表单中的输入
+    if (displayData?.id && initialDataLoadedRef.current && !hasUnsavedChanges) {
+      // 更新地址和坐标字段（用户未编辑时）
       form.setFieldsValue({
+        address: displayData.address,
+        longitude: displayData.longitude,
+        latitude: displayData.latitude,
         coverImage: displayData.images?.[0] || '',
         images: displayData.images || [],
       })
     }
-  }, [displayData?.images, displayData?.id, form])
+  }, [
+    displayData?.images,
+    displayData?.id,
+    displayData?.address,
+    displayData?.longitude,
+    displayData?.latitude,
+    form,
+    hasUnsavedChanges,
+  ])
 
   // 切换查看模式时重置表单
   useEffect(() => {
@@ -1081,6 +1092,7 @@ const MerchantHotelForm: React.FC = () => {
                 setLocalImages(images)
                 setHasUnsavedChanges(true)
               }}
+              onValuesChange={handleFormValuesChange}
             />
           )}
           {activeTab === 'rooms' && (
