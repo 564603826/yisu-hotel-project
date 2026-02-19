@@ -1062,7 +1062,8 @@ const MerchantHotelForm: React.FC = () => {
 
       <FormCard>
         <Form form={form} layout="vertical" onValuesChange={handleFormValuesChange}>
-          {activeTab === 'basic' && (
+          {/* 使用 display 控制显示，避免组件卸载导致地图重新加载 */}
+          <div style={{ display: activeTab === 'basic' ? 'block' : 'none' }}>
             <BasicInfoForm
               disabled={viewingPublishedVersion || hotelInfo?.status === 'pending'}
               initialImages={
@@ -1092,8 +1093,8 @@ const MerchantHotelForm: React.FC = () => {
               }}
               onValuesChange={handleFormValuesChange}
             />
-          )}
-          {activeTab === 'rooms' && (
+          </div>
+          <div style={{ display: activeTab === 'rooms' ? 'block' : 'none' }}>
             <RoomList
               rooms={localRoomTypes}
               onAddRoom={handleAddRoom}
@@ -1102,10 +1103,10 @@ const MerchantHotelForm: React.FC = () => {
               disabled={viewingPublishedVersion || hotelInfo?.status === 'pending'}
               viewMode={viewingPublishedVersion || hotelInfo?.status === 'pending'}
             />
-          )}
-          {activeTab === 'marketing' && (
+          </div>
+          <div style={{ display: activeTab === 'marketing' ? 'block' : 'none' }}>
             <MarketingForm disabled={viewingPublishedVersion || hotelInfo?.status === 'pending'} />
-          )}
+          </div>
         </Form>
       </FormCard>
 
