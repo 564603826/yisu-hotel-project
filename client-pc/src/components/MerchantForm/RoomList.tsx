@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { lazy, Suspense } from 'react'
 import { Button, Typography, Spin } from 'antd'
 import { Plus } from 'lucide-react'
 import type { RoomType } from '@/types'
@@ -20,6 +20,9 @@ interface RoomListProps {
   viewMode?: boolean
 }
 
+// 在模块级别懒加载 RoomItem，避免每次渲染都重新加载
+const RoomItem = lazy(() => import('./RoomItem'))
+
 const RoomList: React.FC<RoomListProps> = ({
   rooms,
   onAddRoom,
@@ -28,8 +31,6 @@ const RoomList: React.FC<RoomListProps> = ({
   disabled,
   viewMode,
 }) => {
-  const RoomItem = React.lazy(() => import('./RoomItem'))
-
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
@@ -47,7 +48,7 @@ const RoomList: React.FC<RoomListProps> = ({
       </div>
 
       {rooms.map((room, index) => (
-        <React.Suspense
+        <Suspense
           key={index}
           fallback={
             <div
@@ -76,7 +77,7 @@ const RoomList: React.FC<RoomListProps> = ({
             disabled={disabled}
             viewMode={viewMode}
           />
-        </React.Suspense>
+        </Suspense>
       ))}
     </div>
   )

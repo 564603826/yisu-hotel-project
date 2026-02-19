@@ -306,8 +306,8 @@ const AdminHotelList: React.FC = () => {
           (record.status === 'pending' || record.status === 'rejected') && record.draftData
             ? { ...record, ...record.draftData }
             : record
-        const timeField = activeTab === 'audit' ? displayHotel.updatedAt : displayHotel.createdAt
-        const date = new Date(timeField)
+        // 统一使用 updatedAt 作为更新时间/提交时间
+        const date = new Date(displayHotel.updatedAt)
         return (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
             <span style={{ fontSize: '14px', color: '#57534e', fontWeight: 500 }}>

@@ -1,5 +1,5 @@
 import React from 'react'
-import { Modal, Descriptions, Tag, Image, Row, Col, Rate, Divider, Alert } from 'antd'
+import { Modal, Descriptions, Tag, Image, Row, Col, Rate, Divider, Alert, Carousel } from 'antd'
 import { ClockCircleOutlined, CloseCircleOutlined } from '@ant-design/icons'
 import { MapPin, Train, ShoppingBag, Calendar } from 'lucide-react'
 import type { Hotel } from '@/types'
@@ -154,67 +154,131 @@ const HotelDetailModal: React.FC<HotelDetailModalProps> = ({
                   <div
                     style={{
                       padding: 16,
-                      background: '#fafaf9',
-                      borderRadius: 8,
+                      background: '#fff',
+                      borderRadius: 12,
                       border: '1px solid #e7e5e4',
+                      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
+                      transition: 'all 0.3s ease',
+                      height: 150, // 固定卡片高度
+                      display: 'flex',
+                      flexDirection: 'column',
                     }}
                   >
-                    <Row gutter={[12, 0]}>
-                      {/* 左侧图片区域 */}
+                    <Row gutter={[16, 0]} style={{ flex: 1 }}>
+                      {/* 左侧图片轮播区域 */}
                       {room.images && room.images.length > 0 && (
-                        <Col span={10}>
-                          <Image.PreviewGroup>
-                            <div
-                              style={{
-                                display: 'grid',
-                                gridTemplateColumns: room.images.length > 1 ? '1fr 1fr' : '1fr',
-                                gap: 6,
-                              }}
+                        <Col span={10} style={{ height: '100%' }}>
+                          <div style={{ borderRadius: 8, overflow: 'hidden', height: '100%' }}>
+                            <Carousel
+                              arrows
+                              infinite={false}
+                              style={{ background: '#f5f5f4', height: '100%' }}
                             >
-                              {room.images.slice(0, 4).map((imgUrl, imgIndex) => (
-                                <Image
-                                  key={imgIndex}
-                                  src={getImageUrl(imgUrl)}
-                                  alt={`${room.name} 图片 ${imgIndex + 1}`}
-                                  style={{
-                                    width: '100%',
-                                    height: room.images?.length === 1 ? 140 : 67,
-                                    objectFit: 'cover',
-                                    borderRadius: 6,
-                                  }}
-                                  fallback="https://via.placeholder.com/100x80?text=No+Image"
-                                  preview={{ mask: '查看' }}
-                                />
+                              {room.images.map((imgUrl, imgIndex) => (
+                                <div key={imgIndex} style={{ height: 120 }}>
+                                  <Image
+                                    src={getImageUrl(imgUrl)}
+                                    alt={`${room.name} 图片 ${imgIndex + 1}`}
+                                    style={{
+                                      width: '100%',
+                                      height: 120,
+                                      objectFit: 'cover',
+                                    }}
+                                    fallback="https://via.placeholder.com/200x168?text=No+Image"
+                                    preview={{ mask: '查看' }}
+                                  />
+                                </div>
                               ))}
-                            </div>
-                          </Image.PreviewGroup>
+                            </Carousel>
+                          </div>
                         </Col>
                       )}
                       {/* 右侧信息区域 */}
-                      <Col span={room.images && room.images.length > 0 ? 14 : 24}>
-                        <div style={{ fontWeight: 'bold', fontSize: 15, marginBottom: 10 }}>
+                      <Col
+                        span={room.images && room.images.length > 0 ? 14 : 24}
+                        style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
+                      >
+                        <div
+                          style={{
+                            fontWeight: 600,
+                            fontSize: 18,
+                            marginBottom: 6,
+                            color: '#292524',
+                            lineHeight: 1.3,
+                          }}
+                        >
                           {room.name}
                         </div>
-                        <div style={{ color: '#c58e53', fontSize: 18, marginBottom: 10 }}>
+                        <div
+                          style={{
+                            color: '#c58e53',
+                            fontSize: 18,
+                            marginBottom: 6,
+                            fontWeight: 600,
+                            lineHeight: 1.3,
+                          }}
+                        >
                           ¥{room.price}
-                          <span style={{ color: '#999', fontSize: 13, marginLeft: 4 }}>/晚</span>
+                          <span
+                            style={{
+                              color: '#a8a29e',
+                              fontSize: 14,
+                              marginLeft: 3,
+                              fontWeight: 500,
+                            }}
+                          >
+                            /晚
+                          </span>
                         </div>
-                        <div style={{ fontSize: 13, color: '#666', marginBottom: 6 }}>
-                          面积: {room.area ? `${room.area}㎡` : '未设置'}
-                        </div>
-                        <div style={{ fontSize: 13, color: '#666', marginBottom: 8 }}>
-                          床型: {room.bedType || '未设置'}
+                        <div
+                          style={{
+                            display: 'flex',
+                            gap: 12,
+                            marginBottom: 4,
+                            fontSize: 14,
+                            color: '#78716c',
+                            lineHeight: 1.3,
+                          }}
+                        >
+                          <div>
+                            <span style={{ color: '#a8a29e' }}>面积:</span>{' '}
+                            {room.area ? `${room.area}㎡` : '未设置'}
+                          </div>
+                          <div>
+                            <span style={{ color: '#a8a29e' }}>床型:</span>{' '}
+                            {room.bedType || '未设置'}
+                          </div>
                         </div>
                         {room.facilities && room.facilities.length > 0 && (
-                          <div>
-                            {room.facilities.slice(0, 4).map((facility, idx) => (
-                              <Tag key={idx} style={{ margin: '0 4px 4px 0', fontSize: 11 }}>
+                          <div
+                            style={{
+                              display: 'flex',
+                              flexWrap: 'nowrap',
+                              gap: '4px 6px',
+                              overflowX: 'auto',
+                              paddingBottom: 8, // 预留滚动条空间
+                              marginTop: 4,
+                              minHeight: 28, // 确保有空间显示设施
+                            }}
+                          >
+                            {room.facilities.map((facility, idx) => (
+                              <Tag
+                                key={idx}
+                                style={{
+                                  margin: 0,
+                                  fontSize: 11,
+                                  padding: '1px 8px',
+                                  borderRadius: 4,
+                                  background: '#f5f5f4',
+                                  border: 'none',
+                                  color: '#57534e',
+                                  flexShrink: 0,
+                                  lineHeight: 1.4,
+                                }}
+                              >
                                 {facility}
                               </Tag>
                             ))}
-                            {room.facilities.length > 4 && (
-                              <Tag style={{ fontSize: 11 }}>+{room.facilities.length - 4}</Tag>
-                            )}
                           </div>
                         )}
                       </Col>
