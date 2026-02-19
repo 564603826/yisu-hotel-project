@@ -131,6 +131,9 @@ npm run prisma:migrate
 
 # 打开 Prisma Studio(在浏览器中查看数据库)
 npm run prisma:studio
+
+# 根据 schema.prisma 直接同步数据库结构
+npx prisma db push
 ```
 
 ## 技术栈
