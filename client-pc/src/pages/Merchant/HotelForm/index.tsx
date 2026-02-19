@@ -245,12 +245,18 @@ const MerchantHotelForm: React.FC = () => {
     if (hasUnsavedChanges) {
       Modal.confirm({
         title: '确认刷新',
-        content: '您有未保存的修改，刷新后将丢失当前编辑的内容。是否继续刷新？',
+        content:
+          '您有未保存的修改，刷新后将丢失当前编辑的内容并同步后台最新保存的数据。是否继续刷新？',
         okText: '继续刷新',
         cancelText: '取消',
         onOk: async () => {
           setHasUnsavedChanges(false)
+          // 清空本地草稿数据
           clearDraftStorage()
+          setAllFormValues({})
+          setLocalImages([])
+          // 重置初始数据加载标志，允许表单重新初始化
+          initialDataLoadedRef.current = false
           await fetchHotelData()
         },
       })
@@ -458,6 +464,11 @@ const MerchantHotelForm: React.FC = () => {
   // 切换查看模式时重置表单
   useEffect(() => {
     if (hotelInfo && hasVersionControl(hotelInfo.status)) {
+      // 如果用户有本地未保存的修改（localImages 不为空），保留本地修改
+      const hasLocalChanges = localImages.length > 0
+      // 检查是否有本地表单草稿数据
+      const hasFormDraft = Object.keys(allFormValues).length > 0
+
       const data = viewingPublishedVersion
         ? {
             ...hotelInfo,
@@ -466,25 +477,41 @@ const MerchantHotelForm: React.FC = () => {
         : {
             ...hotelInfo,
             ...hotelInfo.draftData,
-            images: draftImages.map((img) => img.url),
+            // 切换回编辑模式时，如果有本地修改则使用本地数据，否则使用草稿数据
+            images: hasLocalChanges
+              ? localImages.map((img) => img.url)
+              : draftImages.map((img) => img.url),
           }
+
+      // 切换回编辑模式时，如果有本地表单草稿，合并到数据中
+      const finalData =
+        !viewingPublishedVersion && hasFormDraft ? { ...data, ...allFormValues } : data
+
       const formData = {
-        ...data,
-        openDate: data?.openDate ? dayjs(data.openDate) : null,
-        coverImage: data?.images?.[0] || '',
-        images: data?.images || [],
+        ...finalData,
+        openDate: finalData?.openDate ? dayjs(finalData.openDate) : null,
+        coverImage: finalData?.images?.[0] || '',
+        images: finalData?.images || [],
       }
       form.setFieldsValue(formData)
     }
-  }, [viewingPublishedVersion, hotelInfo, form, draftImages, publishedImages])
+  }, [
+    viewingPublishedVersion,
+    hotelInfo,
+    form,
+    draftImages,
+    publishedImages,
+    localImages,
+    allFormValues,
+  ])
 
   // 切换到查看线上版本时，加载已发布图片
   // 切换回编辑模式时，加载草稿图片
   useEffect(() => {
     if (!hotelInfo?.id) return
 
-    // 切换模式时清空本地图片状态
-    setLocalImages([])
+    // 注意：切换模式时不清空 localImages，保留用户的本地修改
+    // 只有在首次加载或保存后才清空 localImages
 
     if (viewingPublishedVersion) {
       getPublishedImages()
@@ -1062,7 +1089,8 @@ const MerchantHotelForm: React.FC = () => {
 
       <FormCard>
         <Form form={form} layout="vertical" onValuesChange={handleFormValuesChange}>
-          {activeTab === 'basic' && (
+          {/* 使用 display 控制显示，避免组件卸载导致地图重新加载 */}
+          <div style={{ display: activeTab === 'basic' ? 'block' : 'none' }}>
             <BasicInfoForm
               disabled={viewingPublishedVersion || hotelInfo?.status === 'pending'}
               initialImages={
@@ -1092,8 +1120,8 @@ const MerchantHotelForm: React.FC = () => {
               }}
               onValuesChange={handleFormValuesChange}
             />
-          )}
-          {activeTab === 'rooms' && (
+          </div>
+          <div style={{ display: activeTab === 'rooms' ? 'block' : 'none' }}>
             <RoomList
               rooms={localRoomTypes}
               onAddRoom={handleAddRoom}
@@ -1102,10 +1130,10 @@ const MerchantHotelForm: React.FC = () => {
               disabled={viewingPublishedVersion || hotelInfo?.status === 'pending'}
               viewMode={viewingPublishedVersion || hotelInfo?.status === 'pending'}
             />
-          )}
-          {activeTab === 'marketing' && (
+          </div>
+          <div style={{ display: activeTab === 'marketing' ? 'block' : 'none' }}>
             <MarketingForm disabled={viewingPublishedVersion || hotelInfo?.status === 'pending'} />
-          )}
+          </div>
         </Form>
       </FormCard>
 

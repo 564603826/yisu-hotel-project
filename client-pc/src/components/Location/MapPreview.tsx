@@ -432,4 +432,14 @@ const MapPreview: React.FC<MapPreviewProps> = ({
   )
 }
 
-export default MapPreview
+// 使用 React.memo 避免不必要的重新渲染
+export default React.memo(MapPreview, (prevProps, nextProps) => {
+  // 只有当这些 props 真正变化时才重新渲染
+  return (
+    prevProps.address === nextProps.address &&
+    prevProps.lng === nextProps.lng &&
+    prevProps.lat === nextProps.lat &&
+    prevProps.disabled === nextProps.disabled &&
+    prevProps.showLocateButton === nextProps.showLocateButton
+  )
+})
