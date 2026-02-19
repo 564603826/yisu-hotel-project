@@ -1,14 +1,16 @@
-import React, { useState, useCallback } from 'react'
-import { Form, Input, Row, Col, Rate, DatePicker } from 'antd'
-import { MapPin } from 'lucide-react'
+import React, { useState, useCallback, useEffect } from 'react'
+import { Form, Input, Row, Col, Rate, DatePicker, Button } from 'antd'
+import { LocateFixed } from 'lucide-react'
 import MultiImageUpload from './MultiImageUpload'
 import LocationPicker from '../Location/LocationPicker'
+import MapPreview from '../Location/MapPreview'
 import type { ImageItem } from './MultiImageUpload'
 
 interface BasicInfoFormProps {
   disabled?: boolean
   initialImages?: ImageItem[]
   onImagesChange?: (images: ImageItem[]) => void
+  onValuesChange?: (changedValues: any, allValues: any) => void
 }
 
 interface LocationData {
@@ -52,17 +54,55 @@ const BasicInfoForm: React.FC<BasicInfoFormProps> = ({
   disabled = false,
   initialImages = [],
   onImagesChange,
+  onValuesChange,
 }) => {
   const [locationPickerOpen, setLocationPickerOpen] = useState(false)
   const [currentLocation, setCurrentLocation] = useState<LocationData | null>(null)
+  const [isFirstLoad, setIsFirstLoad] = useState(true)
   const form = Form.useFormInstance()
 
   // 监听地址字段变化
   const addressValue = Form.useWatch('address', form)
+  const lngValue = Form.useWatch('longitude', form)
+  const latValue = Form.useWatch('latitude', form)
+
+  // 初始化时检查是否有已有位置数据
+  useEffect(() => {
+    if (isFirstLoad && form) {
+      const address = form.getFieldValue('address')
+      const lng = form.getFieldValue('longitude')
+      const lat = form.getFieldValue('latitude')
+
+      if (address && lng && lat) {
+        // 使用 queueMicrotask 避免在 effect 中同步调用 setState
+        queueMicrotask(() => setCurrentLocation({ address, lng, lat }))
+      }
+      queueMicrotask(() => setIsFirstLoad(false))
+    }
+  }, [form, isFirstLoad])
 
   const handleLocationConfirm = (location: LocationData) => {
     setCurrentLocation(location)
     form.setFieldValue('address', location.address)
+    form.setFieldValue('longitude', location.lng)
+    form.setFieldValue('latitude', location.lat)
+    // 通知父组件值已变化
+    onValuesChange?.(
+      { address: location.address, longitude: location.lng, latitude: location.lat },
+      form.getFieldsValue()
+    )
+  }
+
+  const handleLocateFromPreview = (location: LocationData) => {
+    setCurrentLocation(location)
+    form.setFieldValue('address', location.address)
+    form.setFieldValue('longitude', location.lng)
+    form.setFieldValue('latitude', location.lat)
+    // 通知父组件值已变化
+    onValuesChange?.(
+      { address: location.address, longitude: location.lng, latitude: location.lat },
+      form.getFieldsValue()
+    )
   }
 
   return (
@@ -95,32 +135,44 @@ const BasicInfoForm: React.FC<BasicInfoFormProps> = ({
 
         {/* 右侧：详细地址、定位和图片上传 */}
         <Col xs={24} lg={12}>
-          {/* 详细地址 */}
+          {/* 详细地址 - 带定位按钮 */}
           <Form.Item label="详细地址" name="address" rules={[{ required: true }]}>
-            <Input size="large" placeholder="请输入详细地址" disabled={disabled} />
+            <Input
+              size="large"
+              placeholder="请输入详细地址"
+              disabled={disabled}
+              suffix={
+                <Button
+                  type="link"
+                  size="small"
+                  icon={<LocateFixed size={16} />}
+                  onClick={() => !disabled && setLocationPickerOpen(true)}
+                  style={{ color: '#c58e53', padding: '0 4px' }}
+                >
+                  选择位置
+                </Button>
+              }
+            />
           </Form.Item>
 
-          {/* 地图定位区域 */}
+          {/* 隐藏字段存储坐标 */}
+          <Form.Item name="longitude" hidden>
+            <Input />
+          </Form.Item>
+          <Form.Item name="latitude" hidden>
+            <Input />
+          </Form.Item>
+
+          {/* 地图预览区域 */}
           <div style={{ marginBottom: 18 }}>
-            <div
-              style={{
-                height: 180,
-                background: '#f5f5f5',
-                borderRadius: 8,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                border: '1px dashed #d9d9d9',
-                cursor: disabled ? 'not-allowed' : 'pointer',
-              }}
-              onClick={() => !disabled && setLocationPickerOpen(true)}
-            >
-              <div style={{ textAlign: 'center', color: '#999' }}>
-                <MapPin size={32} style={{ marginBottom: 8, color: '#c58e53' }} />
-                <div>点击选择酒店位置</div>
-                <div style={{ fontSize: 12, marginTop: 4 }}>{addressValue || '未设置位置'}</div>
-              </div>
-            </div>
+            <MapPreview
+              address={addressValue}
+              lng={lngValue}
+              lat={latValue}
+              disabled={disabled}
+              showLocateButton={!disabled}
+              onLocate={handleLocateFromPreview}
+            />
           </div>
 
           {/* 酒店图片上传 */}
