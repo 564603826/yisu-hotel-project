@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react'
+import React, { useState, useCallback } from 'react'
 import { Form, Input, Row, Col, Rate, DatePicker, Button } from 'antd'
 import { LocateFixed } from 'lucide-react'
 import MultiImageUpload from './MultiImageUpload'
@@ -57,8 +57,6 @@ const BasicInfoForm: React.FC<BasicInfoFormProps> = ({
   onValuesChange,
 }) => {
   const [locationPickerOpen, setLocationPickerOpen] = useState(false)
-  const [currentLocation, setCurrentLocation] = useState<LocationData | null>(null)
-  const [isFirstLoad, setIsFirstLoad] = useState(true)
   const form = Form.useFormInstance()
 
   // 监听地址字段变化
@@ -66,23 +64,7 @@ const BasicInfoForm: React.FC<BasicInfoFormProps> = ({
   const lngValue = Form.useWatch('longitude', form)
   const latValue = Form.useWatch('latitude', form)
 
-  // 初始化时检查是否有已有位置数据
-  useEffect(() => {
-    if (isFirstLoad && form) {
-      const address = form.getFieldValue('address')
-      const lng = form.getFieldValue('longitude')
-      const lat = form.getFieldValue('latitude')
-
-      if (address && lng && lat) {
-        // 使用 queueMicrotask 避免在 effect 中同步调用 setState
-        queueMicrotask(() => setCurrentLocation({ address, lng, lat }))
-      }
-      queueMicrotask(() => setIsFirstLoad(false))
-    }
-  }, [form, isFirstLoad])
-
   const handleLocationConfirm = (location: LocationData) => {
-    setCurrentLocation(location)
     form.setFieldValue('address', location.address)
     form.setFieldValue('longitude', location.lng)
     form.setFieldValue('latitude', location.lat)
@@ -94,7 +76,6 @@ const BasicInfoForm: React.FC<BasicInfoFormProps> = ({
   }
 
   const handleLocateFromPreview = (location: LocationData) => {
-    setCurrentLocation(location)
     form.setFieldValue('address', location.address)
     form.setFieldValue('longitude', location.lng)
     form.setFieldValue('latitude', location.lat)
@@ -198,9 +179,9 @@ const BasicInfoForm: React.FC<BasicInfoFormProps> = ({
         open={locationPickerOpen}
         onClose={() => setLocationPickerOpen(false)}
         onConfirm={handleLocationConfirm}
-        defaultAddress={currentLocation?.address}
-        defaultLng={currentLocation?.lng}
-        defaultLat={currentLocation?.lat}
+        defaultAddress={addressValue}
+        defaultLng={lngValue}
+        defaultLat={latValue}
       />
     </>
   )

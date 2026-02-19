@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react'
-import { Spin, Empty, message } from 'antd'
-import { MapPin, Navigation } from 'lucide-react'
+import { Spin, Empty, message, Button } from 'antd'
+import { MapPin, Navigation, Search } from 'lucide-react'
 import AMapLoader from '@amap/amap-jsapi-loader'
 import './MapPreview.scss'
 
@@ -40,7 +40,7 @@ const MapPreview: React.FC<MapPreviewProps> = ({
       const amapInstance = await AMapLoader.load({
         key: import.meta.env.VITE_AMAP_KEY || '',
         version: '2.0',
-        plugins: ['AMap.Geolocation', 'AMap.Geocoder'],
+        plugins: ['AMap.Geolocation', 'AMap.Geocoder', 'AMap.PlaceSearch'],
       })
 
       setAMap(amapInstance)
@@ -80,7 +80,7 @@ const MapPreview: React.FC<MapPreviewProps> = ({
         viewMode: '2D',
         zoom: 15,
         center: [centerLng, centerLat],
-        // 启用基本的地图交互功能
+        // 启用拖拽和缩放
         dragEnable: true,
         zoomEnable: true,
         doubleClickZoom: true,
@@ -103,7 +103,7 @@ const MapPreview: React.FC<MapPreviewProps> = ({
     [AMap]
   )
 
-  // 根据地址查询坐标
+  // 根据地址查询坐标（使用 PlaceSearch 与 LocationPicker 保持一致）
   const geocodeAddress = useCallback(
     async (addr: string): Promise<{ lng: number; lat: number } | null> => {
       if (!AMap || !addr) return null
@@ -113,12 +113,12 @@ const MapPreview: React.FC<MapPreviewProps> = ({
           resolve(null)
         }, 5000)
 
-        const geocoder = new AMap.Geocoder()
-        geocoder.getLocation(addr, (status: string, result: any) => {
+        const placeSearch = new AMap.PlaceSearch({ pageSize: 1, pageIndex: 1 })
+        placeSearch.search(addr, (status: string, result: any) => {
           clearTimeout(timeoutId)
-          if (status === 'complete' && result.geocodes?.length > 0) {
-            const location = result.geocodes[0].location
-            resolve({ lng: location.lng, lat: location.lat })
+          if (status === 'complete' && result.poiList?.pois?.length > 0) {
+            const poi = result.poiList.pois[0]
+            resolve({ lng: poi.location.lng, lat: poi.location.lat })
           } else {
             resolve(null)
           }
@@ -139,60 +139,162 @@ const MapPreview: React.FC<MapPreviewProps> = ({
 
   // 用于追踪上一次成功定位的地址，避免重复查询相同地址
   const lastAddressRef = useRef<string>('')
+  // 用于节流的定时器
+  const throttleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // 待查询的地址
+  const pendingAddressRef = useRef<string>('')
 
-  // 更新地图显示
-  useEffect(() => {
-    const updateMap = async () => {
-      // 如果直接传入了坐标，优先使用
-      if (lng && lat) {
+  // 重新搜索当前地址
+  const handleReSearch = useCallback(async () => {
+    if (!AMap || !address) {
+      message.warning('请输入地址后再搜索')
+      return
+    }
+
+    setLoading(true)
+    // 清除上次查询记录，强制重新查询
+    lastAddressRef.current = ''
+
+    try {
+      const location = await geocodeAddress(address)
+      if (location) {
+        lastAddressRef.current = address
         if (mapRef.current) {
-          mapRef.current.setCenter([lng, lat])
-          markerRef.current.setPosition([lng, lat])
-        } else if (mapContainerRef.current && AMap) {
-          createMap(lng, lat)
+          mapRef.current.panTo([location.lng, location.lat])
+          markerRef.current.setPosition([location.lng, location.lat])
+        } else if (mapContainerRef.current) {
+          createMap(location.lng, location.lat)
         }
         setHasLocation(true)
-        return
-      }
-
-      // 如果有地址，尝试地理编码
-      if (address && AMap) {
-        // 如果地址和上次查询的相同，跳过
-        if (address === lastAddressRef.current && hasLocation) {
-          return
-        }
-
-        setLoading(true)
-        const location = await geocodeAddress(address)
-        if (location) {
-          lastAddressRef.current = address
-          if (mapRef.current) {
-            mapRef.current.setCenter([location.lng, location.lat])
-            markerRef.current.setPosition([location.lng, location.lat])
-          } else if (mapContainerRef.current) {
-            createMap(location.lng, location.lat)
-          }
-          setHasLocation(true)
-        } else {
-          setHasLocation(false)
-          if (mapRef.current) {
-            mapRef.current.destroy()
-            mapRef.current = null
-          }
-        }
-        setLoading(false)
-      } else if (!address) {
-        // 地址为空时，清空地图
+        message.success('位置已更新')
+      } else {
+        message.error('无法识别该地址，请检查地址是否正确')
         setHasLocation(false)
         if (mapRef.current) {
           mapRef.current.destroy()
           mapRef.current = null
         }
       }
+    } catch (error) {
+      console.error('重新搜索失败:', error)
+      message.error('搜索失败，请重试')
+    } finally {
+      setLoading(false)
+    }
+  }, [AMap, address, geocodeAddress, createMap])
+
+  // 用于追踪上一次的坐标，判断坐标是否变化
+  const lastCoordsRef = useRef<{ lng?: number; lat?: number }>({})
+
+  // 执行地图更新的实际逻辑
+  const doUpdateMap = useCallback(async () => {
+    const addr = pendingAddressRef.current
+
+    // 情况1: 有坐标时，优先使用坐标定位
+    if (lng && lat && AMap) {
+      // 检查坐标是否变化
+      const coordsChanged = lng !== lastCoordsRef.current.lng || lat !== lastCoordsRef.current.lat
+
+      if (coordsChanged) {
+        // 坐标变化了（从LocationPicker选择的新位置），直接使用新坐标
+        lastCoordsRef.current = { lng, lat }
+        lastAddressRef.current = addr || ''
+        if (mapRef.current) {
+          mapRef.current.panTo([lng, lat])
+          markerRef.current.setPosition([lng, lat])
+        } else if (mapContainerRef.current) {
+          createMap(lng, lat)
+        }
+        setHasLocation(true)
+        return
+      }
+
+      // 坐标没变但地址变了（手动输入地址），根据地址查询
+      if (addr && addr !== lastAddressRef.current) {
+        setLoading(true)
+        const location = await geocodeAddress(addr)
+        if (location) {
+          lastAddressRef.current = addr
+          if (mapRef.current) {
+            mapRef.current.panTo([location.lng, location.lat])
+            markerRef.current.setPosition([location.lng, location.lat])
+          } else if (mapContainerRef.current) {
+            createMap(location.lng, location.lat)
+          }
+          setHasLocation(true)
+        }
+        setLoading(false)
+        return
+      }
+
+      // 都没变，直接使用坐标
+      if (mapRef.current) {
+        mapRef.current.panTo([lng, lat])
+        markerRef.current.setPosition([lng, lat])
+      } else if (mapContainerRef.current) {
+        createMap(lng, lat)
+      }
+      setHasLocation(true)
+      return
     }
 
-    updateMap()
-  }, [address, lng, lat, AMap, createMap, geocodeAddress, hasLocation])
+    // 情况2: 只有地址没有坐标时，根据地址查询
+    if (addr && AMap && (!lng || !lat)) {
+      // 如果地址和上次查询的相同，跳过
+      if (addr === lastAddressRef.current) {
+        return
+      }
+
+      setLoading(true)
+      const location = await geocodeAddress(addr)
+      if (location) {
+        lastAddressRef.current = addr
+        if (mapRef.current) {
+          mapRef.current.panTo([location.lng, location.lat])
+          markerRef.current.setPosition([location.lng, location.lat])
+        } else if (mapContainerRef.current) {
+          createMap(location.lng, location.lat)
+        }
+        setHasLocation(true)
+      } else {
+        setHasLocation(false)
+        if (mapRef.current) {
+          mapRef.current.destroy()
+          mapRef.current = null
+        }
+      }
+      setLoading(false)
+    } else if (!addr && (!lng || !lat)) {
+      // 地址和坐标都为空时，清空地图
+      setHasLocation(false)
+      if (mapRef.current) {
+        mapRef.current.destroy()
+        mapRef.current = null
+      }
+    }
+  }, [lng, lat, AMap, createMap, geocodeAddress])
+
+  // 更新地图显示（带节流）
+  useEffect(() => {
+    pendingAddressRef.current = address || ''
+
+    // 清除之前的定时器
+    if (throttleTimerRef.current) {
+      clearTimeout(throttleTimerRef.current)
+    }
+
+    // 设置新的定时器，1500ms 后执行查询，给用户足够时间输入
+    throttleTimerRef.current = setTimeout(() => {
+      doUpdateMap()
+    }, 1500)
+
+    // 清理函数
+    return () => {
+      if (throttleTimerRef.current) {
+        clearTimeout(throttleTimerRef.current)
+      }
+    }
+  }, [address, lng, lat, doUpdateMap])
 
   // 获取当前定位
   const handleLocate = () => {
@@ -239,15 +341,39 @@ const MapPreview: React.FC<MapPreviewProps> = ({
 
   return (
     <div className={`map-preview ${disabled ? 'disabled' : ''}`}>
+      {/* 始终渲染地图容器，但无位置时隐藏 */}
+      <div
+        ref={mapContainerRef}
+        className="map-preview-container"
+        style={{ visibility: hasLocation ? 'visible' : 'hidden' }}
+      />
+
+      {/* 加载状态 */}
       {loading && (
         <div className="map-preview-loading">
           <Spin size="large" tip="地图加载中..." />
         </div>
       )}
 
-      {hasLocation ? (
+      {/* 有位置时显示按钮 */}
+      {hasLocation && (
         <>
-          <div ref={mapContainerRef} className="map-preview-container" />
+          {/* 左上角重新搜索按钮 */}
+          {address && (
+            <Button
+              className="map-preview-search-btn"
+              type="primary"
+              size="small"
+              icon={<Search size={14} />}
+              onClick={(e) => {
+                e.stopPropagation()
+                handleReSearch()
+              }}
+              loading={loading}
+            >
+              重新搜索
+            </Button>
+          )}
           {showLocateButton && (
             <div
               className="map-preview-locate-btn"
@@ -261,7 +387,10 @@ const MapPreview: React.FC<MapPreviewProps> = ({
             </div>
           )}
         </>
-      ) : (
+      )}
+
+      {/* 无位置时显示空状态 */}
+      {!hasLocation && !loading && (
         <div className="map-preview-empty">
           <Empty
             image={<MapPin size={48} style={{ color: '#c58e53', opacity: 0.5 }} />}
