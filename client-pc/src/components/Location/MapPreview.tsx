@@ -283,6 +283,17 @@ const MapPreview: React.FC<MapPreviewProps> = ({
       clearTimeout(throttleTimerRef.current)
     }
 
+    // 如果没有地址且没有坐标，直接显示空状态，不加载
+    if (!address && !lng && !lat) {
+      setHasLocation(false)
+      setLoading(false)
+      if (mapRef.current) {
+        mapRef.current.destroy()
+        mapRef.current = null
+      }
+      return
+    }
+
     // 设置新的定时器，1500ms 后执行查询，给用户足够时间输入
     throttleTimerRef.current = setTimeout(() => {
       doUpdateMap()
