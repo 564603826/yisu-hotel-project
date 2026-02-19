@@ -1,5 +1,5 @@
 import { Outlet } from 'react-router-dom'
-import { SafetyCertificateOutlined, SyncOutlined } from '@ant-design/icons'
+import { SaveOutlined, CloudSyncOutlined } from '@ant-design/icons'
 import styles from './AuthLayout.module.scss'
 import logo from '@/assets/logo.svg'
 
@@ -33,18 +33,18 @@ const AuthLayout = () => {
 
           <div className={styles.features}>
             <div className={styles.featureItem}>
-              <SafetyCertificateOutlined style={{ fontSize: 24, color: '#c58e53' }} />
+              <SaveOutlined style={{ fontSize: 24, color: '#c58e53' }} />
               <div>
-                <h3>安全审核</h3>
-                <p>企业级数据安全与风控保障</p>
+                <h3>智能草稿</h3>
+                <p>编辑内容自动保存，支持本地与云端双备份</p>
               </div>
             </div>
 
             <div className={styles.featureItem}>
-              <SyncOutlined style={{ fontSize: 24, color: '#c58e53' }} />
+              <CloudSyncOutlined style={{ fontSize: 24, color: '#c58e53' }} />
               <div>
-                <h3>实时同步</h3>
-                <p>多终端状态即时更新零延迟</p>
+                <h3>状态同步</h3>
+                <p>多端数据实时同步，自动刷新保持状态最新</p>
               </div>
             </div>
           </div>
