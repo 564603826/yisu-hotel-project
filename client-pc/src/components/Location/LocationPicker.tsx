@@ -26,9 +26,9 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
   const markerRef = useRef<any>(null)
   const [loading, setLoading] = useState(true)
   const [searchText, setSearchText] = useState('')
-  const [currentAddress, setCurrentAddress] = useState(defaultAddress || '')
-  const [currentLng, setCurrentLng] = useState(defaultLng || 116.397428)
-  const [currentLat, setCurrentLat] = useState(defaultLat || 39.90923)
+  const [currentAddress, setCurrentAddress] = useState('')
+  const [currentLng, setCurrentLng] = useState(116.397428)
+  const [currentLat, setCurrentLat] = useState(39.90923)
   const [AMap, setAMap] = useState<any>(null)
 
   const getAddressByLngLat = useCallback(
@@ -48,42 +48,40 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
     [AMap]
   )
 
-  const createMap = useCallback(() => {
-    if (!AMap || !mapContainerRef.current) return
+  const createMap = useCallback(
+    (centerLng: number, centerLat: number) => {
+      if (!AMap || !mapContainerRef.current) return
 
-    const map = new AMap.Map(mapContainerRef.current, {
-      viewMode: '2D',
-      zoom: 15,
-      center: [currentLng, currentLat],
-    })
+      const map = new AMap.Map(mapContainerRef.current, {
+        viewMode: '2D',
+        zoom: 15,
+        center: [centerLng, centerLat],
+      })
 
-    mapRef.current = map
+      mapRef.current = map
 
-    const marker = new AMap.Marker({
-      position: [currentLng, currentLat],
-      draggable: true,
-    })
+      const marker = new AMap.Marker({
+        position: [centerLng, centerLat],
+        draggable: true,
+      })
 
-    marker.setMap(map)
-    markerRef.current = marker
+      marker.setMap(map)
+      markerRef.current = marker
 
-    marker.on('dragend', () => {
-      const position = marker.getPosition()
-      getAddressByLngLat(position.lng, position.lat)
-    })
+      marker.on('dragend', () => {
+        const position = marker.getPosition()
+        getAddressByLngLat(position.lng, position.lat)
+      })
 
-    map.on('click', (e: any) => {
-      marker.setPosition([e.lnglat.lng, e.lnglat.lat])
-      getAddressByLngLat(e.lnglat.lng, e.lnglat.lat)
-    })
+      map.on('click', (e: any) => {
+        marker.setPosition([e.lnglat.lng, e.lnglat.lat])
+        getAddressByLngLat(e.lnglat.lng, e.lnglat.lat)
+      })
 
-    setLoading(false)
-
-    if (defaultAddress && defaultLng && defaultLat) {
-      marker.setPosition([defaultLng, defaultLat])
-      map.setCenter([defaultLng, defaultLat])
-    }
-  }, [AMap, currentLng, currentLat, defaultAddress, defaultLng, defaultLat, getAddressByLngLat])
+      setLoading(false)
+    },
+    [AMap, getAddressByLngLat]
+  )
 
   const initMap = useCallback(async () => {
     setLoading(true)
@@ -106,27 +104,127 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
     }
   }, [])
 
-  useEffect(() => {
-    if (open && !AMap) {
-      // 将地图初始化推迟到浏览器空闲时段，避免在 effect 中直接触发 setState
-      requestIdleCallback(() => initMap(), { timeout: 100 })
-    }
-    if (open && AMap && mapContainerRef.current && !mapRef.current) {
-      // 将地图创建推迟到浏览器空闲时段，避免在 effect 中直接触发 setState
-      requestIdleCallback(() => createMap(), { timeout: 100 })
-    }
-  }, [open, AMap, initMap, createMap])
+  // 根据地址搜索坐标
+  const searchAddressLocation = useCallback(
+    (address: string): Promise<{ lng: number; lat: number } | null> => {
+      return new Promise((resolve) => {
+        if (!AMap || !address) {
+          resolve(null)
+          return
+        }
+        const placeSearch = new AMap.PlaceSearch({ pageSize: 1, pageIndex: 1 })
+        placeSearch.search(address, (status: string, result: any) => {
+          if (status === 'complete' && result.poiList?.pois?.length > 0) {
+            const poi = result.poiList.pois[0]
+            resolve({ lng: poi.location.lng, lat: poi.location.lat })
+          } else {
+            resolve(null)
+          }
+        })
+      })
+    },
+    [AMap]
+  )
 
+  // 用于追踪上一次的地址，避免重复查询
+  const lastAddressRef = useRef<string>('')
+
+  // 当弹窗打开或地址变化时，初始化地图并定位
   useEffect(() => {
-    if (defaultAddress) {
-      // 将地址更新推迟到微任务，避免在 effect 中直接触发 setState
-      queueMicrotask(() => setCurrentAddress(defaultAddress))
+    if (!open) return
+
+    // 初始化地图 SDK
+    if (!AMap) {
+      requestIdleCallback(() => initMap(), { timeout: 100 })
+      return
     }
+
+    // 优先根据地址变化来定位（与预览组件保持一致）
+    if (defaultAddress && defaultAddress !== lastAddressRef.current) {
+      lastAddressRef.current = defaultAddress
+      requestIdleCallback(
+        async () => {
+          setSearchText(defaultAddress)
+          setCurrentAddress(defaultAddress)
+          const location = await searchAddressLocation(defaultAddress)
+          if (location) {
+            setCurrentLng(location.lng)
+            setCurrentLat(location.lat)
+            // 如果地图已创建，平滑移动到新位置
+            if (mapRef.current && markerRef.current) {
+              mapRef.current.panTo([location.lng, location.lat])
+              markerRef.current.setPosition([location.lng, location.lat])
+            } else if (mapContainerRef.current && !mapRef.current) {
+              // 创建地图并定位
+              createMap(location.lng, location.lat)
+            }
+          } else {
+            // 搜索失败，如果有坐标则使用坐标
+            if (defaultLng && defaultLat) {
+              setCurrentLng(defaultLng)
+              setCurrentLat(defaultLat)
+              if (mapContainerRef.current && !mapRef.current) {
+                createMap(defaultLng, defaultLat)
+              }
+            } else {
+              // 使用默认坐标
+              if (mapContainerRef.current && !mapRef.current) {
+                createMap(116.397428, 39.90923)
+              }
+            }
+          }
+        },
+        { timeout: 100 }
+      )
+      return
+    }
+
+    // 地址没变但有坐标时，使用坐标
     if (defaultLng && defaultLat) {
-      queueMicrotask(() => setCurrentLng(defaultLng))
-      queueMicrotask(() => setCurrentLat(defaultLat))
+      requestIdleCallback(
+        () => {
+          setCurrentLng(defaultLng)
+          setCurrentLat(defaultLat)
+          if (defaultAddress) {
+            setCurrentAddress(defaultAddress)
+            setSearchText(defaultAddress)
+          }
+          // 创建地图并定位
+          if (mapContainerRef.current && !mapRef.current) {
+            createMap(defaultLng, defaultLat)
+          } else {
+            // 地图已存在，直接结束加载
+            setLoading(false)
+          }
+        },
+        { timeout: 100 }
+      )
+      return
     }
-  }, [defaultAddress, defaultLng, defaultLat])
+
+    // 没有地址和坐标，使用默认位置
+    if (!defaultAddress && !defaultLng && !defaultLat) {
+      requestIdleCallback(
+        () => {
+          if (mapContainerRef.current && !mapRef.current) {
+            createMap(116.397428, 39.90923)
+          } else {
+            setLoading(false)
+          }
+        },
+        { timeout: 100 }
+      )
+    }
+  }, [
+    open,
+    defaultAddress,
+    defaultLng,
+    defaultLat,
+    AMap,
+    initMap,
+    createMap,
+    searchAddressLocation,
+  ])
 
   const handleSearch = () => {
     if (!searchText.trim() || !AMap || !mapRef.current) return
@@ -185,6 +283,13 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
 
   const handleClose = () => {
     setSearchText('')
+    // 关闭时销毁地图并重置地址追踪
+    if (mapRef.current) {
+      mapRef.current.destroy()
+      mapRef.current = null
+    }
+    // 重置地址追踪，确保下次打开时重新定位
+    lastAddressRef.current = ''
     onClose()
   }
 
