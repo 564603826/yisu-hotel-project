@@ -21,7 +21,7 @@ model hotel {
   nearbyTransport   String?
   nearbyMalls       String?
   discounts         Json?
-  description       String?
+  description       String?      @db.Text
   status            hotel_status @default(draft)
   rejectReason      String?      @db.VarChar(255)
   creatorId         Int          @unique(map: "Hotel_creatorId_key")

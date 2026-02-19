@@ -20,16 +20,34 @@ interface BannerModalProps {
 const BannerModal = ({ open, hotel, onCancel, onSubmit, loading }: BannerModalProps) => {
   const [form] = Form.useForm()
   const [imageError, setImageError] = useState(false)
+  const [previewValues, setPreviewValues] = useState({
+    bannerTitle: '',
+    bannerDesc: '',
+  })
+
+  // 监听表单值变化，实时更新预览
+  const handleValuesChange = useCallback((_changedValues: any, allValues: any) => {
+    setPreviewValues({
+      bannerTitle: allValues.bannerTitle || '',
+      bannerDesc: allValues.bannerDesc || '',
+    })
+  }, [])
 
   // 模态框打开时初始化表单值
   const handleAfterOpenChange = useCallback(
     (isOpen: boolean) => {
       if (isOpen && hotel) {
         setImageError(false)
-        form.setFieldsValue({
+        const initialValues = {
           bannerSort: hotel.bannerSort || 1,
           bannerTitle: hotel.bannerTitle || hotel.nameZh,
           bannerDesc: hotel.bannerDesc || '',
+        }
+        form.setFieldsValue(initialValues)
+        // 初始化预览值
+        setPreviewValues({
+          bannerTitle: initialValues.bannerTitle,
+          bannerDesc: initialValues.bannerDesc,
         })
       }
     },
@@ -104,7 +122,12 @@ const BannerModal = ({ open, hotel, onCancel, onSubmit, loading }: BannerModalPr
       )}
     >
       {hotel && (
-        <Form form={form} layout="vertical" style={{ marginTop: 16 }}>
+        <Form
+          form={form}
+          layout="vertical"
+          style={{ marginTop: 16 }}
+          onValuesChange={handleValuesChange}
+        >
           {/* 酒店信息展示 */}
           <div style={{ marginBottom: 24, padding: 16, background: '#f5f5f5', borderRadius: 8 }}>
             <Space align="start">
@@ -194,10 +217,10 @@ const BannerModal = ({ open, hotel, onCancel, onSubmit, loading }: BannerModalPr
                     }}
                   >
                     <div style={{ fontSize: 16, fontWeight: 500, marginBottom: 4 }}>
-                      {form.getFieldValue('bannerTitle') || hotel.nameZh}
+                      {previewValues.bannerTitle || hotel.nameZh}
                     </div>
                     <div style={{ fontSize: 13, opacity: 0.9 }}>
-                      {form.getFieldValue('bannerDesc') || '暂无描述'}
+                      {previewValues.bannerDesc || '暂无描述'}
                     </div>
                   </div>
                 </>
