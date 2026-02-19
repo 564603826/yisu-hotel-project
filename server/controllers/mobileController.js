@@ -109,20 +109,27 @@ const formatHotelDetail = (hotel, images = [], roomTypeImages = {}) => {
 
   // 格式化房型 - 按价格从低到高排序
   const formattedRoomTypes = roomTypes
-    .map((room) => ({
-      name: room.name || '',
-      price: room.price || 0,
-      originalPrice: discountInfo
-        ? Math.round((room.price || 0) / (discountInfo.value / 100))
-        : null,
-      area: room.area || 0,
-      bedType: room.bedType || '',
-      bedSize: room.bedSize || '',
-      maxGuests: room.maxGuests || 2,
-      facilities: room.facilities || [],
-      images: roomTypeImages[room.name] || [],
-      breakfast: room.breakfast || false,
-    }))
+    .map((room) => {
+      // 优先使用 room 对象中存储的 images，如果没有则从图片表查询
+      const storedImages = room.images || []
+      const queryImages = roomTypeImages[room.name] || []
+      const finalImages = storedImages.length > 0 ? storedImages : queryImages
+
+      return {
+        name: room.name || '',
+        price: room.price || 0,
+        originalPrice: discountInfo
+          ? Math.round((room.price || 0) / (discountInfo.value / 100))
+          : null,
+        area: room.area || 0,
+        bedType: room.bedType || '',
+        bedSize: room.bedSize || '',
+        maxGuests: room.maxGuests || 2,
+        facilities: room.facilities || [],
+        images: finalImages,
+        breakfast: room.breakfast || false,
+      }
+    })
     .sort((a, b) => a.price - b.price)
 
   // 格式化周边信息

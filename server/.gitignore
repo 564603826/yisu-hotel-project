@@ -3,3 +3,6 @@ node_modules
 .env
 
 /generated/prisma
+
+# Uploads folder - local test images should not be committed
+/uploads

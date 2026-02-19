@@ -110,16 +110,17 @@ const getAdminHotelById = async (req, res) => {
     }
 
     // 根据酒店状态决定显示什么数据
-    const isPending = hotel.status === 'pending'
+    // pending（待审核）和 rejected（已驳回）状态都显示 draftData（草稿版本）
+    const isDraftVersion = hotel.status === 'pending' || hotel.status === 'rejected'
 
     // 从图片表获取酒店图片
-    // 审核中状态优先获取草稿图片，已发布状态获取已发布图片
-    const images = await getImagesForHotel(hotel.id, isPending ? 'draft' : 'published')
+    // 草稿版本状态优先获取草稿图片，已发布状态获取已发布图片
+    const images = await getImagesForHotel(hotel.id, isDraftVersion ? 'draft' : 'published')
     const hotelImages = images.length > 0 ? images : await getImagesForHotel(hotel.id, 'published')
 
     // 获取房型数据
-    // 审核中状态显示 draftData（草稿），其他状态显示 roomTypes（已发布）
-    let roomTypesWithImages = isPending
+    // 草稿版本状态显示 draftData（草稿），其他状态显示 roomTypes（已发布）
+    let roomTypesWithImages = isDraftVersion
       ? hotel.draftData?.roomTypes || hotel.roomTypes || []
       : hotel.roomTypes || []
 
