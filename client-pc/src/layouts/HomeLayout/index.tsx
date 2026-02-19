@@ -55,19 +55,21 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = () => {
           { key: 'rooms', icon: <BedDouble size={20} />, label: '房型管理' },
           { key: 'orders', icon: <ClipboardList size={20} />, label: '订单管理' },
         ]
-      : [
-          {
-            key: '/admin/dashboard',
-            icon: <LayoutDashboard size={20} />,
-            label: '平台概览',
-          },
-          {
-            key: '/admin/audit',
-            icon: <FileCheck size={20} />,
-            label: '审核与管理',
-          },
-          { key: 'users', icon: <Users size={20} />, label: '用户管理', path: '/admin/users' },
-        ]
+      : role === 'admin'
+        ? [
+            {
+              key: '/admin/dashboard',
+              icon: <LayoutDashboard size={20} />,
+              label: '平台概览',
+            },
+            {
+              key: '/admin/audit',
+              icon: <FileCheck size={20} />,
+              label: '审核与管理',
+            },
+            { key: 'users', icon: <Users size={20} />, label: '用户管理', path: '/admin/users' },
+          ]
+        : [] // 角色未确定时不显示菜单
 
   return (
     <Layout style={{ height: '100vh' }}>
