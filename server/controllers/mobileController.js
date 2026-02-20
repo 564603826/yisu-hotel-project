@@ -5,15 +5,72 @@ const { getImagesForHotel, getRoomImages } = require('./uploadController')
 const prisma = new PrismaClient()
 
 /**
- * 计算房型最低价格
- * @param {Array} roomTypes - 房型列表
- * @returns {number} 最低价格
+ * 计算应用优惠后的价格
+ * @param {number} originalPrice - 原始价格
+ * @param {Array} discounts - 优惠列表
+ * @returns {Object} { discountedPrice: 优惠后价格, bestDiscount: 使用的优惠 }
  */
-const calculateMinPrice = (roomTypes) => {
+const calculateDiscountedPrice = (originalPrice, discounts = []) => {
+  if (!discounts || discounts.length === 0 || originalPrice <= 0) {
+    return { discountedPrice: originalPrice, bestDiscount: null }
+  }
+
+  let bestPrice = originalPrice
+  let bestDiscount = null
+
+  for (const discount of discounts) {
+    let calculatedPrice = originalPrice
+
+    if (discount.type === 'percentage' && discount.value > 0) {
+      // 百分比优惠：value=80 表示 8 折
+      calculatedPrice = originalPrice * (discount.value / 100)
+    } else if (discount.type === 'fixed' && discount.value > 0) {
+      // 固定金额优惠：value=100 表示减 100 元
+      calculatedPrice = originalPrice - discount.value
+    }
+
+    // 确保价格不会低于 0
+    calculatedPrice = Math.max(0, calculatedPrice)
+
+    // 选择最优惠的价格
+    if (calculatedPrice < bestPrice) {
+      bestPrice = calculatedPrice
+      bestDiscount = discount
+    }
+  }
+
+  return {
+    discountedPrice: Math.round(bestPrice),
+    bestDiscount: bestDiscount
+      ? {
+          type: bestDiscount.type,
+          name: bestDiscount.name || '',
+          value: bestDiscount.value,
+        }
+      : null,
+  }
+}
+
+/**
+ * 计算房型最低价格（已应用最优惠）
+ * @param {Array} roomTypes - 房型列表
+ * @param {Array} discounts - 优惠列表
+ * @returns {number} 最低优惠后价格
+ */
+const calculateMinDiscountedPrice = (roomTypes, discounts = []) => {
   if (!roomTypes || !Array.isArray(roomTypes) || roomTypes.length === 0) {
     return 0
   }
-  const prices = roomTypes.map((room) => room.price).filter((price) => price && price > 0)
+
+  const prices = roomTypes
+    .map((room) => {
+      const originalPrice = room.price || 0
+      if (originalPrice <= 0) return 0
+      const { discountedPrice } = calculateDiscountedPrice(originalPrice, discounts)
+      return discountedPrice
+    })
+    .filter((price) => price > 0)
+
   return prices.length > 0 ? Math.min(...prices) : 0
 }
 
@@ -54,25 +111,15 @@ const generateTags = (hotel, facilities = []) => {
  */
 const formatHotelListItem = (hotel, images = []) => {
   const roomTypes = hotel.roomTypes || []
-  const minPrice = calculateMinPrice(roomTypes)
+  const discounts = hotel.discounts || []
   const mainImage = images.length > 0 ? images[0] : ''
 
-  // 解析优惠信息
-  let discountInfo = null
-  let originalPrice = null
-  const discounts = hotel.discounts || []
-  if (discounts.length > 0) {
-    const discount = discounts[0]
-    discountInfo = {
-      type: discount.type || 'percentage',
-      name: discount.name || '',
-      value: discount.value || 0,
-    }
-    // 计算原价
-    if (discount.type === 'percentage' && discount.value > 0) {
-      originalPrice = Math.round(minPrice / (discount.value / 100))
-    }
-  }
+  // 计算原始最低价格（商户录入的价格）
+  const originalPrices = roomTypes.map((room) => room.price).filter((price) => price && price > 0)
+  const originalMinPrice = originalPrices.length > 0 ? Math.min(...originalPrices) : 0
+
+  // 计算优惠后的最低价格和最优惠信息
+  const { discountedPrice, bestDiscount } = calculateDiscountedPrice(originalMinPrice, discounts)
 
   // 从房型聚合设施
   const facilities = aggregateFacilities(roomTypes)
@@ -86,9 +133,9 @@ const formatHotelListItem = (hotel, images = []) => {
     nameEn: hotel.nameEn,
     address: hotel.address,
     starRating: hotel.starRating,
-    price: minPrice,
-    originalPrice,
-    discountInfo,
+    price: discountedPrice, // 优惠后的价格
+    originalPrice: originalMinPrice > 0 ? originalMinPrice : null, // 原始价格
+    discountInfo: bestDiscount,
     mainImage,
     images: images.slice(0, 3), // 只返回前3张图
     tags,
@@ -103,27 +150,14 @@ const formatHotelListItem = (hotel, images = []) => {
  */
 const formatHotelDetail = (hotel, images = [], roomTypeImages = {}) => {
   const roomTypes = hotel.roomTypes || []
-  const minPrice = calculateMinPrice(roomTypes)
-
-  // 解析优惠信息
-  let discountInfo = null
-  let originalPrice = null
   const discounts = hotel.discounts || []
-  if (discounts.length > 0) {
-    const discount = discounts[0]
-    discountInfo = {
-      type: discount.type || 'percentage',
-      name: discount.name || '',
-      value: discount.value || 0,
-      description: discount.description || '',
-      startDate: discount.startDate || '',
-      endDate: discount.endDate || '',
-    }
-    // 计算原价
-    if (discount.type === 'percentage' && discount.value > 0) {
-      originalPrice = Math.round(minPrice / (discount.value / 100))
-    }
-  }
+
+  // 计算原始最低价格（商户录入的价格）
+  const originalPrices = roomTypes.map((room) => room.price).filter((price) => price && price > 0)
+  const originalMinPrice = originalPrices.length > 0 ? Math.min(...originalPrices) : 0
+
+  // 计算优惠后的最低价格和最优惠信息
+  const { discountedPrice, bestDiscount } = calculateDiscountedPrice(originalMinPrice, discounts)
 
   // 从房型聚合设施
   const facilities = aggregateFacilities(roomTypes)
@@ -131,7 +165,7 @@ const formatHotelDetail = (hotel, images = [], roomTypeImages = {}) => {
   // 生成标签（使用统一的标签生成逻辑）
   const tags = generateTags(hotel, facilities)
 
-  // 格式化房型 - 按价格从低到高排序
+  // 格式化房型 - 按优惠后价格从低到高排序
   const formattedRoomTypes = roomTypes
     .map((room) => {
       // 优先使用 room 对象中存储的 images，如果没有则从图片表查询
@@ -139,12 +173,16 @@ const formatHotelDetail = (hotel, images = [], roomTypeImages = {}) => {
       const queryImages = roomTypeImages[room.name] || []
       const finalImages = storedImages.length > 0 ? storedImages : queryImages
 
+      const originalRoomPrice = room.price || 0
+      const { discountedPrice: roomDiscountedPrice } = calculateDiscountedPrice(
+        originalRoomPrice,
+        discounts
+      )
+
       return {
         name: room.name || '',
-        price: room.price || 0,
-        originalPrice: discountInfo
-          ? Math.round((room.price || 0) / (discountInfo.value / 100))
-          : null,
+        price: roomDiscountedPrice, // 优惠后的价格
+        originalPrice: originalRoomPrice > 0 ? originalRoomPrice : null, // 原始价格
         area: room.area || 0,
         bedType: room.bedType || '',
         bedSize: room.bedSize || '',
@@ -196,9 +234,9 @@ const formatHotelDetail = (hotel, images = [], roomTypeImages = {}) => {
     starRating: hotel.starRating,
     openDate: hotel.openDate ? hotel.openDate.toISOString().split('T')[0] : '',
     description: hotel.description || '',
-    price: minPrice,
-    originalPrice,
-    discountInfo,
+    price: discountedPrice, // 优惠后的价格
+    originalPrice: originalMinPrice > 0 ? originalMinPrice : null, // 原始价格
+    discountInfo: bestDiscount,
     images,
     facilities,
     tags,
@@ -327,6 +365,8 @@ const getHotelList = async (req, res) => {
       sortBy = 'default',
       page = 1,
       limit = 10,
+      checkInDate,
+      checkOutDate,
     } = req.query
 
     const pageNum = parseInt(page) || 1
@@ -410,6 +450,11 @@ const getHotelList = async (req, res) => {
           pageSize,
           total,
           totalPages: Math.ceil(total / pageSize),
+        },
+        searchParams: {
+          city: city || null,
+          checkInDate: checkInDate || null,
+          checkOutDate: checkOutDate || null,
         },
       },
       '查询成功'
@@ -524,6 +569,44 @@ const getTags = async (req, res) => {
   }
 }
 
+/**
+ * 获取城市列表
+ * 从已发布酒店的地址中提取城市
+ */
+const getCities = async (req, res) => {
+  try {
+    // 获取所有已发布酒店的地址
+    const hotels = await prisma.hotel.findMany({
+      where: {
+        status: 'published',
+      },
+      select: {
+        address: true,
+      },
+    })
+
+    // 提取城市（简单实现：取地址前3-4个字符作为城市名）
+    const citySet = new Set()
+    hotels.forEach((hotel) => {
+      if (hotel.address) {
+        // 匹配常见的城市名称模式
+        // 支持：北京市、上海、杭州市、深圳等
+        const match = hotel.address.match(/^([\u4e00-\u9fa5]{2,4}(?:市|县|区|州|盟|旗))/)
+        if (match) {
+          citySet.add(match[1])
+        }
+      }
+    })
+
+    const cities = Array.from(citySet).sort()
+
+    return responseHandler.success(res, { cities }, '查询成功')
+  } catch (error) {
+    console.error('Get cities error:', error)
+    return responseHandler.error(res, '获取城市列表失败')
+  }
+}
+
 module.exports = {
   getBanners,
   searchHotels,
@@ -531,4 +614,5 @@ module.exports = {
   getHotelDetail,
   getFilterOptions,
   getTags,
+  getCities,
 }
