@@ -24,12 +24,7 @@ router.get('/hotels/:hotelId/images', authenticateToken, getHotelImages)
 //   - image: File
 //   - type: string (默认 hotel_main)
 //   - roomType: string (可选，房型图片时使用)
-router.post(
-  '/hotels/:hotelId/images',
-  authenticateToken,
-  uploadMiddleware.single('image'),
-  uploadHotelImage
-)
+router.post('/hotels/:hotelId/images', authenticateToken, uploadMiddleware, uploadHotelImage)
 
 // 删除酒店图片
 // DELETE /api/upload/images/:id
