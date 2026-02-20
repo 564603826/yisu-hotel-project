@@ -47,7 +47,8 @@ const MerchantHotelForm: React.FC = () => {
   const [editingRoomIndex, setEditingRoomIndex] = useState<number | null>(null)
   const [saving, setSaving] = useState(false)
   // 本地图片列表（包含文件对象）
-  const [localImages, setLocalImages] = useState<ImageItem[]>([])
+  // 使用 null 作为初始值，用于区分"初始状态"和"用户删除了所有图片"
+  const [localImages, setLocalImages] = useState<ImageItem[] | null>(null)
   // 版本控制：是否查看当前线上版本（已发布/已下线酒店）
   const [viewingPublishedVersion, setViewingPublishedVersion] = useState(false)
   // 查看驳回原因弹窗
@@ -263,7 +264,7 @@ const MerchantHotelForm: React.FC = () => {
           // 清空本地草稿数据
           clearDraftStorage()
           setAllFormValues({})
-          setLocalImages([])
+          setLocalImages(null)
           // 重置图片修改标志
           imagesModifiedRef.current = false
           // 重置初始数据加载标志，允许表单重新初始化
@@ -477,8 +478,8 @@ const MerchantHotelForm: React.FC = () => {
   // 切换查看模式时重置表单
   useEffect(() => {
     if (hotelInfo && hasVersionControl(hotelInfo.status)) {
-      // 如果用户有本地未保存的修改（localImages 不为空），保留本地修改
-      const hasLocalChanges = localImages.length > 0
+      // 如果用户有本地未保存的修改（localImages 不为 null），保留本地修改
+      const hasLocalChanges = localImages !== null
       // 检查是否有本地表单草稿数据
       const hasFormDraft = Object.keys(allFormValues).length > 0
 
@@ -581,7 +582,7 @@ const MerchantHotelForm: React.FC = () => {
       const uploadedImageUrls: string[] = []
       const uploadedImageIds: number[] = []
 
-      if (imagesModifiedRef.current) {
+      if (imagesModifiedRef.current && localImages !== null) {
         // 用户在基本信息 tab 操作过图片（包括删除所有图片），使用 localImages
         for (const img of localImages) {
           if (img.file && img.status === 'pending') {
@@ -726,7 +727,7 @@ const MerchantHotelForm: React.FC = () => {
       hotelUpdated = true
 
       // 6. 清理本地状态并刷新数据
-      setLocalImages([])
+      setLocalImages(null)
       handleSaveSuccess()
       // 刷新酒店信息和图片数据
       await getHotelInfo()
@@ -1110,7 +1111,9 @@ const MerchantHotelForm: React.FC = () => {
                       uid: `published-${index}`,
                       status: 'done' as const,
                     }))
-                  : localImages.length > 0
+                  : // 当 localImages 不为 null 时，优先使用 localImages（包括空数组的情况）
+                    // 这样当用户删除所有图片后，不会回退到 draftImages
+                    localImages !== null
                     ? localImages
                     : draftImages.length > 0
                       ? draftImages.map((img) => ({
