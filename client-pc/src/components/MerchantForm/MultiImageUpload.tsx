@@ -189,11 +189,7 @@ const MultiImageUpload: React.FC<MultiImageUploadProps> = ({
                 </div>
 
                 {/* 待上传标记 */}
-                {isPending && (
-                  <div className="pending-mask">
-                    <span>待保存</span>
-                  </div>
-                )}
+                {isPending && <div className="pending-mask">待保存</div>}
 
                 {/* 序号标记 */}
                 <div className="image-index">{index + 1}</div>

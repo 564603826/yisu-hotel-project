@@ -751,6 +751,22 @@
     justify-content: center;
   }
 
+  .pending-mask {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 36px;
+    height: 20px;
+    background: rgba(197, 142, 83, 0.9);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 500;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
   .uploading-spinner {
     width: 24px;
     height: 24px;
