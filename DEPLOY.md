@@ -7,7 +7,7 @@
 | 服务       | 平台       | 用途         | 费用 |
 | ---------- | ---------- | ------------ | ---- |
 | 前端 PC 端 | Vercel     | 商户端       | 免费 |
-| 后端 API   | Render     | Node.js 服务 | 免费 |
+| 后端 API   | Zeabur     | Node.js 服务 | 免费 |
 | 数据库     | Supabase   | PostgreSQL   | 免费 |
 | 文件存储   | Cloudinary | 图片存储     | 免费 |
 
@@ -29,44 +29,75 @@
 2. 复制 Connection string
 3. 格式：`postgresql://postgres:[password]@db.[project-ref].supabase.co:5432/postgres`
 
+### 重要：数据库切换说明
+
+本项目已配置为使用 **PostgreSQL**（Supabase），如果你之前使用 MySQL，需要：
+
+1. **确认 schema.prisma 已更新**
+
+   ```prisma
+   datasource db {
+     provider = "postgresql"
+     url      = env("DATABASE_URL")
+   }
+   ```
+
+2. **本地测试连接（可选）**
+   修改 `server/.env`：
+
+   ```bash
+   DATABASE_URL="postgresql://postgres:你的密码@db.xxx.supabase.co:5432/postgres"
+   ```
+
+3. **部署时会自动迁移**
+   Render 的 Build Command 会自动执行迁移：
+   ```bash
+   npm install && npx prisma generate && npx prisma migrate deploy
+   ```
+
 ---
 
-## 2. 后端部署（Render）
+## 2. 后端部署（Zeabur - 推荐）
+
+Zeabur 是 Render 的替代方案，免费版不需要信用卡。
 
 ### 步骤：
 
 1. **注册/登录**
-   - 访问 https://render.com
+   - 访问 https://zeabur.com
    - 使用 GitHub 账号登录
 
-2. **创建 Web Service**
-   - 点击 "New +" → "Web Service"
-   - 选择你的 GitHub 仓库
-   - 点击 "Connect"
+2. **创建项目**
+   - 点击 "Create Project"
+   - 选择 "Deploy from GitHub"
+   - 选择你的仓库
 
-3. **配置服务**
+3. **添加后端服务**
+   - 选择 `server` 目录
+   - 类型选择 **Node.js**
+   - Zeabur 会自动识别 package.json
 
-   ```
-   Name: yisu-hotel-api
-   Root Directory: server
-   Environment: Node
-   Build Command: npm install && npx prisma generate && npx prisma migrate deploy
-   Start Command: npm start
-   ```
-
-4. **添加环境变量**
-   在 Render 的 Environment 中添加：
+4. **配置环境变量**
+   在 Zeabur 的 Variables 中添加：
 
    ```
    DATABASE_URL=postgresql://postgres:xxx@db.xxx.supabase.co:5432/postgres
    JWT_SECRET=your-secret-key-here
-   PORT=10000
+   PORT=3000
    ```
 
 5. **部署**
-   - 点击 "Create Web Service"
-   - 等待部署完成（约 3-5 分钟）
-   - 获取服务 URL：`https://yisu-hotel-api.onrender.com`
+   - 点击 Deploy
+   - 等待构建完成（约 3-5 分钟）
+   - 获取域名：`https://yisu-hotel-api.zeabur.app`
+
+### 备选：Render（需要信用卡验证）
+
+如果仍想用 Render：
+
+1. 访问 https://render.com
+2. 选择 **Free** 实例类型（注意：新账号可能需要信用卡验证）
+3. 配置同上
 
 ---
 
@@ -95,13 +126,40 @@
 4. **添加环境变量**
 
    ```
-   VITE_API_BASE_URL=https://yisu-hotel-api.onrender.com/api/v1
+   VITE_API_BASE_URL=https://yisu-hotel-api.zeabur.app/api/v1
    ```
+
+   注意：将 `yisu-hotel-api` 替换为你实际的 Zeabur 服务名
 
 5. **部署**
    - 点击 "Deploy"
    - 等待部署完成（约 2 分钟）
    - 获取域名：`https://yisu-hotel-pc.vercel.app`
+
+### 重要：配置 SPA 路由
+
+Vite 打包的单页应用（SPA）需要配置路由重写，否则直接访问 `/login` 等路径会 404。
+
+**创建 `client-pc/vercel.json`**：
+
+```json
+{
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
+```
+
+**提交并重新部署**：
+
+```bash
+git add client-pc/vercel.json
+git commit -m "add spa routing config"
+git push
+```
 
 ---
 
@@ -124,12 +182,18 @@ VERCEL_PROJECT_ID_PC=your-vercel-project-id
 ### 测试后端：
 
 ```bash
-curl https://yisu-hotel-api.onrender.com/api/v1/mobile/banners
+curl https://yisu-hotel-api.zeabur.app/api/v1/mobile/banners
 ```
 
 ### 测试前端：
 
-访问 `https://yisu-hotel-pc.vercel.app`
+访问 `https://yisu-hotel-project.vercel.app`
+
+### 测试完整流程：
+
+1. 访问首页：`https://yisu-hotel-project.vercel.app/`
+2. 测试登录页：`https://yisu-hotel-project.vercel.app/login`
+3. 测试注册功能：确保 API 请求发送到 `https://yisu-hotel-api.zeabur.app`
 
 ---
 
@@ -139,23 +203,27 @@ curl https://yisu-hotel-api.onrender.com/api/v1/mobile/banners
 
 | 平台     | 限制                                |
 | -------- | ----------------------------------- |
-| Render   | 15分钟无请求后休眠，首次访问较慢    |
+| Zeabur   | 每月 100 小时运行时间，512MB 内存   |
 | Vercel   | 每月 100GB 带宽，函数执行 1000 分钟 |
 | Supabase | 500MB 数据库，2GB 带宽              |
 
 ### 优化建议
 
-1. **Render 休眠问题**
-   - 使用 UptimeRobot 定时 ping 服务
-   - 或升级到付费版 ($7/月)
+1. **Zeabur 运行时间**
+   - 免费版每月 100 小时，适合测试和演示
+   - 生产环境建议升级到付费版
 
 2. **图片存储**
-   - 免费版 Render 文件存储会重置
-   - 建议使用 Cloudinary 或 AWS S3
+   - Zeabur 文件存储在重新部署后会重置
+   - 建议使用 Cloudinary 或 AWS S3 存储图片
 
 3. **数据库备份**
    - Supabase 自动每日备份
    - 可在 Dashboard 中手动导出
+
+4. **自定义域名**
+   - Vercel 支持免费自定义域名
+   - Zeabur 付费版支持自定义域名
 
 ---
 

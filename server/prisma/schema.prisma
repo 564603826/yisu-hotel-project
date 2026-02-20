@@ -1,72 +1,71 @@
 generator client {
   provider = "prisma-client-js"
-  output   = "../node_modules/.prisma/client"
 }
 
 datasource db {
-  provider = "mysql"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
 model hotel {
   id                Int          @id @default(autoincrement())
-  nameZh            String       @db.VarChar(100)
-  nameEn            String       @db.VarChar(100)
-  address           String       @db.VarChar(255)
+  nameZh            String
+  nameEn            String
+  address           String
   starRating        Int
   roomTypes         Json
-  price             Decimal      @db.Decimal(10, 2)
-  openDate          DateTime     @db.Date
+  price             Decimal
+  openDate          DateTime
   nearbyAttractions String?
   nearbyTransport   String?
   nearbyMalls       String?
   discounts         Json?
-  description       String?      @db.Text
+  description       String?
   status            hotel_status @default(draft)
-  rejectReason      String?      @db.VarChar(255)
-  creatorId         Int          @unique(map: "Hotel_creatorId_key")
+  rejectReason      String?
+  creatorId         Int          @unique
   createdAt         DateTime     @default(now())
   updatedAt         DateTime
-  auditInfo         String?      @db.VarChar(500)
-  bannerDesc        String?      @db.VarChar(200)
+  auditInfo         String?
+  bannerDesc        String?
   bannerSort        Int          @default(0)
-  bannerTitle       String?      @db.VarChar(100)
+  bannerTitle       String?
   draftData         Json?
   isBanner          Boolean      @default(false)
-  user              user         @relation(fields: [creatorId], references: [id], map: "Hotel_creatorId_fkey")
+  user              user         @relation(fields: [creatorId], references: [id])
   hotelimage        hotelimage[]
 
-  @@index([isBanner], map: "Hotel_isBanner_idx")
-  @@index([starRating], map: "Hotel_starRating_idx")
-  @@index([status], map: "Hotel_status_idx")
+  @@index([isBanner])
+  @@index([starRating])
+  @@index([status])
 }
 
 model hotelimage {
   id        Int             @id @default(autoincrement())
   hotelId   Int
-  url       String          @db.VarChar(500)
+  url       String
   type      hotelimage_type @default(hotel_main)
-  roomType  String?         @db.VarChar(100)
-  
+  roomType  String?
+
   // 版本控制
   version   Int             @default(1)
   status    image_status    @default(draft)
-  
+
   // 排序
   sortOrder Int             @default(0)
-  
+
   // 元数据
-  filename  String?         @db.VarChar(255)
+  filename  String?
   fileSize  Int?
-  mimeType  String?         @db.VarChar(100)
-  
+  mimeType  String?
+
   // 审计字段
   createdBy Int
   updatedBy Int
   createdAt DateTime        @default(now())
   updatedAt DateTime        @updatedAt
-  
-  hotel     hotel           @relation(fields: [hotelId], references: [id], onDelete: Cascade, map: "HotelImage_hotelId_fkey")
+
+  hotel     hotel           @relation(fields: [hotelId], references: [id], onDelete: Cascade)
 
   @@index([hotelId, type, status])
   @@index([hotelId, roomType, sortOrder])
@@ -75,8 +74,8 @@ model hotelimage {
 
 model user {
   id        Int       @id @default(autoincrement())
-  username  String    @unique(map: "User_username_key") @db.VarChar(50)
-  password  String    @db.VarChar(255)
+  username  String    @unique
+  password  String
   role      user_role @default(merchant)
   createdAt DateTime  @default(now())
   hotel     hotel?
