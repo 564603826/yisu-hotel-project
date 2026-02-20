@@ -71,8 +71,8 @@ export const antdTheme: ThemeConfig = {
       headerSplitColor: 'rgba(214, 211, 209, 0.6)', // 表头分割线
       rowSelectedBg: 'rgba(197, 142, 83, 0.08)', // 选中行背景
       rowSelectedHoverBg: 'rgba(197, 142, 83, 0.12)', // 选中行悬浮背景
-      cellPaddingBlock: 16,
-      cellPaddingInline: 16,
+      cellPaddingBlock: 12,
+      cellPaddingInline: 12,
     },
     Modal: {
       // Modal 弹窗主题色配置
