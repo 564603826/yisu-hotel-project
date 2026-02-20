@@ -224,20 +224,20 @@ GET /mobile/hotels?city=杭州&starRating=4,5&minPrice=500&maxPrice=1000&sortBy=
 
 **字段说明：**
 
-| 字段名        | 类型   | 说明                         |
-| ------------- | ------ | ---------------------------- |
-| id            | number | 酒店ID                       |
-| nameZh        | string | 酒店中文名                   |
-| nameEn        | string | 酒店英文名                   |
-| address       | string | 酒店地址                     |
-| starRating    | number | 酒店星级（1-5）              |
-| price         | number | 当前最低价格（根据房型计算） |
-| originalPrice | number | 原价（有优惠时）             |
-| discountInfo  | object | 优惠信息                     |
-| mainImage     | string | 主图URL（images的第一张）    |
-| images        | array  | 图片列表                     |
-| tags          | array  | 标签列表                     |
-| facilities    | array  | 设施列表                     |
+| 字段名        | 类型   | 说明                                   |
+| ------------- | ------ | -------------------------------------- |
+| id            | number | 酒店ID                                 |
+| nameZh        | string | 酒店中文名                             |
+| nameEn        | string | 酒店英文名                             |
+| address       | string | 酒店地址                               |
+| starRating    | number | 酒店星级（1-5）                        |
+| price         | number | 当前最低价格（根据房型计算）           |
+| originalPrice | number | 原价（有优惠时）                       |
+| discountInfo  | object | 优惠信息（仅返回type/name/value）      |
+| mainImage     | string | 主图URL（images的第一张）              |
+| images        | array  | 图片列表                               |
+| tags          | array  | 标签列表（根据星级/景点/设施自动生成） |
+| facilities    | array  | 设施列表（从所有房型聚合）             |
 
 ---
 
@@ -279,9 +279,7 @@ GET /mobile/hotels/1
       "type": "percentage",
       "name": "春节特惠",
       "value": 80,
-      "description": "春节期间入住享8折优惠",
-      "startDate": "2026-01-25",
-      "endDate": "2026-02-10"
+      "description": "春节期间入住享8折优惠"
     },
     "images": [
       "https://example.com/hotel1-1.jpg",
@@ -292,17 +290,14 @@ GET /mobile/hotels/1
     "tags": ["豪华", "湖景", "亲子", "商务"],
     "nearby": {
       "attractions": [
-        { "name": "西湖", "distance": "0.5km" },
-        { "name": "灵隐寺", "distance": "3.2km" }
+        { "name": "克拉码头", "distance": "直线距离540米" },
+        { "name": "滨海湾", "distance": "直线距离2.3公里" }
       ],
       "transport": [
-        { "name": "地铁1号线龙翔桥站", "distance": "0.8km" },
-        { "name": "杭州东站", "distance": "8.5km" }
+        { "name": "牛车水地铁站", "distance": "步行距离340米,约6分钟" },
+        { "name": "克拉码头地铁站", "distance": "步行距离380米,约6分钟" }
       ],
-      "malls": [
-        { "name": "银泰百货", "distance": "1.2km" },
-        { "name": "湖滨银泰", "distance": "1.5km" }
-      ]
+      "malls": [{ "name": "万达广场", "distance": "步行5分钟" }]
     },
     "roomTypes": [
       {
@@ -311,11 +306,9 @@ GET /mobile/hotels/1
         "originalPrice": 888,
         "area": 35,
         "bedType": "大床",
-        "bedSize": "1.8m",
-        "maxGuests": 2,
         "facilities": ["WiFi", "空调", "电视", "独立卫浴", "迷你吧"],
         "images": ["https://example.com/room1-1.jpg"],
-        "breakfast": true
+        "breakfast": false
       },
       {
         "name": "豪华双床房",
@@ -323,11 +316,9 @@ GET /mobile/hotels/1
         "originalPrice": 928,
         "area": 38,
         "bedType": "双床",
-        "bedSize": "1.2m*2",
-        "maxGuests": 2,
         "facilities": ["WiFi", "空调", "电视", "独立卫浴", "迷你吧"],
         "images": ["https://example.com/room2-1.jpg"],
-        "breakfast": true
+        "breakfast": false
       }
     ]
   }
@@ -356,26 +347,31 @@ GET /mobile/hotels/1
 
 **周边信息 (nearby)**
 
-| 字段名      | 类型  | 说明     |
-| ----------- | ----- | -------- |
-| attractions | array | 附近景点 |
-| transport   | array | 附近交通 |
-| malls       | array | 附近商场 |
+| 字段名      | 类型  | 说明                           |
+| ----------- | ----- | ------------------------------ |
+| attractions | array | 附近景点列表（包含名称和距离） |
+| transport   | array | 附近交通列表（包含名称和距离） |
+| malls       | array | 附近商场列表（包含名称和距离） |
+
+**周边列表项结构**
+
+| 字段名   | 类型   | 说明                          |
+| -------- | ------ | ----------------------------- |
+| name     | string | 地点名称（如：克拉码头）      |
+| distance | string | 距离信息（如：直线距离540米） |
 
 **房型信息 (roomTypes)** - 按价格从低到高排序
 
-| 字段名        | 类型    | 说明           |
-| ------------- | ------- | -------------- |
-| name          | string  | 房型名称       |
-| price         | number  | 价格           |
-| originalPrice | number  | 原价           |
-| area          | number  | 面积（平方米） |
-| bedType       | string  | 床型           |
-| bedSize       | string  | 床尺寸         |
-| maxGuests     | number  | 最大入住人数   |
-| facilities    | array   | 房间设施       |
-| images        | array   | 房型图片       |
-| breakfast     | boolean | 是否含早餐     |
+| 字段名        | 类型    | 说明                    |
+| ------------- | ------- | ----------------------- |
+| name          | string  | 房型名称                |
+| price         | number  | 价格                    |
+| originalPrice | number  | 原价（有优惠时）        |
+| area          | number  | 面积（平方米）          |
+| bedType       | string  | 床型                    |
+| facilities    | array   | 房间设施                |
+| images        | array   | 房型图片                |
+| breakfast     | boolean | 是否含早餐（默认false） |
 
 ---
 
@@ -464,7 +460,14 @@ GET /mobile/hotels/1
 - **图片**: 从 `HotelImage` 表获取，筛选 `status = 'published'` 的图片
   - 酒店主图: `type = 'hotel_main'`
   - 房型图片: `type = 'hotel_room'` 且 `roomType = 房型名`
-- **标签**: 根据酒店属性动态生成或从配置读取
+- **标签**: 根据以下规则自动生成
+  - 五星级 → "顶级"
+  - 四星级 → "豪华"
+  - 有附近景点 → "景点"
+  - 设施包含"免费停车" → "免费停车"
+  - 设施包含"游泳池" → "度假"
+  - 设施包含"健身房" → "商务"
+- **设施**: 从所有房型的 `facilities` 字段聚合，自动去重
 
 ### 2. Banner 数据来源
 

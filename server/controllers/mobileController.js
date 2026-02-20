@@ -18,6 +18,36 @@ const calculateMinPrice = (roomTypes) => {
 }
 
 /**
+ * 从房型中聚合所有设施
+ * @param {Array} roomTypes - 房型列表
+ * @returns {Array} 去重后的设施列表
+ */
+const aggregateFacilities = (roomTypes) => {
+  if (!roomTypes || !Array.isArray(roomTypes) || roomTypes.length === 0) {
+    return []
+  }
+  const allFacilities = roomTypes.flatMap((room) => room.facilities || []).filter(Boolean)
+  return [...new Set(allFacilities)]
+}
+
+/**
+ * 生成酒店标签
+ * @param {Object} hotel - 酒店数据
+ * @param {Array} facilities - 设施列表
+ * @returns {Array} 标签列表
+ */
+const generateTags = (hotel, facilities = []) => {
+  const tags = []
+  if (hotel.starRating >= 5) tags.push('顶级')
+  else if (hotel.starRating >= 4) tags.push('豪华')
+  if (hotel.nearbyAttractions) tags.push('景点')
+  if (facilities.includes('免费停车')) tags.push('免费停车')
+  if (facilities.includes('游泳池')) tags.push('度假')
+  if (facilities.includes('健身房')) tags.push('商务')
+  return tags
+}
+
+/**
  * 格式化酒店列表项
  * @param {Object} hotel - 酒店原始数据
  * @returns {Object} 格式化后的酒店数据
@@ -44,14 +74,11 @@ const formatHotelListItem = (hotel, images = []) => {
     }
   }
 
-  // 生成标签
-  const tags = []
-  if (hotel.starRating >= 4) tags.push('豪华')
-  if (hotel.nearbyAttractions) tags.push('景点')
-  if (hotel.facilities && hotel.facilities.includes('免费停车')) tags.push('免费停车')
+  // 从房型聚合设施
+  const facilities = aggregateFacilities(roomTypes)
 
-  // 提取设施
-  const facilities = hotel.facilities || []
+  // 生成标签
+  const tags = generateTags(hotel, facilities)
 
   return {
     id: hotel.id,
@@ -98,14 +125,11 @@ const formatHotelDetail = (hotel, images = [], roomTypeImages = {}) => {
     }
   }
 
-  // 生成标签
-  const tags = []
-  if (hotel.starRating >= 4) tags.push('豪华')
-  if (hotel.starRating >= 5) tags.push('顶级')
-  if (hotel.nearbyAttractions) tags.push('景点')
-  if (hotel.facilities && hotel.facilities.includes('免费停车')) tags.push('免费停车')
-  if (hotel.facilities && hotel.facilities.includes('游泳池')) tags.push('度假')
-  if (hotel.facilities && hotel.facilities.includes('健身房')) tags.push('商务')
+  // 从房型聚合设施
+  const facilities = aggregateFacilities(roomTypes)
+
+  // 生成标签（使用统一的标签生成逻辑）
+  const tags = generateTags(hotel, facilities)
 
   // 格式化房型 - 按价格从低到高排序
   const formattedRoomTypes = roomTypes
@@ -132,32 +156,36 @@ const formatHotelDetail = (hotel, images = [], roomTypeImages = {}) => {
     })
     .sort((a, b) => a.price - b.price)
 
-  // 格式化周边信息
+  // 格式化周边信息 - 解析多行文本格式
+  // 格式示例：
+  // 克拉码头
+  // 直线距离540米
+  // 滨海湾
+  // 直线距离2.3公里
+  const parseNearbyItems = (text) => {
+    if (!text || text.trim() === '') return []
+
+    const lines = text
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean)
+    const items = []
+
+    for (let i = 0; i < lines.length; i += 2) {
+      const name = lines[i]
+      const distance = lines[i + 1] || ''
+      if (name) {
+        items.push({ name, distance })
+      }
+    }
+
+    return items
+  }
+
   const nearby = {
-    attractions: [],
-    transport: [],
-    malls: [],
-  }
-
-  if (hotel.nearbyAttractions) {
-    nearby.attractions = hotel.nearbyAttractions.split(',').map((item) => ({
-      name: item.trim(),
-      distance: '',
-    }))
-  }
-
-  if (hotel.nearbyTransport) {
-    nearby.transport = hotel.nearbyTransport.split(',').map((item) => ({
-      name: item.trim(),
-      distance: '',
-    }))
-  }
-
-  if (hotel.nearbyMalls) {
-    nearby.malls = hotel.nearbyMalls.split(',').map((item) => ({
-      name: item.trim(),
-      distance: '',
-    }))
+    attractions: parseNearbyItems(hotel.nearbyAttractions),
+    transport: parseNearbyItems(hotel.nearbyTransport),
+    malls: parseNearbyItems(hotel.nearbyMalls),
   }
 
   return {
@@ -172,7 +200,7 @@ const formatHotelDetail = (hotel, images = [], roomTypeImages = {}) => {
     originalPrice,
     discountInfo,
     images,
-    facilities: hotel.facilities || [],
+    facilities,
     tags,
     nearby,
     roomTypes: formattedRoomTypes,

@@ -47,38 +47,48 @@ const RoomList: React.FC<RoomListProps> = ({
         </Button>
       </div>
 
-      {rooms.map((room, index) => (
-        <Suspense
-          key={index}
-          fallback={
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                height: '100%',
-                minHeight: '100px',
-              }}
-            >
-              <Spin size="default" />
-            </div>
-          }
-        >
-          <RoomItem
-            index={index}
-            name={room.name}
-            price={room.price}
-            area={room.area}
-            bedType={room.bedType}
-            facilities={room.facilities}
-            images={room.images}
-            onEdit={onEditRoom}
-            onDelete={onDeleteRoom}
-            disabled={disabled}
-            viewMode={viewMode}
-          />
-        </Suspense>
-      ))}
+      <div
+        style={{
+          maxHeight: 'calc(100vh - 481px)',
+          overflowY: 'auto',
+          paddingRight: 8,
+          scrollbarWidth: 'thin',
+          scrollbarColor: '#d4d4d8 transparent',
+        }}
+      >
+        {rooms.map((room, index) => (
+          <Suspense
+            key={index}
+            fallback={
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  height: '100%',
+                  minHeight: '100px',
+                }}
+              >
+                <Spin size="default" />
+              </div>
+            }
+          >
+            <RoomItem
+              index={index}
+              name={room.name}
+              price={room.price}
+              area={room.area}
+              bedType={room.bedType}
+              facilities={room.facilities}
+              images={room.images}
+              onEdit={onEditRoom}
+              onDelete={onDeleteRoom}
+              disabled={disabled}
+              viewMode={viewMode}
+            />
+          </Suspense>
+        ))}
+      </div>
     </div>
   )
 }

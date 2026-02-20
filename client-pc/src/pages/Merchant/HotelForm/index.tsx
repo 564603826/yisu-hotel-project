@@ -923,7 +923,11 @@ const MerchantHotelForm: React.FC = () => {
                 type="link"
                 icon={<AlertCircle size={16} />}
                 onClick={() => setRejectReasonModalOpen(true)}
-                style={{ color: '#dc2626', padding: '0 8px' }}
+                style={{
+                  color: '#dc2626',
+                  padding: '0 8px 0 0',
+                }}
+                className="reject-reason-btn"
               >
                 查看驳回原因
               </Button>
@@ -931,14 +935,30 @@ const MerchantHotelForm: React.FC = () => {
         </div>
 
         <Space className={styles.optionButton}>
-          <span style={{ fontSize: 12, color: '#78716c', marginRight: 8 }}>
-            {loading ? '更新中...' : `上次更新: ${formatUpdateTime(lastUpdateTime)}`}
+          <div
+            style={{
+              fontSize: 12,
+              color: '#78716c',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'flex-end',
+              position: 'relative',
+            }}
+          >
+            <div>{loading ? '更新中...' : `上次更新: ${formatUpdateTime(lastUpdateTime)}`}</div>
             {hasUnsavedChanges && (
-              <span style={{ color: '#fa8c16', marginLeft: 8 }}>
-                (有未保存的修改 - 自动刷新已暂停)
-              </span>
+              <div
+                style={{
+                  color: '#fa8c16',
+                  position: 'absolute',
+                  top: '100%',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                (未保存的修改-自动刷新已暂停)
+              </div>
             )}
-          </span>
+          </div>
           <Button
             type="text"
             icon={<RefreshCw size={16} className={loading ? 'spin' : ''} />}

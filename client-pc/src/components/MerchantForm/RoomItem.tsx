@@ -80,7 +80,7 @@ const RoomItem: React.FC<RoomItemProps> = ({
           </div>
         ) : (
           <div className="room-icon">
-            <BedDouble size={24} />
+            <BedDouble size={48} />
           </div>
         )}
 

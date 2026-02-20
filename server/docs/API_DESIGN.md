@@ -44,16 +44,16 @@
 
 ### 图片管理模块（商户端）
 
-| 接口                 | 方法   | 路径                                         | 说明                     | 权限     |
-| -------------------- | ------ | -------------------------------------------- | ------------------------ | -------- |
-| 获取酒店图片         | GET    | /upload/hotels/:hotelId/images               | 获取酒店图片列表         | merchant |
-| 上传酒店图片         | POST   | /upload/hotels/:hotelId/images               | 上传酒店图片             | merchant |
-| 删除酒店图片         | DELETE | /upload/images/:id                           | 删除单张酒店图片         | merchant |
-| 删除所有草稿图片     | DELETE | /upload/hotels/:hotelId/images               | 放弃草稿时删除所有草稿图 | merchant |
-| 同步酒店图片         | POST   | /upload/hotels/:hotelId/images/sync          | 保存时同步图片到数据库   | merchant |
-| 更新图片排序         | PUT    | /upload/images/sort                          | 更新图片排序             | merchant |
-| 复制已发布图片为草稿 | POST   | /upload/hotels/:hotelId/images/copy-to-draft | 进入编辑时调用           | merchant |
-| 发布图片             | POST   | /upload/hotels/:hotelId/images/publish       | 审核通过时调用           | merchant |
+| 接口                 | 方法   | 路径                                         | 说明                     | 权限       |
+| -------------------- | ------ | -------------------------------------------- | ------------------------ | ---------- |
+| 获取酒店图片         | GET    | /upload/hotels/:hotelId/images               | 获取酒店图片列表         | 已认证用户 |
+| 上传酒店图片         | POST   | /upload/hotels/:hotelId/images               | 上传酒店图片             | 已认证用户 |
+| 删除酒店图片         | DELETE | /upload/images/:id                           | 删除单张酒店图片         | 已认证用户 |
+| 删除所有草稿图片     | DELETE | /upload/hotels/:hotelId/images/draft         | 放弃草稿时删除所有草稿图 | 已认证用户 |
+| 同步酒店图片         | POST   | /upload/hotels/:hotelId/images/sync          | 保存时同步图片到数据库   | 已认证用户 |
+| 更新图片排序         | PUT    | /upload/images/sort                          | 更新图片排序             | 已认证用户 |
+| 复制已发布图片为草稿 | POST   | /upload/hotels/:hotelId/images/copy-to-draft | 进入编辑时调用           | 已认证用户 |
+| 发布图片             | POST   | /upload/hotels/:hotelId/images/publish       | 审核通过时调用           | 已认证用户 |
 
 ---
 
@@ -180,6 +180,25 @@ Content-Type: application/json
 | discounts         | array  | 否   | 优惠信息               |
 | description       | string | 否   | 酒店描述               |
 
+**roomTypes 数组元素结构**:
+
+| 字段名     | 类型   | 必填 | 说明                   |
+| ---------- | ------ | ---- | ---------------------- |
+| name       | string | 是   | 房型名称               |
+| price      | number | 是   | 房型价格（必须 > 0）   |
+| area       | number | 否   | 房间面积（平方米）     |
+| bedType    | string | 否   | 床型（如：大床/双床）  |
+| facilities | array  | 否   | 设施列表（字符串数组） |
+
+**discounts 数组元素结构**:
+
+| 字段名      | 类型   | 必填 | 说明                                                 |
+| ----------- | ------ | ---- | ---------------------------------------------------- |
+| name        | string | 是   | 优惠活动名称                                         |
+| type        | string | 是   | 优惠类型: `percentage`(百分比)/`fixed`(固定金额)     |
+| value       | number | 是   | 优惠值。percentage: 80表示8折; fixed: 100表示减100元 |
+| description | string | 否   | 优惠活动描述                                         |
+
 > **注意**: `price` 字段无需传入，系统会自动根据房型最低价格计算。图片通过图片管理接口操作，不在这里更新。
 
 **请求示例**:
@@ -212,12 +231,10 @@ Content-Type: application/json
   "nearbyMalls": "银泰百货,湖滨银泰",
   "discounts": [
     {
-      "type": "percentage",
       "name": "春节特惠",
+      "type": "percentage",
       "value": 80,
-      "description": "春节期间入住享8折优惠",
-      "startDate": "2026-01-25",
-      "endDate": "2026-02-10"
+      "description": "春节期间入住享8折优惠"
     }
   ],
   "description": "杭州西湖希尔顿酒店坐落于风景秀丽的西湖畔..."
@@ -331,7 +348,7 @@ Authorization: Bearer <token>
 
 **接口地址**: `GET /upload/hotels/:hotelId/images`
 
-**权限**: merchant
+**权限**: 已认证用户
 
 **请求头**:
 
@@ -381,7 +398,7 @@ Authorization: Bearer <token>
 
 **接口地址**: `POST /upload/hotels/:hotelId/images`
 
-**权限**: merchant
+**权限**: 已认证用户
 
 **请求头**:
 
@@ -430,7 +447,7 @@ Content-Type: multipart/form-data
 
 **接口地址**: `DELETE /upload/images/:id`
 
-**权限**: merchant
+**权限**: 已认证用户
 
 **请求头**:
 
@@ -460,7 +477,7 @@ Authorization: Bearer <token>
 
 **接口地址**: `PUT /upload/images/sort`
 
-**权限**: merchant
+**权限**: 已认证用户
 
 **请求头**:
 
@@ -499,7 +516,7 @@ Content-Type: application/json
 
 **接口地址**: `POST /upload/hotels/:hotelId/images/copy-to-draft`
 
-**权限**: merchant
+**权限**: 已认证用户
 
 **说明**: 进入编辑页面时调用，将已发布图片复制为草稿图片。如果没有已发布图片，则返回空数组。
 
@@ -540,7 +557,7 @@ Authorization: Bearer <token>
 
 **接口地址**: `POST /upload/hotels/:hotelId/images/publish`
 
-**权限**: merchant
+**权限**: 已认证用户
 
 **说明**: 提交审核时调用，将草稿图片标记为已发布，原已发布图片标记为已归档。
 
@@ -572,7 +589,7 @@ Authorization: Bearer <token>
 
 **接口地址**: `POST /upload/hotels/:hotelId/images/sync`
 
-**权限**: merchant
+**权限**: 已认证用户
 
 **说明**: 保存酒店信息时调用，根据传入的图片列表同步数据库中的图片记录。会自动创建新图片记录、删除不存在的记录、更新排序。
 
@@ -623,9 +640,9 @@ Content-Type: application/json
 
 #### 8. 删除所有草稿图片
 
-**接口地址**: `DELETE /upload/hotels/:hotelId/images`
+**接口地址**: `DELETE /upload/hotels/:hotelId/images/draft`
 
-**权限**: merchant
+**权限**: 已认证用户
 
 **说明**: 放弃草稿时调用，删除该酒店的所有草稿图片（包括物理文件）。
 
