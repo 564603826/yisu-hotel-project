@@ -156,6 +156,51 @@ const copyPublishedToDraft = async (req, res) => {
     const hotelId = req.params.hotelId
     const userId = req.user.userId
 
+    // 获取酒店信息，检查是否有 draftData
+    const hotel = await prisma.hotel.findUnique({
+      where: { id: parseInt(hotelId) },
+    })
+
+    if (!hotel) {
+      return responseHandler.notFound(res, ResponseMessage.HOTEL_NOT_FOUND)
+    }
+
+    // 如果酒店有 draftData，说明用户已经编辑过草稿，不应该再复制已发布图片
+    // 即使草稿图片为空（用户删除了所有图片），也应该保持空状态
+    const hasDraftData = hotel.draftData !== null && hotel.draftData !== undefined
+
+    if (hasDraftData) {
+      // 用户已经编辑过草稿，返回现有的草稿图片（可能是空数组）
+      const existingDraftImages = await prisma.hotelimage.findMany({
+        where: {
+          hotelId: parseInt(hotelId),
+          status: 'draft',
+        },
+      })
+      const normalizedImages = existingDraftImages.map((img) => ({
+        ...img,
+        url: getRelativeUrl(img.url),
+      }))
+      return responseHandler.success(res, normalizedImages, ResponseMessage.SUCCESS)
+    }
+
+    // 检查是否已经有草稿图片（没有 draftData 但有草稿图片的情况）
+    const existingDraftImages = await prisma.hotelimage.findMany({
+      where: {
+        hotelId: parseInt(hotelId),
+        status: 'draft',
+      },
+    })
+
+    if (existingDraftImages.length > 0) {
+      // 已经有草稿图片，直接返回现有草稿图片
+      const normalizedImages = existingDraftImages.map((img) => ({
+        ...img,
+        url: getRelativeUrl(img.url),
+      }))
+      return responseHandler.success(res, normalizedImages, ResponseMessage.SUCCESS)
+    }
+
     const publishedImages = await prisma.hotelimage.findMany({
       where: {
         hotelId: parseInt(hotelId),
@@ -166,13 +211,6 @@ const copyPublishedToDraft = async (req, res) => {
     if (publishedImages.length === 0) {
       return responseHandler.success(res, [], ResponseMessage.SUCCESS)
     }
-
-    await prisma.hotelimage.deleteMany({
-      where: {
-        hotelId: parseInt(hotelId),
-        status: 'draft',
-      },
-    })
 
     const draftImages = await Promise.all(
       publishedImages.map((img) =>
@@ -464,7 +502,20 @@ const deleteAllDraftImages = async (req, res) => {
   }
 }
 
-const uploadMiddleware = createUploadMiddleware('hotels')
+// 动态创建上传中间件 - 从请求参数中获取 hotelId 和 type
+const uploadMiddleware = (req, res, next) => {
+  const hotelId = req.params.hotelId
+  const type = req.query.type || req.body?.type || 'hotel_main'
+  const roomType = req.query.roomType || req.body?.roomType || null
+
+  const middleware = createUploadMiddleware({
+    type: type,
+    hotelId: hotelId,
+    roomType: roomType,
+  }).single('image')
+
+  middleware(req, res, next)
+}
 
 module.exports = {
   uploadMiddleware,
