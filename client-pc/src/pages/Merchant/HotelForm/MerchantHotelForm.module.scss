@@ -1,9 +1,12 @@
 .container {
   margin-bottom: 30px;
+  position: relative;
   .headerSub {
+    position: absolute;
+    left: 275px;
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 0px;
     margin-top: 30px;
   }
 
@@ -16,6 +19,7 @@
     display: inline-flex;
     align-items: center;
     gap: 6px;
+    margin-right: 8px;
     padding: 4px 12px;
     font-size: 14px;
     font-weight: 500;
