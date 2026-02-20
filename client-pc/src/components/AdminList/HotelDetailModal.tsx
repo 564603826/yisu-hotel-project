@@ -329,19 +329,29 @@ const HotelDetailModal: React.FC<HotelDetailModalProps> = ({
           <div>
             <h4 style={{ marginBottom: 12 }}>酒店图片</h4>
             <Image.PreviewGroup>
-              <Row gutter={[8, 8]}>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(5, 1fr)',
+                  gap: 12,
+                }}
+              >
                 {displayHotel.images.map((img, index) => (
-                  <Col key={index}>
-                    <Image
-                      src={getImageUrl(img)}
-                      alt={`酒店图片 ${index + 1}`}
-                      width={120}
-                      height={80}
-                      style={{ objectFit: 'cover', borderRadius: 4 }}
-                    />
-                  </Col>
+                  <Image
+                    key={index}
+                    src={getImageUrl(img)}
+                    alt={`酒店图片 ${index + 1}`}
+                    style={{
+                      width: '100%',
+                      height: 100,
+                      objectFit: 'cover',
+                      borderRadius: 4,
+                    }}
+                    fallback="https://via.placeholder.com/150x100?text=No+Image"
+                    preview={{ mask: '查看' }}
+                  />
                 ))}
-              </Row>
+              </div>
             </Image.PreviewGroup>
           </div>
         )}
