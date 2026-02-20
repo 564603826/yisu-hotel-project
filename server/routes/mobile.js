@@ -14,4 +14,7 @@ router.get('/hotels/:id', mobileController.getHotelDetail)
 router.get('/filters/options', mobileController.getFilterOptions)
 router.get('/filters/tags', mobileController.getTags)
 
+// 城市列表模块
+router.get('/cities', mobileController.getCities)
+
 module.exports = router
