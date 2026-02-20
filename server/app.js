@@ -17,17 +17,28 @@ const prisma = new PrismaClient()
 
 // CORS 配置 - 允许前端域名访问
 const corsOptions = {
-  origin: [
-    'http://localhost:5173',
-    'https://yisu-hotel-project.vercel.app',
-    'https://yisu-hotel-pc.vercel.app',
-  ],
+  origin: function (origin, callback) {
+    // 允许没有 origin 的请求（如 Postman）或特定域名
+    const allowedOrigins = [
+      'http://localhost:5173',
+      'https://yisu-hotel-project.vercel.app',
+      'https://yisu-hotel-pc.vercel.app',
+    ]
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true)
+    } else {
+      callback(new Error('Not allowed by CORS'))
+    }
+  },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  preflightContinue: false,
+  optionsSuccessStatus: 204,
 }
 
 app.use(cors(corsOptions))
+
 app.use(express.json())
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
 
@@ -36,6 +47,11 @@ app.use('/api/v1/hotels', hotelRoutes)
 app.use('/api/v1/admin', adminRoutes)
 app.use('/api/v1/upload', uploadRoutes)
 app.use('/api/v1/mobile', mobileRoutes)
+
+// 健康检查端点
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() })
+})
 
 app.use((err, req, res, next) => {
   console.error(err.stack)
