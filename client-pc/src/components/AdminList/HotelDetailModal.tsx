@@ -169,27 +169,33 @@ const HotelDetailModal: React.FC<HotelDetailModalProps> = ({
                       {room.images && room.images.length > 0 && (
                         <Col span={10} style={{ height: '100%' }}>
                           <div style={{ borderRadius: 8, overflow: 'hidden', height: '100%' }}>
-                            <Carousel
-                              arrows
-                              infinite={false}
-                              style={{ background: '#f5f5f4', height: '100%' }}
+                            <Image.PreviewGroup
+                              items={room.images.map((imgUrl) => ({
+                                src: getImageUrl(imgUrl),
+                              }))}
                             >
-                              {room.images.map((imgUrl, imgIndex) => (
-                                <div key={imgIndex} style={{ height: 120 }}>
-                                  <Image
-                                    src={getImageUrl(imgUrl)}
-                                    alt={`${room.name} 图片 ${imgIndex + 1}`}
-                                    style={{
-                                      width: '100%',
-                                      height: 120,
-                                      objectFit: 'cover',
-                                    }}
-                                    fallback="https://via.placeholder.com/200x168?text=No+Image"
-                                    preview={{ mask: '查看' }}
-                                  />
-                                </div>
-                              ))}
-                            </Carousel>
+                              <Carousel
+                                arrows
+                                infinite={false}
+                                style={{ background: '#f5f5f4', height: '100%' }}
+                              >
+                                {room.images.map((imgUrl, imgIndex) => (
+                                  <div key={imgIndex} style={{ height: 120 }}>
+                                    <Image
+                                      src={getImageUrl(imgUrl)}
+                                      alt={`${room.name} 图片 ${imgIndex + 1}`}
+                                      style={{
+                                        width: '100%',
+                                        height: 120,
+                                        objectFit: 'cover',
+                                      }}
+                                      fallback="https://via.placeholder.com/200x168?text=No+Image"
+                                      preview={{ mask: '查看' }}
+                                    />
+                                  </div>
+                                ))}
+                              </Carousel>
+                            </Image.PreviewGroup>
                           </div>
                         </Col>
                       )}
@@ -323,19 +329,29 @@ const HotelDetailModal: React.FC<HotelDetailModalProps> = ({
           <div>
             <h4 style={{ marginBottom: 12 }}>酒店图片</h4>
             <Image.PreviewGroup>
-              <Row gutter={[8, 8]}>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(5, 1fr)',
+                  gap: 12,
+                }}
+              >
                 {displayHotel.images.map((img, index) => (
-                  <Col key={index}>
-                    <Image
-                      src={getImageUrl(img)}
-                      alt={`酒店图片 ${index + 1}`}
-                      width={120}
-                      height={80}
-                      style={{ objectFit: 'cover', borderRadius: 4 }}
-                    />
-                  </Col>
+                  <Image
+                    key={index}
+                    src={getImageUrl(img)}
+                    alt={`酒店图片 ${index + 1}`}
+                    style={{
+                      width: '100%',
+                      height: 100,
+                      objectFit: 'cover',
+                      borderRadius: 4,
+                    }}
+                    fallback="https://via.placeholder.com/150x100?text=No+Image"
+                    preview={{ mask: '查看' }}
+                  />
                 ))}
-              </Row>
+              </div>
             </Image.PreviewGroup>
           </div>
         )}

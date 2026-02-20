@@ -50,8 +50,15 @@ const RoomItem: React.FC<RoomItemProps> = ({
     return `${backendUrl}${url}`
   }
 
-  // 第一张图片作为封面
-  const coverImage = images && images.length > 0 ? getImageUrl(images[0]) : null
+  // 处理所有图片URL
+  const imageUrls = images?.map((img) => getImageUrl(img)).filter(Boolean) || []
+  const coverImage = imageUrls.length > 0 ? imageUrls[0] : null
+
+  // 构建预览图片列表
+  const previewImages = imageUrls.map((url, idx) => ({
+    src: url,
+    alt: `${name} 图片 ${idx + 1}`,
+  }))
 
   return (
     <div className="room-item">
@@ -59,14 +66,14 @@ const RoomItem: React.FC<RoomItemProps> = ({
         {/* 房型图片或图标 */}
         {coverImage ? (
           <div className="room-image-preview">
-            <Image
-              src={coverImage}
-              alt={name}
-              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-              preview={{
-                src: coverImage,
-              }}
-            />
+            <Image.PreviewGroup items={previewImages}>
+              <Image
+                src={coverImage}
+                alt={name}
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                preview={{ mask: '查看' }}
+              />
+            </Image.PreviewGroup>
             {images && images.length > 1 && (
               <div className="room-image-count">+{images.length - 1}</div>
             )}
