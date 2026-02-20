@@ -610,6 +610,9 @@
     border: 1px solid #e7e5e4;
     cursor: pointer;
     transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 
     &:hover {
       border-color: #c58e53;
@@ -623,10 +626,27 @@
       cursor: not-allowed;
     }
 
+    // Ant Design Image 组件样式
+    .ant-image {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      .ant-image-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: center;
+      }
+    }
+
     img {
       width: 100%;
       height: 100%;
       object-fit: cover;
+      object-position: center;
     }
   }
 
