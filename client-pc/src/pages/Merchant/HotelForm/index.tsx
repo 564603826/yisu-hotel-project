@@ -62,6 +62,10 @@ const MerchantHotelForm: React.FC = () => {
   const justSavedRef = useRef(false)
   // 是否禁用草稿保存（保存后表单重新初始化时使用）
   const disableDraftSaveRef = useRef(false)
+  // 标记用户是否在基本信息 tab 操作过图片（包括删除所有图片）
+  const imagesModifiedRef = useRef(false)
+  // 标记是否已经复制过草稿（避免刷新页面后重复复制）
+  const hasCopiedToDraft = useRef(false)
 
   const { hotelInfo } = useMerchantStore((state) => state)
   const getHotelInfo = useMerchantStore((state) => state.getHotelInfo)
@@ -184,6 +188,10 @@ const MerchantHotelForm: React.FC = () => {
     justSavedRef.current = true
     // 禁用草稿保存，防止表单重新初始化时保存草稿
     disableDraftSaveRef.current = true
+    // 重置图片修改标志
+    imagesModifiedRef.current = false
+    // 重置草稿复制标志（保存后草稿已存在，不需要再复制）
+    hasCopiedToDraft.current = true
     // 重置初始数据加载标志，允许表单重新初始化
     initialDataLoadedRef.current = false
     // 2秒后重置标志（给数据刷新足够的时间）
@@ -256,6 +264,8 @@ const MerchantHotelForm: React.FC = () => {
           clearDraftStorage()
           setAllFormValues({})
           setLocalImages([])
+          // 重置图片修改标志
+          imagesModifiedRef.current = false
           // 重置初始数据加载标志，允许表单重新初始化
           initialDataLoadedRef.current = false
           await fetchHotelData()
@@ -343,6 +353,8 @@ const MerchantHotelForm: React.FC = () => {
     clearDraftStorage()
     // 清空已保存的表单值
     setAllFormValues({})
+    // 重置图片修改标志
+    imagesModifiedRef.current = false
     setRestoreDraftModalOpen(false)
     setPendingDraft(null)
     // 刷新页面数据，恢复到服务器保存的状态
@@ -395,8 +407,8 @@ const MerchantHotelForm: React.FC = () => {
         }
       }
       // 编辑草稿模式：使用 draftImages 和 draftData 中的房型数据
-      // 如果 draftImages 为空，使用 hotelInfo.images（后端已处理后备逻辑）
-      const images = draftImages.length > 0 ? draftImages.map((img) => img.url) : hotelInfo.images
+      // 注意：draftImages 为 null/undefined 时才使用后备逻辑，空数组是有效的数据状态（表示用户删除了所有图片）
+      const images = draftImages != null ? draftImages.map((img) => img.url) : hotelInfo.images
       return {
         ...hotelInfo,
         ...hotelInfo.draftData,
@@ -521,8 +533,8 @@ const MerchantHotelForm: React.FC = () => {
     }
   }, [viewingPublishedVersion, hotelInfo?.id, getPublishedImages, getDraftImages])
 
-  // 进入编辑时调用copy-to-draft（确保草稿存在）- 只在首次加载时调用
-  const hasCopiedToDraft = useRef(false)
+  // 进入编辑时调用copy-to-draft（确保草稿存在）
+  // 只在首次加载时调用一次，不依赖 draftImages 避免重复调用
   useEffect(() => {
     if (
       hotelInfo?.id &&
@@ -565,12 +577,12 @@ const MerchantHotelForm: React.FC = () => {
 
       // 1. 处理酒店主图
       // 使用 localImages（用户调整后的顺序）作为基础
-      // 如果 localImages 为空（用户在其他 tab 保存），则使用当前数据的图片
+      // 注意：使用 imagesModifiedRef 来判断用户是否操作过图片，因为删除所有图片后 localImages 为空
       const uploadedImageUrls: string[] = []
       const uploadedImageIds: number[] = []
 
-      if (localImages.length > 0) {
-        // 用户在基本信息 tab 操作过图片，使用 localImages
+      if (imagesModifiedRef.current) {
+        // 用户在基本信息 tab 操作过图片（包括删除所有图片），使用 localImages
         for (const img of localImages) {
           if (img.file && img.status === 'pending') {
             // 新上传的图片
@@ -694,33 +706,30 @@ const MerchantHotelForm: React.FC = () => {
 
       // 只有用户操作过图片（在基本信息 tab）时，才发送 images 字段
       // 否则不发送，让后端保留原有图片数据
-      if (localImages.length > 0) {
+      // 注意：使用 imagesModifiedRef 来判断，因为用户可能删除了所有图片（此时 localImages 为空）
+      if (imagesModifiedRef.current) {
         updateForm.images = uniqueImageUrls
       }
 
-      // 保存酒店信息
-      await updateHotelInfo(updateForm)
-      hotelUpdated = true
-
-      // 4. 同步图片到数据库（删除、排序）
-      // 用户操作过图片时需要同步
-      // 对于有版本控制的酒店，如果用户没有操作图片但酒店有图片，也需要同步以确保 draft 记录存在
-      const shouldSyncImages =
-        localImages.length > 0 ||
-        (hotelInfo?.status && hasVersionControl(hotelInfo.status) && uniqueImageUrls.length > 0)
+      // 4. 先同步图片到数据库（删除、排序）
+      // 用户操作过图片时需要同步（包括删除所有图片的情况）
+      // 注意：只要用户操作过图片（imagesModifiedRef.current 为 true），无论 uniqueImageUrls 是否为空，都需要同步
+      // 因为 uniqueImageUrls 为空表示用户删除了所有图片，这时候需要删除数据库中的草稿图片
+      const shouldSyncImages = imagesModifiedRef.current
       if (hotelInfo?.id && shouldSyncImages) {
         await hotelImageApi.syncImages(hotelInfo.id, uniqueImageUrls, 'hotel_main')
         imagesUpdated = true
       }
 
-      // 5. 清理本地状态并刷新数据
+      // 5. 保存酒店基本信息（在图片同步之后，这样 updateHotelInfo 获取到的图片是最新的）
+      await updateHotelInfo(updateForm)
+      hotelUpdated = true
+
+      // 6. 清理本地状态并刷新数据
       setLocalImages([])
       handleSaveSuccess()
+      // 刷新酒店信息和图片数据
       await getHotelInfo()
-      // 刷新草稿图片，确保 displayData 中的图片数据是最新的
-      if (!viewingPublishedVersion) {
-        await getDraftImages()
-      }
 
       if (hotelUpdated || imagesUpdated) {
         message.success('保存成功')
@@ -1118,6 +1127,7 @@ const MerchantHotelForm: React.FC = () => {
               onImagesChange={(images) => {
                 setLocalImages(images)
                 setHasUnsavedChanges(true)
+                imagesModifiedRef.current = true
               }}
               onValuesChange={handleFormValuesChange}
             />
