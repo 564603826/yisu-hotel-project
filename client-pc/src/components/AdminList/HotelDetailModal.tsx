@@ -169,27 +169,33 @@ const HotelDetailModal: React.FC<HotelDetailModalProps> = ({
                       {room.images && room.images.length > 0 && (
                         <Col span={10} style={{ height: '100%' }}>
                           <div style={{ borderRadius: 8, overflow: 'hidden', height: '100%' }}>
-                            <Carousel
-                              arrows
-                              infinite={false}
-                              style={{ background: '#f5f5f4', height: '100%' }}
+                            <Image.PreviewGroup
+                              items={room.images.map((imgUrl) => ({
+                                src: getImageUrl(imgUrl),
+                              }))}
                             >
-                              {room.images.map((imgUrl, imgIndex) => (
-                                <div key={imgIndex} style={{ height: 120 }}>
-                                  <Image
-                                    src={getImageUrl(imgUrl)}
-                                    alt={`${room.name} 图片 ${imgIndex + 1}`}
-                                    style={{
-                                      width: '100%',
-                                      height: 120,
-                                      objectFit: 'cover',
-                                    }}
-                                    fallback="https://via.placeholder.com/200x168?text=No+Image"
-                                    preview={{ mask: '查看' }}
-                                  />
-                                </div>
-                              ))}
-                            </Carousel>
+                              <Carousel
+                                arrows
+                                infinite={false}
+                                style={{ background: '#f5f5f4', height: '100%' }}
+                              >
+                                {room.images.map((imgUrl, imgIndex) => (
+                                  <div key={imgIndex} style={{ height: 120 }}>
+                                    <Image
+                                      src={getImageUrl(imgUrl)}
+                                      alt={`${room.name} 图片 ${imgIndex + 1}`}
+                                      style={{
+                                        width: '100%',
+                                        height: 120,
+                                        objectFit: 'cover',
+                                      }}
+                                      fallback="https://via.placeholder.com/200x168?text=No+Image"
+                                      preview={{ mask: '查看' }}
+                                    />
+                                  </div>
+                                ))}
+                              </Carousel>
+                            </Image.PreviewGroup>
                           </div>
                         </Col>
                       )}
