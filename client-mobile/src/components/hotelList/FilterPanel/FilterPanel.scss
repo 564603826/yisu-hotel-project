@@ -48,12 +48,42 @@
       }
     }
     
+    .price-quick-select {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+      
+      .price-button {
+        padding: 6px 12px;
+        border: 1px solid #e8e8e8;
+        border-radius: 16px;
+        background: white;
+        font-size: 12px;
+        cursor: pointer;
+        transition: all 0.2s;
+        
+        &:hover {
+          border-color: #1890ff;
+          color: #1890ff;
+        }
+        
+        &.active {
+          border-color: #1890ff;
+          background: #1890ff;
+          color: white;
+        }
+      }
+    }
+    
     .star-rating {
       display: flex;
       gap: 8px;
+      flex-wrap: wrap;
       
       .star-button {
         flex: 1;
+        min-width: 60px;
         padding: 8px;
         border: 1px solid #e8e8e8;
         border-radius: 8px;

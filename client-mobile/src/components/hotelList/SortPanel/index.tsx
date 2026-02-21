@@ -4,15 +4,21 @@ import './SortPanel.scss';
 interface SortPanelProps {
   sortBy: string;
   onSortChange: (sort: string) => void;
+  options?: Array<{ value: string; label: string }>;
 }
 
-const SortPanel: React.FC<SortPanelProps> = ({ sortBy, onSortChange }) => {
-  const sortOptions = [
-    { value: 'default', label: '默认排序' },
-    { value: 'price_asc', label: '价格从低到高' },
-    { value: 'price_desc', label: '价格从高到低' },
-    { value: 'rating_desc', label: '评分从高到低' },
+const SortPanel: React.FC<SortPanelProps> = ({ 
+  sortBy, 
+  onSortChange,
+  options 
+}) => {
+  const defaultOptions = [
+    { value: 'default', label: '综合推荐' },
+    { value: 'price-asc', label: '价格从低到高' },
+    { value: 'price-desc', label: '价格从高到低' },
   ];
+  
+  const sortOptions = options || defaultOptions;
   
   return (
     <div className="sort-panel">
