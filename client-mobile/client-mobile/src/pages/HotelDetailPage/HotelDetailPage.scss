@@ -1,0 +1,227 @@
+.hotel-detail-page {
+  background: #f5f5f5;
+  min-height: 100vh;
+
+  .detail-content {
+    max-width: 100%;
+  }
+}
+
+.hotel-info {
+  background: white;
+  padding: 20px 16px;
+  margin: 16px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+
+  .hotel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+
+    .hotel-name {
+      font-size: 20px;
+      color: #333;
+      margin: 0;
+      flex: 1;
+      margin-right: 12px;
+    }
+
+    .hotel-rating {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      .stars {
+        color: #faad14;
+        font-size: 16px;
+      }
+
+      .rating {
+        font-size: 18px;
+        color: #faad14;
+        font-weight: bold;
+      }
+    }
+  }
+
+  .hotel-location {
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    .location-icon {
+      font-size: 16px;
+    }
+  }
+
+  .hotel-name-en {
+    font-size: 12px;
+    color: #999;
+    margin-bottom: 12px;
+  }
+
+  .hotel-open-date {
+    font-size: 13px;
+    color: #666;
+    margin-bottom: 12px;
+    padding: 8px 12px;
+    background: #f5f5f5;
+    border-radius: 6px;
+  }
+
+  .hotel-discount {
+    background: linear-gradient(135deg, #fff1f0, #ffe7e6);
+    border: 1px solid #ffa39e;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+
+    .discount-badge {
+      background: #ff4d4f;
+      color: white;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .discount-content {
+      flex: 1;
+
+      .discount-price {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+        margin-bottom: 6px;
+        flex-wrap: wrap;
+
+        .price {
+          font-size: 24px;
+          color: #ff4d4f;
+          font-weight: bold;
+        }
+
+        .original-price {
+          font-size: 14px;
+          color: #999;
+          text-decoration: line-through;
+        }
+
+        .price-unit {
+          font-size: 12px;
+          color: #666;
+        }
+      }
+
+      .discount-detail {
+        margin-bottom: 4px;
+
+        .discount-tag {
+          display: inline-block;
+          background: #ff7875;
+          color: white;
+          padding: 2px 8px;
+          border-radius: 4px;
+          font-size: 11px;
+        }
+      }
+
+      .discount-description {
+        font-size: 12px;
+        color: #ff4d4f;
+        margin-top: 4px;
+      }
+    }
+  }
+
+  .hotel-description {
+    font-size: 14px;
+    color: #666;
+    line-height: 1.6;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #f0f0f0;
+  }
+
+  .hotel-facilities {
+    h3 {
+      font-size: 16px;
+      color: #333;
+      margin: 0 0 12px;
+    }
+
+    .facilities-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+
+      .facility-tag {
+        background: #f0f9ff;
+        color: #1890ff;
+        padding: 6px 12px;
+        border-radius: 16px;
+        font-size: 12px;
+      }
+    }
+  }
+}
+
+.date-selection {
+  background: white;
+  padding: 16px;
+  margin: 16px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+
+  .date-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+
+    h3 {
+      font-size: 16px;
+      color: #333;
+      margin: 0;
+    }
+
+    .date-display {
+      font-size: 14px;
+      color: #1890ff;
+      font-weight: 500;
+    }
+  }
+
+  .date-picker {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #e8e8e8;
+    border-radius: 8px;
+    font-size: 14px;
+    color: #333;
+
+    &:focus {
+      outline: none;
+      border-color: #1890ff;
+    }
+  }
+}
+
+.rooms-section {
+  margin: 16px;
+
+  .rooms-title {
+    font-size: 18px;
+    color: #333;
+    margin: 0 0 16px;
+  }
+}
