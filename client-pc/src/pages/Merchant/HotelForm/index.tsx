@@ -220,11 +220,15 @@ const MerchantHotelForm: React.FC = () => {
         if (hotel.status === 'pending' || hotel.status === 'rejected') {
           await getDraftImages()
         } else if (hotel.status === 'published' || hotel.status === 'offline') {
-          // 对于已发布/已下线状态，根据查看模式加载相应图片
+          // 对于已发布/已下线状态，根据查看模式和草稿数据状态加载相应图片
           if (viewingPublishedVersion) {
             await getPublishedImages()
-          } else {
+          } else if (hotel.draftData) {
+            // 编辑草稿模式且有草稿数据时，加载草稿图片
             await getDraftImages()
+          } else {
+            // 编辑草稿模式但没有草稿数据时（如审核通过后），加载已发布图片
+            await getPublishedImages()
           }
         }
       }
@@ -381,20 +385,23 @@ const MerchantHotelForm: React.FC = () => {
     if (!hotelInfo) return null
 
     if (hotelInfo.status === 'pending') {
-      // pending 状态：优先使用 draftData 中的数据（如果有），否则使用主表数据
+      // pending 状态：优先使用 draftData 中的数据（如果 draftData 存在），否则使用主表数据
       // 图片使用 draftImages
+      // 如果 draftData 存在，使用 draftData 中的房型数据（即使是空数组也使用，表示用户删除了所有房型）
+      const hasDraftData = hotelInfo.draftData !== undefined && hotelInfo.draftData !== null
+      const draftRoomTypes = hotelInfo.draftData?.roomTypes
       return {
         ...hotelInfo,
         ...hotelInfo.draftData,
         images: draftImages.map((img) => img.url),
-        // 使用 draftData 中的房型数据（如果有）
-        roomTypes: hotelInfo.draftData?.roomTypes || hotelInfo.roomTypes,
+        // 使用 draftData 中的房型数据（如果 draftData 存在）
+        roomTypes: hasDraftData ? draftRoomTypes : hotelInfo.roomTypes,
       }
     }
 
-    if (hotelInfo.status === 'rejected') {
-      // rejected 状态：直接使用主表数据，图片使用 draftImages
-      // rejected 状态的数据保存在主表，不使用 draftData
+    if (hotelInfo.status === 'rejected' || hotelInfo.status === 'draft') {
+      // rejected 和 draft 状态：直接使用主表数据，图片使用 draftImages
+      // 这些状态的数据保存在主表，不使用 draftData
       return {
         ...hotelInfo,
         images: draftImages.map((img) => img.url),
@@ -413,13 +420,22 @@ const MerchantHotelForm: React.FC = () => {
       }
       // 编辑草稿模式：使用 draftImages 和 draftData 中的房型数据
       // 注意：draftImages 为 null/undefined 时才使用后备逻辑，空数组是有效的数据状态（表示用户删除了所有图片）
-      const images = draftImages != null ? draftImages.map((img) => img.url) : hotelInfo.images
+      // 如果 draftData 存在，使用 draftData 中的房型数据（即使是空数组也使用，表示用户删除了所有房型）
+      // 如果 draftData 不存在，使用已发布的数据
+      const hasDraftData = hotelInfo.draftData !== undefined && hotelInfo.draftData !== null
+      const draftRoomTypes = hotelInfo.draftData?.roomTypes
+      // 有草稿数据时使用 draftImages，否则使用 publishedImages
+      const images = hasDraftData
+        ? draftImages != null
+          ? draftImages.map((img) => img.url)
+          : hotelInfo.images
+        : publishedImages.map((img) => img.url)
       return {
         ...hotelInfo,
         ...hotelInfo.draftData,
         images: images || [],
-        // 使用 draftData 中的房型数据（如果有）
-        roomTypes: hotelInfo.draftData?.roomTypes || hotelInfo.roomTypes,
+        // 使用 draftData 中的房型数据（如果 draftData 存在）
+        roomTypes: hasDraftData ? draftRoomTypes : hotelInfo.roomTypes,
       }
     }
 
@@ -431,7 +447,7 @@ const MerchantHotelForm: React.FC = () => {
 
   // 从 displayData 同步本地房型数据
   useEffect(() => {
-    if (displayData?.roomTypes) {
+    if (displayData?.roomTypes !== undefined) {
       setLocalRoomTypes(displayData.roomTypes)
     }
   }, [displayData?.roomTypes])
