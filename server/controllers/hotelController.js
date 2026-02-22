@@ -279,6 +279,16 @@ const updateMyHotel = async (req, res) => {
     let updatedHotel
 
     if (isOnlineStatus(hotel.status)) {
+      // 获取最新的草稿图片
+      const draftImages = await prisma.hotelimage.findMany({
+        where: {
+          hotelId: hotel.id,
+          type: 'hotel_main',
+          status: 'draft',
+        },
+        orderBy: { sortOrder: 'asc' },
+      })
+
       const currentData = {
         nameZh: hotel.nameZh,
         nameEn: hotel.nameEn,
@@ -293,8 +303,8 @@ const updateMyHotel = async (req, res) => {
         facilities: hotel.facilities,
         discounts: hotel.discounts,
         description: hotel.description,
-        // 优先使用已发布图片，如果 draftData 中有图片且不为空，则使用 draftData 中的图片
-        images: hotel.draftData?.images?.length > 0 ? hotel.draftData.images : hotel.images,
+        // 使用最新的草稿图片
+        images: draftImages.map((img) => img.url),
       }
 
       const newDraftData = {
