@@ -103,79 +103,83 @@ const getAdminHotelById = async (req, res) => {
     // pending（待审核）和 rejected（已驳回）状态都显示 draftData（草稿版本）
     const isDraftVersion = hotel.status === 'pending' || hotel.status === 'rejected'
 
-    // 从图片表获取酒店图片
-    // pending（待审核）和 rejected（已驳回）状态显示草稿图片（包括空数组的情况）
-    // 其他状态显示已发布图片
-    const hotelImages = await getImagesForHotel(hotel.id, isDraftVersion ? 'draft' : 'published')
+    // 从图片表获取酒店图片 - 同时获取草稿和已发布两种版本的图片
+    // 这样可以支持管理员在审核时对比上线版本
+    const draftHotelImages = await getImagesForHotel(hotel.id, 'draft')
+    const publishedHotelImages = await getImagesForHotel(hotel.id, 'published')
+    // 默认显示草稿图片（审核版本）
+    const hotelImages = isDraftVersion ? draftHotelImages : publishedHotelImages
 
-    // 获取房型数据
-    // 草稿版本状态显示 draftData（草稿），其他状态显示 roomTypes（已发布）
-    let roomTypesWithImages
-    if (isDraftVersion) {
-      // 草稿版本：优先使用 draftData 中的房型数据（如果 draftData 存在）
-      // 如果 draftData 存在，使用 draftData 中的房型数据（即使是空数组也使用，表示用户删除了所有房型）
-      const hasDraftData = hotel.draftData !== undefined && hotel.draftData !== null
-      roomTypesWithImages = hasDraftData ? hotel.draftData?.roomTypes || [] : hotel.roomTypes || []
-    } else {
-      roomTypesWithImages = hotel.roomTypes || []
-    }
+    // 获取草稿和已发布两种版本的房型数据
+    // 草稿版本：优先使用 draftData 中的房型数据
+    const hasDraftData = hotel.draftData !== undefined && hotel.draftData !== null
+    const draftRoomTypes = hasDraftData ? hotel.draftData?.roomTypes || [] : hotel.roomTypes || []
+    // 已发布版本：使用 hotel.roomTypes
+    const publishedRoomTypes = hotel.roomTypes || []
 
-    if (roomTypesWithImages.length > 0) {
-      // 获取草稿房型图片
-      const draftRoomImages = await prisma.hotelimage.findMany({
-        where: {
-          hotelId: parseInt(id),
-          type: 'hotel_room',
-          status: 'draft',
-        },
-        orderBy: { sortOrder: 'asc' },
-      })
+    // 获取草稿和已发布房型图片
+    const draftRoomImages = await prisma.hotelimage.findMany({
+      where: {
+        hotelId: parseInt(id),
+        type: 'hotel_room',
+        status: 'draft',
+      },
+      orderBy: { sortOrder: 'asc' },
+    })
 
-      // 获取已发布房型图片
-      const publishedRoomImages = await prisma.hotelimage.findMany({
-        where: {
-          hotelId: parseInt(id),
-          type: 'hotel_room',
-          status: 'published',
-        },
-        orderBy: { sortOrder: 'asc' },
-      })
+    const publishedRoomImages = await prisma.hotelimage.findMany({
+      where: {
+        hotelId: parseInt(id),
+        type: 'hotel_room',
+        status: 'published',
+      },
+      orderBy: { sortOrder: 'asc' },
+    })
 
-      // 按房型分组图片 - 优先使用草稿图片，如果没有则使用已发布图片
-      roomTypesWithImages = roomTypesWithImages.map((room) => {
-        // 从草稿图片中获取该房型的图片
-        const draftImageUrls = draftRoomImages
-          .filter((img) => img.roomType === room.name)
-          .map((img) => img.url)
+    // 处理草稿版本房型数据（使用草稿图片）
+    const draftRoomTypesWithImages = draftRoomTypes.map((room) => {
+      const draftImageUrls = draftRoomImages
+        .filter((img) => img.roomType === room.name)
+        .map((img) => img.url)
 
-        // 从已发布图片中获取该房型的图片
-        const publishedImageUrls = publishedRoomImages
-          .filter((img) => img.roomType === room.name)
-          .map((img) => img.url)
+      const storedImages = room.images || []
+      const finalImages = storedImages.length > 0 ? storedImages : draftImageUrls
 
-        // 优先使用数据库中存储的 images，然后补充草稿图片，最后使用已发布图片
-        // 这样可以避免房型名称不匹配或图片状态不一致导致图片丢失的问题
-        const storedImages = room.images || []
-        const finalImages =
-          storedImages.length > 0
-            ? storedImages
-            : draftImageUrls.length > 0
-              ? draftImageUrls
-              : publishedImageUrls.length > 0
-                ? publishedImageUrls
-                : []
+      return {
+        ...room,
+        images: finalImages,
+      }
+    })
 
-        return {
-          ...room,
-          images: finalImages,
-        }
-      })
-    }
+    // 处理已发布版本房型数据（使用已发布图片）
+    const publishedRoomTypesWithImages = publishedRoomTypes.map((room) => {
+      const publishedImageUrls = publishedRoomImages
+        .filter((img) => img.roomType === room.name)
+        .map((img) => img.url)
+
+      const storedImages = room.images || []
+      const finalImages = storedImages.length > 0 ? storedImages : publishedImageUrls
+
+      return {
+        ...room,
+        images: finalImages,
+      }
+    })
+
+    // 默认显示草稿版本房型
+    const roomTypesWithImages = isDraftVersion
+      ? draftRoomTypesWithImages
+      : publishedRoomTypesWithImages
 
     const hotelWithImages = {
       ...hotel,
       images: hotelImages,
       roomTypes: roomTypesWithImages,
+      // 额外返回两种版本的图片和房型数据，支持管理员对比
+      _draftImages: draftHotelImages,
+      _publishedImages: publishedHotelImages,
+      _draftRoomTypes: draftRoomTypesWithImages,
+      _publishedRoomTypes: publishedRoomTypesWithImages,
     }
 
     return responseHandler.success(res, hotelWithImages, ResponseMessage.HOTEL_QUERY_SUCCESS)
