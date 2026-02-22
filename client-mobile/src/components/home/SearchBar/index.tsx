@@ -1,59 +1,72 @@
 import React, { useState } from 'react';
 import './SearchBar.scss';
+import LocationPicker from '../../common/LocationPicker';
 
 interface SearchBarProps {
-  onSearch: (params: any) => void;
+  onSearch: (params: { keyword: string; address?: string; lng?: number; lat?: number }) => void;
 }
 
 const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
-  const [location, setLocation] = useState('北京');
-  const [checkIn, setCheckIn] = useState('2024-01-15');
-  const [checkOut, setCheckOut] = useState('2024-01-16');
+  const [keyword, setKeyword] = useState('');
+  const [showLocationPicker, setShowLocationPicker] = useState(false);
   
   const handleSearch = () => {
     onSearch({
-      location,
-      checkIn,
-      checkOut,
-      guests: 2,
+      keyword,
+    });
+  };
+  
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSearch();
+    }
+  };
+  
+  const handleLocationSelect = (location: { address: string; lng: number; lat: number }) => {
+    setKeyword(location.address);
+    onSearch({
+      keyword: location.address,
+      address: location.address,
+      lng: location.lng,
+      lat: location.lat,
     });
   };
   
   return (
     <div className="search-bar">
       <div className="search-fields">
-        <div className="search-field">
-          <label>📍 地点</label>
-          <input
-            type="text"
-            value={location}
-            onChange={(e) => setLocation(e.target.value)}
-            placeholder="输入城市或酒店名"
-          />
-        </div>
-        
-        <div className="search-field">
-          <label>📅 入住</label>
-          <input
-            type="date"
-            value={checkIn}
-            onChange={(e) => setCheckIn(e.target.value)}
-          />
-        </div>
-        
-        <div className="search-field">
-          <label>📅 离店</label>
-          <input
-            type="date"
-            value={checkOut}
-            onChange={(e) => setCheckOut(e.target.value)}
-          />
+        <div className="search-field search-field-full">
+          <div className="destination-input-wrapper">
+            <label>📍 目的地/酒店</label>
+            <div className="input-with-locate">
+              <input
+                type="text"
+                value={keyword}
+                onChange={(e) => setKeyword(e.target.value)}
+                onKeyPress={handleKeyPress}
+                placeholder="搜索城市或酒店名称"
+              />
+              <button 
+                className="locate-button" 
+                onClick={() => setShowLocationPicker(true)}
+                title="定位"
+              >
+                📍
+              </button>
+            </div>
+          </div>
         </div>
       </div>
       
       <button className="search-button" onClick={handleSearch}>
         🔍 搜索酒店
       </button>
+      
+      <LocationPicker
+        show={showLocationPicker}
+        onClose={() => setShowLocationPicker(false)}
+        onConfirm={handleLocationSelect}
+      />
     </div>
   );
 };

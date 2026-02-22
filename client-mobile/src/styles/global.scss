@@ -12,7 +12,7 @@ html {
   font-size: $base-font-size;
   // 移动端适配
   @media (max-width: 375px) {
-    font-size: $base-font-size * (100vw / $design-width);
+    font-size: calc(#{$base-font-size} * (100vw / #{$design-width}));
   }
 }
 
