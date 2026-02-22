@@ -20,6 +20,7 @@ model hotel {
   nearbyAttractions String?
   nearbyTransport   String?
   nearbyMalls       String?
+  facilities        Json?
   discounts         Json?
   description       String?      @db.Text
   status            hotel_status @default(draft)

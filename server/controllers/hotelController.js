@@ -79,6 +79,7 @@ const hasDataChanged = (currentData, newData) => {
     'nearbyAttractions',
     'nearbyTransport',
     'nearbyMalls',
+    'facilities',
     'discounts',
     'description',
     'images',
@@ -138,19 +139,14 @@ const getMyHotel = async (req, res) => {
     }
 
     // 根据查看模式获取酒店图片
-    let hotelImages
-    if (viewMode === 'published') {
-      // 查看线上版本：只获取已发布图片
-      hotelImages = await getImagesForHotel(hotel.id, 'published')
-    } else {
-      // 编辑草稿模式：优先获取草稿图片，如果没有则获取已发布图片
-      const draftImages = await getImagesForHotel(hotel.id, 'draft')
-      if (draftImages.length > 0) {
-        hotelImages = draftImages
-      } else {
-        hotelImages = await getImagesForHotel(hotel.id, 'published')
-      }
-    }
+    // pending（待审核）、rejected（已驳回）和 draft（草稿）状态显示草稿图片（包括空数组的情况）
+    // 其他状态显示已发布图片
+    const isDraftVersion =
+      hotel.status === 'pending' || hotel.status === 'rejected' || hotel.status === 'draft'
+    const hotelImages = await getImagesForHotel(
+      hotel.id,
+      viewMode === 'published' ? 'published' : isDraftVersion ? 'draft' : 'published'
+    )
 
     // 获取房型数据
     let roomTypesWithImages
@@ -158,8 +154,10 @@ const getMyHotel = async (req, res) => {
       // 查看线上版本：使用已发布房型数据
       roomTypesWithImages = hotel.roomTypes || []
     } else {
-      // 编辑草稿模式：优先使用 draftData 中的房型数据
-      roomTypesWithImages = hotel.draftData?.roomTypes || hotel.roomTypes || []
+      // 编辑草稿模式：优先使用 draftData 中的房型数据（如果 draftData 存在）
+      // 如果 draftData 存在，使用 draftData 中的房型数据（即使是空数组也使用，表示用户删除了所有房型）
+      const hasDraftData = hotel.draftData !== undefined && hotel.draftData !== null
+      roomTypesWithImages = hasDraftData ? hotel.draftData?.roomTypes || [] : hotel.roomTypes || []
     }
 
     if (roomTypesWithImages.length > 0) {
@@ -216,10 +214,14 @@ const getMyHotel = async (req, res) => {
       })
     }
 
+    // 构造返回数据，避免 draftData 中的数据污染外层
+    const { draftData, ...hotelWithoutDraft } = hotel
     const hotelWithImages = {
-      ...hotel,
+      ...hotelWithoutDraft,
       images: hotelImages,
       roomTypes: roomTypesWithImages,
+      // 只在编辑模式下返回 draftData
+      draftData: viewMode === 'published' ? undefined : draftData,
     }
 
     return responseHandler.success(res, hotelWithImages, ResponseMessage.HOTEL_QUERY_SUCCESS)
@@ -288,6 +290,7 @@ const updateMyHotel = async (req, res) => {
         nearbyAttractions: hotel.nearbyAttractions,
         nearbyTransport: hotel.nearbyTransport,
         nearbyMalls: hotel.nearbyMalls,
+        facilities: hotel.facilities,
         discounts: hotel.discounts,
         description: hotel.description,
         // 优先使用已发布图片，如果 draftData 中有图片且不为空，则使用 draftData 中的图片

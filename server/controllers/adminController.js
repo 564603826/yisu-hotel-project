@@ -45,22 +45,12 @@ const getAdminHotels = async (req, res) => {
     ])
 
     // 为每个酒店获取图片
-    // pending 状态的酒店优先获取 draft 图片，如果没有则获取 published 图片
+    // pending（待审核）和 rejected（已驳回）状态显示草稿图片（包括空数组的情况）
+    // 其他状态显示已发布图片
     const hotelsWithImage = await Promise.all(
       hotels.map(async (hotel) => {
-        let images = []
-        if (hotel.status === 'pending') {
-          // pending 状态：优先获取 draft 图片，如果没有则获取 published 图片
-          const draftImages = await getImagesForHotel(hotel.id, 'draft')
-          if (draftImages.length === 0) {
-            images = await getImagesForHotel(hotel.id, 'published')
-          } else {
-            images = draftImages
-          }
-        } else {
-          // 其他状态：获取 published 图片
-          images = await getImagesForHotel(hotel.id, 'published')
-        }
+        const isDraftVersion = hotel.status === 'pending' || hotel.status === 'rejected'
+        const images = await getImagesForHotel(hotel.id, isDraftVersion ? 'draft' : 'published')
         return {
           ...hotel,
           images,
@@ -114,15 +104,21 @@ const getAdminHotelById = async (req, res) => {
     const isDraftVersion = hotel.status === 'pending' || hotel.status === 'rejected'
 
     // 从图片表获取酒店图片
-    // 草稿版本状态优先获取草稿图片，已发布状态获取已发布图片
-    const images = await getImagesForHotel(hotel.id, isDraftVersion ? 'draft' : 'published')
-    const hotelImages = images.length > 0 ? images : await getImagesForHotel(hotel.id, 'published')
+    // pending（待审核）和 rejected（已驳回）状态显示草稿图片（包括空数组的情况）
+    // 其他状态显示已发布图片
+    const hotelImages = await getImagesForHotel(hotel.id, isDraftVersion ? 'draft' : 'published')
 
     // 获取房型数据
     // 草稿版本状态显示 draftData（草稿），其他状态显示 roomTypes（已发布）
-    let roomTypesWithImages = isDraftVersion
-      ? hotel.draftData?.roomTypes || hotel.roomTypes || []
-      : hotel.roomTypes || []
+    let roomTypesWithImages
+    if (isDraftVersion) {
+      // 草稿版本：优先使用 draftData 中的房型数据（如果 draftData 存在）
+      // 如果 draftData 存在，使用 draftData 中的房型数据（即使是空数组也使用，表示用户删除了所有房型）
+      const hasDraftData = hotel.draftData !== undefined && hotel.draftData !== null
+      roomTypesWithImages = hasDraftData ? hotel.draftData?.roomTypes || [] : hotel.roomTypes || []
+    } else {
+      roomTypesWithImages = hotel.roomTypes || []
+    }
 
     if (roomTypesWithImages.length > 0) {
       // 获取草稿房型图片
@@ -208,22 +204,17 @@ const approveHotel = async (req, res) => {
 
     await approveImages(id, userId)
 
-    let updateData = {
+    // 排除不属于 hotel 表的字段（images 存储在图片表，不存储在 hotel 表）
+    const { images: draftImages, ...validDraftData } = hotel.draftData || {}
+
+    const updateData = {
       status: 'approved',
       rejectReason: null,
       auditInfo: null,
       updatedAt: new Date(),
-    }
-
-    if (hotel.draftData) {
-      // 排除不属于 hotel 表的字段（images 存储在图片表，不存储在 hotel 表）
-      const { images, ...validDraftData } = hotel.draftData
-      updateData = {
-        ...updateData,
-        ...validDraftData,
-        draftData: null,
-        updatedAt: new Date(), // 确保 updatedAt 不被覆盖
-      }
+      // 如果有草稿数据，合并到主表；无论是否有草稿数据，都清空 draftData
+      ...(hotel.draftData ? validDraftData : {}),
+      draftData: null,
     }
 
     const updatedHotel = await prisma.hotel.update({
