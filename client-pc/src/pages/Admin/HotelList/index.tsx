@@ -598,6 +598,7 @@ const AdminHotelList: React.FC = () => {
 
       {/* 酒店详情模态框 */}
       <HotelDetailModal
+        key={currentHotelDetail?.id || 'empty'}
         open={detailModalOpen}
         hotel={currentHotelDetail}
         onClose={handleCloseDetail}

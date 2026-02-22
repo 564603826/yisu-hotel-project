@@ -1,6 +1,18 @@
-import React from 'react'
-import { Modal, Descriptions, Tag, Image, Row, Col, Rate, Divider, Alert, Carousel } from 'antd'
-import { ClockCircleOutlined, CloseCircleOutlined } from '@ant-design/icons'
+import React, { useState } from 'react'
+import {
+  Modal,
+  Descriptions,
+  Tag,
+  Image,
+  Row,
+  Col,
+  Rate,
+  Divider,
+  Alert,
+  Carousel,
+  Button,
+} from 'antd'
+import { ClockCircleOutlined, CloseCircleOutlined, EyeOutlined } from '@ant-design/icons'
 import { MapPin, Train, ShoppingBag, Calendar, Building2 } from 'lucide-react'
 import type { Hotel } from '@/types'
 import '@/components/AdminList/index.scss'
@@ -18,13 +30,37 @@ const HotelDetailModal: React.FC<HotelDetailModalProps> = ({
   onClose,
   loading = false,
 }) => {
+  const [showPublishedVersion, setShowPublishedVersion] = useState(false)
+
   if (!hotel) return null
 
-  // 审核中或已驳回状态且有草稿数据：展示草稿数据（被审核/被驳回的版本）
-  const displayHotel =
+  // 判断是否可以切换版本（审核中或已驳回状态且有草稿数据）
+  const canSwitchVersion =
     (hotel.status === 'pending' || hotel.status === 'rejected') && hotel.draftData
-      ? { ...hotel, ...hotel.draftData }
-      : hotel
+
+  // 根据切换状态决定展示哪个版本
+  const displayHotel =
+    canSwitchVersion && showPublishedVersion
+      ? hotel // 显示上线版本
+      : canSwitchVersion && !showPublishedVersion
+        ? { ...hotel, ...hotel.draftData } // 显示审核版本
+        : hotel
+
+  // 根据切换状态决定使用哪种图片和房型
+  const displayImages =
+    canSwitchVersion && showPublishedVersion
+      ? hotel._publishedImages || hotel.images || []
+      : canSwitchVersion && !showPublishedVersion
+        ? hotel._draftImages || hotel.images || []
+        : hotel.images || []
+
+  // 根据切换状态决定使用哪种房型数据
+  const displayRoomTypes =
+    canSwitchVersion && showPublishedVersion
+      ? hotel._publishedRoomTypes || hotel.roomTypes || []
+      : canSwitchVersion && !showPublishedVersion
+        ? hotel._draftRoomTypes || hotel.roomTypes || []
+        : hotel.roomTypes || []
 
   const statusMap: Record<string, { bgColor: string; textColor: string; text: string }> = {
     pending: { bgColor: '#fef3c7', textColor: '#d97706', text: '待审核' },
@@ -68,26 +104,50 @@ const HotelDetailModal: React.FC<HotelDetailModalProps> = ({
       loading={loading}
     >
       <div className="hotel-detail-modal">
-        {/* 审核中提示 */}
-        {hotel.status === 'pending' && hotel.draftData && (
+        {/* 版本切换提示 */}
+        {canSwitchVersion && (
           <Alert
-            title="待审核版本"
-            description="当前展示的是商户提交的最新修改版本，审核通过并发布后将替换线上版本。"
-            type="info"
+            title={
+              <div
+                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+              >
+                <span>
+                  {showPublishedVersion
+                    ? '当前展示：上线版本'
+                    : hotel.status === 'pending'
+                      ? '当前展示：待审核版本'
+                      : '当前展示：被驳回版本'}
+                </span>
+                <Button
+                  type="primary"
+                  size="small"
+                  icon={showPublishedVersion ? <ClockCircleOutlined /> : <EyeOutlined />}
+                  onClick={() => setShowPublishedVersion(!showPublishedVersion)}
+                >
+                  {showPublishedVersion ? '查看审核版本' : '查看上线版本'}
+                </Button>
+              </div>
+            }
+            description={
+              showPublishedVersion
+                ? '这是当前正在线上展示的版本，审核通过后将替换此版本。'
+                : hotel.status === 'pending'
+                  ? '这是商户提交的最新修改版本，审核通过并发布后将替换线上版本。'
+                  : '这是被驳回时的修改版本，商户可基于此版本继续修改后重新提交。'
+            }
+            type={
+              showPublishedVersion ? 'success' : hotel.status === 'pending' ? 'info' : 'warning'
+            }
             showIcon
-            icon={<ClockCircleOutlined />}
-            style={{ marginBottom: 16 }}
-          />
-        )}
-
-        {/* 已驳回提示 */}
-        {hotel.status === 'rejected' && hotel.draftData && (
-          <Alert
-            title="被驳回的版本"
-            description="当前展示的是被驳回时的修改版本，商户可基于此版本继续修改后重新提交。"
-            type="warning"
-            showIcon
-            icon={<CloseCircleOutlined />}
+            icon={
+              showPublishedVersion ? (
+                <EyeOutlined />
+              ) : hotel.status === 'pending' ? (
+                <ClockCircleOutlined />
+              ) : (
+                <CloseCircleOutlined />
+              )
+            }
             style={{ marginBottom: 16 }}
           />
         )}
@@ -151,9 +211,9 @@ const HotelDetailModal: React.FC<HotelDetailModalProps> = ({
         {/* 房型信息 */}
         <div style={{ marginBottom: 16 }}>
           <h4 style={{ marginBottom: 12 }}>房型信息</h4>
-          {displayHotel.roomTypes && displayHotel.roomTypes.length > 0 ? (
+          {displayRoomTypes && displayRoomTypes.length > 0 ? (
             <Row gutter={[16, 16]}>
-              {displayHotel.roomTypes.map((room, index) => (
+              {displayRoomTypes.map((room, index) => (
                 <Col span={12} key={index}>
                   <div
                     style={{
@@ -356,7 +416,7 @@ const HotelDetailModal: React.FC<HotelDetailModalProps> = ({
         <Divider />
 
         {/* 酒店图片 */}
-        {displayHotel.images && displayHotel.images.length > 0 && (
+        {displayImages && displayImages.length > 0 && (
           <div>
             <h4 style={{ marginBottom: 12 }}>酒店图片</h4>
             <Image.PreviewGroup>
@@ -367,7 +427,7 @@ const HotelDetailModal: React.FC<HotelDetailModalProps> = ({
                   gap: 12,
                 }}
               >
-                {displayHotel.images.map((img, index) => (
+                {displayImages.map((img, index) => (
                   <Image
                     key={index}
                     src={getImageUrl(img)}

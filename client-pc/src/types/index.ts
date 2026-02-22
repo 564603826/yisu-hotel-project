@@ -107,6 +107,12 @@ type Hotel = {
   updatedAt: string
   longitude?: number // 经度
   latitude?: number // 纬度
+
+  // 管理员审核时使用的额外字段
+  _draftImages?: string[] // 草稿图片
+  _publishedImages?: string[] // 已发布图片
+  _draftRoomTypes?: RoomType[] // 草稿房型数据
+  _publishedRoomTypes?: RoomType[] // 已发布房型数据
 }
 
 type HotelWithCreator = Hotel & {
