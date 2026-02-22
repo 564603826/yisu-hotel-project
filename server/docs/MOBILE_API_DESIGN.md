@@ -168,21 +168,22 @@ GET /mobile/hotels/search?keyword=杭州&page=1&limit=10
 
 **请求参数**:
 
-| 参数名            | 类型   | 必填 | 说明                                                |
-| ----------------- | ------ | ---- | --------------------------------------------------- |
-| city              | string | 否   | 城市/地址（支持模糊匹配，如"深圳市南山区"）         |
-| starRating        | string | 否   | 星级筛选：1-5，多个用逗号分隔，如"4,5"              |
-| minPrice          | number | 否   | 最低价格                                            |
-| maxPrice          | number | 否   | 最高价格                                            |
-| tags              | string | 否   | 快捷标签，多个用逗号分隔，如"亲子,豪华"             |
-| facilities        | string | 否   | 设施筛选，多个用逗号分隔，如"免费WiFi,游泳池"       |
-| roomTypes         | string | 否   | 房型筛选，多个用逗号分隔，如"大床房,套房"           |
-| nearbyAttractions | string | 否   | 周边景点筛选，多个用逗号分隔，如"世界之窗,欢乐谷"   |
-| nearbyTransport   | string | 否   | 交通信息筛选，多个用逗号分隔，如"地铁站,机场"       |
-| nearbyMalls       | string | 否   | 商圈筛选，多个用逗号分隔，如"万象城,海岸城"         |
-| sortBy            | string | 否   | 排序方式：default, price-asc, price-desc, star-desc |
-| page              | number | 否   | 页码，默认1                                         |
-| limit             | number | 否   | 每页数量，默认10                                    |
+| 参数名       | 类型   | 必填 | 说明                                                |
+| ------------ | ------ | ---- | --------------------------------------------------- |
+| city         | string | 否   | 城市/地址（支持模糊匹配，如"深圳市南山区"）         |
+| province     | string | 否   | 省份筛选，如"广东"、"浙江"                          |
+| district     | string | 否   | 区/县筛选，如"南山"、"西湖"                         |
+| checkInDate  | string | 否   | 入住日期，格式：YYYY-MM-DD                          |
+| checkOutDate | string | 否   | 离店日期，格式：YYYY-MM-DD                          |
+| starRating   | string | 否   | 星级筛选：1-5，多个用逗号分隔，如"4,5"              |
+| minPrice     | number | 否   | 最低价格                                            |
+| maxPrice     | number | 否   | 最高价格                                            |
+| tags         | string | 否   | 快捷标签，多个用逗号分隔，如"亲子,豪华"             |
+| facilities   | string | 否   | 设施筛选，多个用逗号分隔，如"免费WiFi,游泳池"       |
+| roomTypes    | string | 否   | 房型筛选，多个用逗号分隔，如"大床房,套房"           |
+| sortBy       | string | 否   | 排序方式：default, price-asc, price-desc, star-desc |
+| page         | number | 否   | 页码，默认1                                         |
+| limit        | number | 否   | 每页数量，默认10                                    |
 
 **排序方式说明**:
 
@@ -196,7 +197,7 @@ GET /mobile/hotels/search?keyword=杭州&page=1&limit=10
 **请求示例**:
 
 ```
-GET /mobile/hotels?city=杭州&starRating=4,5&minPrice=500&maxPrice=1000&sortBy=price-asc&page=1&limit=10
+GET /mobile/hotels?city=杭州&checkInDate=2024-03-01&checkOutDate=2024-03-03&starRating=4,5&minPrice=500&maxPrice=1000&sortBy=price-asc&page=1&limit=10
 ```
 
 **成功响应** (200):
@@ -231,12 +232,19 @@ GET /mobile/hotels?city=杭州&starRating=4,5&minPrice=500&maxPrice=1000&sortBy=
       "pageSize": 10,
       "total": 50,
       "totalPages": 5
+    },
+    "queryInfo": {
+      "city": "杭州",
+      "checkInDate": "2024-03-01",
+      "checkOutDate": "2024-03-03"
     }
   }
 }
 ```
 
 **字段说明：**
+
+**酒店列表项 (list)**
 
 | 字段名        | 类型   | 说明                                   |
 | ------------- | ------ | -------------------------------------- |
@@ -252,6 +260,14 @@ GET /mobile/hotels?city=杭州&starRating=4,5&minPrice=500&maxPrice=1000&sortBy=
 | images        | array  | 图片列表                               |
 | tags          | array  | 标签列表（根据星级/景点/设施自动生成） |
 | facilities    | array  | 设施列表（从所有房型聚合）             |
+
+**查询信息 (queryInfo)**
+
+| 字段名       | 类型   | 说明                      |
+| ------------ | ------ | ------------------------- |
+| city         | string | 查询的城市/地址（如果有） |
+| checkInDate  | string | 入住日期（如果有）        |
+| checkOutDate | string | 离店日期（如果有）        |
 
 ---
 
@@ -426,6 +442,20 @@ GET /mobile/hotels/1
       { "value": "price-desc", "label": "价格从高到低" },
       { "value": "star-desc", "label": "星级从高到低" }
     ],
+    "locations": {
+      "provinces": [
+        { "value": "广东", "label": "广东" },
+        { "value": "浙江", "label": "浙江" }
+      ],
+      "cities": [
+        { "value": "深圳", "label": "深圳" },
+        { "value": "杭州", "label": "杭州" }
+      ],
+      "districts": [
+        { "value": "南山", "label": "南山" },
+        { "value": "西湖", "label": "西湖" }
+      ]
+    },
     "facilities": [
       { "value": "免费WiFi", "label": "免费WiFi" },
       { "value": "游泳池", "label": "游泳池" },
@@ -438,21 +468,6 @@ GET /mobile/hotels/1
       { "value": "双床房", "label": "双床房" },
       { "value": "套房", "label": "套房" },
       { "value": "家庭房", "label": "家庭房" }
-    ],
-    "nearbyAttractions": [
-      { "value": "世界之窗", "label": "世界之窗" },
-      { "value": "欢乐谷", "label": "欢乐谷" },
-      { "value": "西湖", "label": "西湖" }
-    ],
-    "nearbyTransport": [
-      { "value": "地铁站", "label": "地铁站" },
-      { "value": "机场", "label": "机场" },
-      { "value": "火车站", "label": "火车站" }
-    ],
-    "nearbyMalls": [
-      { "value": "万象城", "label": "万象城" },
-      { "value": "海岸城", "label": "海岸城" },
-      { "value": "万达广场", "label": "万达广场" }
     ]
   }
 }
@@ -460,18 +475,24 @@ GET /mobile/hotels/1
 
 **字段说明：**
 
-| 字段名            | 类型  | 说明                                           |
-| ----------------- | ----- | ---------------------------------------------- |
-| starRatings       | array | 星级选项（固定配置）                           |
-| priceRanges       | array | 价格区间选项（固定配置）                       |
-| sortOptions       | array | 排序方式选项（固定配置）                       |
-| facilities        | array | 设施选项（从数据库动态获取，根据实际酒店数据） |
-| roomTypes         | array | 房型选项（从数据库动态获取，根据实际酒店数据） |
-| nearbyAttractions | array | 周边景点选项（从数据库动态获取）               |
-| nearbyTransport   | array | 交通信息选项（从数据库动态获取）               |
-| nearbyMalls       | array | 商圈选项（从数据库动态获取）                   |
+| 字段名      | 类型   | 说明                                           |
+| ----------- | ------ | ---------------------------------------------- |
+| starRatings | array  | 星级选项（固定配置）                           |
+| priceRanges | array  | 价格区间选项（固定配置）                       |
+| sortOptions | array  | 排序方式选项（固定配置）                       |
+| locations   | object | 位置选项（从数据库动态获取）                   |
+| facilities  | array  | 设施选项（从数据库动态获取，根据实际酒店数据） |
+| roomTypes   | array  | 房型选项（从数据库动态获取，根据实际酒店数据） |
 
-**注意**：`facilities`、`roomTypes`、`nearbyAttractions`、`nearbyTransport`、`nearbyMalls` 为动态数据，根据当前已发布酒店的实际数据生成，确保前端展示的选项都能查到结果。
+**locations 结构说明：**
+
+| 字段名    | 类型  | 说明                        |
+| --------- | ----- | --------------------------- |
+| provinces | array | 省份列表（如：广东、浙江）  |
+| cities    | array | 城市列表（如：深圳、杭州）  |
+| districts | array | 区/县列表（如：南山、西湖） |
+
+**注意**：`locations`、`facilities`、`roomTypes` 为动态数据，根据当前已发布酒店的实际数据生成，确保前端展示的选项都能查到结果。
 
 ---
 
@@ -543,11 +564,9 @@ GET /mobile/hotels/1
 - **价格区间**: 固定区间配置
 - **排序**: 固定排序选项（default, price-asc, price-desc, star-desc）
 - **快捷标签**: 固定标签列表（可从配置文件读取）
-- **设施**: 从所有已发布酒店的 `facilities` 字段聚合，自动去重
+- **位置**: 从所有已发布酒店的 `address` 字段解析提取（省、市、区），自动去重
+- **设施**: 从所有已发布酒店的 `roomTypes` 字段中聚合每个房型的 `facilities`，自动去重
 - **房型**: 从所有已发布酒店的 `roomTypes` 字段提取房型名称，自动去重
-- **周边景点**: 从所有已发布酒店的 `nearbyAttractions` 字段解析，自动去重
-- **交通信息**: 从所有已发布酒店的 `nearbyTransport` 字段解析，自动去重
-- **商圈**: 从所有已发布酒店的 `nearbyMalls` 字段解析，自动去重
 
 ---
 

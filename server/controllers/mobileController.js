@@ -5,6 +5,19 @@ const { getImagesForHotel, getRoomImages } = require('./uploadController')
 const prisma = new PrismaClient()
 
 /**
+ * 验证日期格式是否有效（YYYY-MM-DD）
+ * @param {string} dateString - 日期字符串
+ * @returns {boolean} 是否有效
+ */
+const isValidDate = (dateString) => {
+  if (!dateString || typeof dateString !== 'string') return false
+  const regex = /^\d{4}-\d{2}-\d{2}$/
+  if (!regex.test(dateString)) return false
+  const date = new Date(dateString)
+  return date instanceof Date && !isNaN(date) && dateString === date.toISOString().split('T')[0]
+}
+
+/**
  * 计算房型最低价格
  * @param {Array} roomTypes - 房型列表
  * @returns {number} 最低价格
@@ -376,19 +389,31 @@ const getHotelList = async (req, res) => {
   try {
     const {
       city,
+      province,
+      district,
+      checkInDate,
+      checkOutDate,
       starRating,
       minPrice,
       maxPrice,
       tags,
       facilities,
       roomTypes,
-      nearbyAttractions,
-      nearbyTransport,
-      nearbyMalls,
       sortBy = 'default',
       page = 1,
       limit = 10,
     } = req.query
+
+    // 验证日期格式
+    if (checkInDate && !isValidDate(checkInDate)) {
+      return responseHandler.badRequest(res, '入住日期格式错误，请使用 YYYY-MM-DD 格式')
+    }
+    if (checkOutDate && !isValidDate(checkOutDate)) {
+      return responseHandler.badRequest(res, '离店日期格式错误，请使用 YYYY-MM-DD 格式')
+    }
+    if (checkInDate && checkOutDate && new Date(checkInDate) >= new Date(checkOutDate)) {
+      return responseHandler.badRequest(res, '离店日期必须晚于入住日期')
+    }
 
     const pageNum = parseInt(page) || 1
     const pageSize = parseInt(limit) || 10
@@ -484,30 +509,20 @@ const getHotelList = async (req, res) => {
       })
     }
 
-    // 周边景点筛选
-    if (nearbyAttractions) {
-      const attractionList = nearbyAttractions.split(',')
-      list = list.filter((hotel) =>
-        attractionList.some(
-          (a) => hotel.nearbyAttractions && hotel.nearbyAttractions.includes(a.trim())
-        )
-      )
+    // 位置筛选 - 省
+    if (province) {
+      list = list.filter((hotel) => {
+        const location = extractLocationFromAddress(hotel.address)
+        return location.province === province.trim()
+      })
     }
 
-    // 交通信息筛选
-    if (nearbyTransport) {
-      const transportList = nearbyTransport.split(',')
-      list = list.filter((hotel) =>
-        transportList.some((t) => hotel.nearbyTransport && hotel.nearbyTransport.includes(t.trim()))
-      )
-    }
-
-    // 商圈筛选
-    if (nearbyMalls) {
-      const mallList = nearbyMalls.split(',')
-      list = list.filter((hotel) =>
-        mallList.some((m) => hotel.nearbyMalls && hotel.nearbyMalls.includes(m.trim()))
-      )
+    // 位置筛选 - 区/县
+    if (district) {
+      list = list.filter((hotel) => {
+        const location = extractLocationFromAddress(hotel.address)
+        return location.district === district.trim()
+      })
     }
 
     // 排序
@@ -530,6 +545,12 @@ const getHotelList = async (req, res) => {
     const total = list.length
     const paginatedList = list.slice(skip, skip + pageSize)
 
+    // 构建查询参数信息（用于前端展示）
+    const queryInfo = {}
+    if (checkInDate) queryInfo.checkInDate = checkInDate
+    if (checkOutDate) queryInfo.checkOutDate = checkOutDate
+    if (city) queryInfo.city = city
+
     return responseHandler.success(
       res,
       {
@@ -540,6 +561,7 @@ const getHotelList = async (req, res) => {
           total,
           totalPages: Math.ceil(total / pageSize),
         },
+        queryInfo,
       },
       '查询成功'
     )
@@ -598,18 +620,51 @@ const getHotelDetail = async (req, res) => {
 }
 
 /**
+ * 从地址中提取位置信息（省、市、区）
+ * @param {string} address - 酒店地址
+ * @returns {Object} 位置信息对象
+ */
+const extractLocationFromAddress = (address) => {
+  if (!address || typeof address !== 'string') return {}
+
+  const location = {
+    province: null,
+    city: null,
+    district: null,
+  }
+
+  // 提取省
+  const provinceMatch = address.match(/^([^省市]+?省?)/)
+  if (provinceMatch) {
+    location.province = provinceMatch[1].replace(/省$/, '')
+  }
+
+  // 提取市
+  const cityMatch = address.match(/([^省]+?市)/)
+  if (cityMatch) {
+    location.city = cityMatch[1].replace(/市$/, '')
+  }
+
+  // 提取区/县
+  const districtMatch = address.match(/([^市区]+?[区县])/)
+  if (districtMatch) {
+    location.district = districtMatch[1].replace(/[区县]$/, '')
+  }
+
+  return location
+}
+
+/**
  * 获取筛选选项
  */
 const getFilterOptions = async (req, res) => {
   try {
-    // 从数据库获取已发布酒店的房型、周边等数据
+    // 从数据库获取已发布酒店的房型、地址等数据
     const hotels = await prisma.hotel.findMany({
       where: { status: 'published' },
       select: {
+        address: true,
         roomTypes: true,
-        nearbyAttractions: true,
-        nearbyTransport: true,
-        nearbyMalls: true,
       },
     })
 
@@ -617,8 +672,19 @@ const getFilterOptions = async (req, res) => {
     const facilitiesSet = new Set()
     // 提取所有房型名称（去重）
     const roomTypesSet = new Set()
+    // 提取所有位置信息
+    const provincesSet = new Set()
+    const citiesSet = new Set()
+    const districtsSet = new Set()
 
     hotels.forEach((hotel) => {
+      // 提取位置信息
+      const location = extractLocationFromAddress(hotel.address)
+      if (location.province) provincesSet.add(location.province)
+      if (location.city) citiesSet.add(location.city)
+      if (location.district) districtsSet.add(location.district)
+
+      // 提取房型和设施
       const roomTypes = safeParseJson(hotel.roomTypes)
       if (Array.isArray(roomTypes)) {
         roomTypes.forEach((room) => {
@@ -628,39 +694,6 @@ const getFilterOptions = async (req, res) => {
           if (Array.isArray(room.facilities)) {
             room.facilities.forEach((f) => facilitiesSet.add(f))
           }
-        })
-      }
-    })
-
-    // 提取所有周边景点（去重）
-    const attractionsSet = new Set()
-    hotels.forEach((hotel) => {
-      if (hotel.nearbyAttractions) {
-        hotel.nearbyAttractions.split(',').forEach((a) => {
-          const trimmed = a.trim()
-          if (trimmed) attractionsSet.add(trimmed)
-        })
-      }
-    })
-
-    // 提取所有交通信息（去重）
-    const transportSet = new Set()
-    hotels.forEach((hotel) => {
-      if (hotel.nearbyTransport) {
-        hotel.nearbyTransport.split(',').forEach((t) => {
-          const trimmed = t.trim()
-          if (trimmed) transportSet.add(trimmed)
-        })
-      }
-    })
-
-    // 提取所有商圈（去重）
-    const mallsSet = new Set()
-    hotels.forEach((hotel) => {
-      if (hotel.nearbyMalls) {
-        hotel.nearbyMalls.split(',').forEach((m) => {
-          const trimmed = m.trim()
-          if (trimmed) mallsSet.add(trimmed)
         })
       }
     })
@@ -689,6 +722,12 @@ const getFilterOptions = async (req, res) => {
         { value: 'price-desc', label: '价格从高到低' },
         { value: 'star-desc', label: '星级从高到低' },
       ],
+      // 位置筛选（从数据库动态获取）
+      locations: {
+        provinces: Array.from(provincesSet).map((p) => ({ value: p, label: p })),
+        cities: Array.from(citiesSet).map((c) => ({ value: c, label: c })),
+        districts: Array.from(districtsSet).map((d) => ({ value: d, label: d })),
+      },
       // 设施筛选（从数据库动态获取）
       facilities: Array.from(facilitiesSet).map((f) => ({
         value: f,
@@ -698,21 +737,6 @@ const getFilterOptions = async (req, res) => {
       roomTypes: Array.from(roomTypesSet).map((r) => ({
         value: r,
         label: r,
-      })),
-      // 周边景点（从数据库动态获取）
-      nearbyAttractions: Array.from(attractionsSet).map((a) => ({
-        value: a,
-        label: a,
-      })),
-      // 交通信息（从数据库动态获取）
-      nearbyTransport: Array.from(transportSet).map((t) => ({
-        value: t,
-        label: t,
-      })),
-      // 商圈（从数据库动态获取）
-      nearbyMalls: Array.from(mallsSet).map((m) => ({
-        value: m,
-        label: m,
       })),
     }
 
