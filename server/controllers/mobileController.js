@@ -268,14 +268,28 @@ const searchHotels = async (req, res) => {
     const pageSize = parseInt(limit) || 10
     const skip = (pageNum - 1) * pageSize
 
+    // 提取关键词（支持多关键词搜索）
+    const keywords = extractAddressKeywords(keyword.trim())
+
     // 构建搜索条件
-    const where = {
+    let where = {
       status: 'published',
-      OR: [
-        { nameZh: { contains: keyword } },
-        { nameEn: { contains: keyword } },
-        { address: { contains: keyword } },
-      ],
+    }
+
+    if (keywords.length > 0) {
+      // 多关键词搜索：任一关键词匹配酒店名称或地址即可
+      where.OR = keywords.flatMap((kw) => [
+        { nameZh: { contains: kw } },
+        { nameEn: { contains: kw } },
+        { address: { contains: kw } },
+      ])
+    } else {
+      // 如果没有提取到关键词，使用原始关键字
+      where.OR = [
+        { nameZh: { contains: keyword.trim() } },
+        { nameEn: { contains: keyword.trim() } },
+        { address: { contains: keyword.trim() } },
+      ]
     }
 
     // 查询总数
