@@ -455,12 +455,22 @@ const getHotelList = async (req, res) => {
       list = list.filter((hotel) => tagList.some((tag) => hotel.tags.includes(tag.trim())))
     }
 
-    // 设施筛选
+    // 设施筛选（从所有房型中聚合设施）
     if (facilities) {
       const facilityList = facilities.split(',')
-      list = list.filter((hotel) =>
-        facilityList.every((f) => hotel.facilities && hotel.facilities.includes(f.trim()))
-      )
+      list = list.filter((hotel) => {
+        const hotelRoomTypes = safeParseJson(hotel.roomTypes)
+        if (!Array.isArray(hotelRoomTypes)) return false
+        // 聚合所有房型的设施
+        const hotelFacilities = new Set()
+        hotelRoomTypes.forEach((room) => {
+          if (Array.isArray(room.facilities)) {
+            room.facilities.forEach((f) => hotelFacilities.add(f))
+          }
+        })
+        // 酒店必须包含所有筛选的设施
+        return facilityList.every((f) => hotelFacilities.has(f.trim()))
+      })
     }
 
     // 房型筛选
@@ -592,11 +602,10 @@ const getHotelDetail = async (req, res) => {
  */
 const getFilterOptions = async (req, res) => {
   try {
-    // 从数据库获取已发布酒店的设施、房型等数据
+    // 从数据库获取已发布酒店的房型、周边等数据
     const hotels = await prisma.hotel.findMany({
       where: { status: 'published' },
       select: {
-        facilities: true,
         roomTypes: true,
         nearbyAttractions: true,
         nearbyTransport: true,
@@ -604,21 +613,21 @@ const getFilterOptions = async (req, res) => {
       },
     })
 
-    // 提取所有设施（去重）
+    // 提取所有设施（从房型中聚合）
     const facilitiesSet = new Set()
-    hotels.forEach((hotel) => {
-      if (Array.isArray(hotel.facilities)) {
-        hotel.facilities.forEach((f) => facilitiesSet.add(f))
-      }
-    })
-
     // 提取所有房型名称（去重）
     const roomTypesSet = new Set()
+
     hotels.forEach((hotel) => {
       const roomTypes = safeParseJson(hotel.roomTypes)
       if (Array.isArray(roomTypes)) {
         roomTypes.forEach((room) => {
+          // 提取房型名称
           if (room.name) roomTypesSet.add(room.name)
+          // 提取设施（从每个房型的facilities字段）
+          if (Array.isArray(room.facilities)) {
+            room.facilities.forEach((f) => facilitiesSet.add(f))
+          }
         })
       }
     })
