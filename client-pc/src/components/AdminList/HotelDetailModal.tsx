@@ -370,51 +370,79 @@ const HotelDetailModal: React.FC<HotelDetailModalProps> = ({
           <Divider />
 
           {/* 周边信息 */}
-          <Descriptions title="周边信息" column={1} bordered>
-            <Descriptions.Item label="附近景点">
-              <span style={{ display: 'flex', alignItems: 'center' }}>
-                <MapPin size={14} style={{ marginRight: 4, color: '#c58e53' }} />
-                {displayHotel.nearbyAttractions || '-'}
-              </span>
+          <Descriptions
+            title="周边信息"
+            column={1}
+            bordered
+            labelStyle={{ width: 120, minWidth: 120, whiteSpace: 'nowrap' }}
+            contentStyle={{ width: 'calc(100% - 120px)' }}
+          >
+            <Descriptions.Item
+              label={
+                <span style={{ display: 'flex', alignItems: 'center', whiteSpace: 'nowrap' }}>
+                  <MapPin size={14} style={{ marginRight: 4, color: '#c58e53', flexShrink: 0 }} />
+                  附近景点
+                </span>
+              }
+            >
+              {displayHotel.nearbyAttractions || '-'}
             </Descriptions.Item>
-            <Descriptions.Item label="附近交通">
-              <span style={{ display: 'flex', alignItems: 'center' }}>
-                <Train size={14} style={{ marginRight: 4, color: '#c58e53' }} />
-                {displayHotel.nearbyTransport || '-'}
-              </span>
+            <Descriptions.Item
+              label={
+                <span style={{ display: 'flex', alignItems: 'center', whiteSpace: 'nowrap' }}>
+                  <Train size={14} style={{ marginRight: 4, color: '#c58e53', flexShrink: 0 }} />
+                  附近交通
+                </span>
+              }
+            >
+              {displayHotel.nearbyTransport || '-'}
             </Descriptions.Item>
-            <Descriptions.Item label="附近商圈">
-              <span style={{ display: 'flex', alignItems: 'center' }}>
-                <ShoppingBag size={14} style={{ marginRight: 4, color: '#c58e53' }} />
-                {displayHotel.nearbyMalls || '-'}
-              </span>
+            <Descriptions.Item
+              label={
+                <span style={{ display: 'flex', alignItems: 'center', whiteSpace: 'nowrap' }}>
+                  <ShoppingBag
+                    size={14}
+                    style={{ marginRight: 4, color: '#c58e53', flexShrink: 0 }}
+                  />
+                  附近商圈
+                </span>
+              }
+            >
+              {displayHotel.nearbyMalls || '-'}
             </Descriptions.Item>
-            <Descriptions.Item label="酒店设施">
-              <span style={{ display: 'flex', alignItems: 'center' }}>
-                <Building2 size={14} style={{ marginRight: 4, color: '#c58e53' }} />
-                {displayHotel.facilities && displayHotel.facilities.length > 0 ? (
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                    {displayHotel.facilities.map((facility, index) => (
-                      <Tag
-                        key={index}
-                        style={{
-                          margin: 0,
-                          padding: '4px 12px',
-                          borderRadius: 6,
-                          background: '#f5f5f4',
-                          border: '1px solid #e7e5e4',
-                          color: '#57534e',
-                          fontSize: 13,
-                        }}
-                      >
-                        {facility}
-                      </Tag>
-                    ))}
-                  </div>
-                ) : (
-                  '-'
-                )}
-              </span>
+            <Descriptions.Item
+              label={
+                <span style={{ display: 'flex', alignItems: 'center', whiteSpace: 'nowrap' }}>
+                  <Building2
+                    size={14}
+                    style={{ marginRight: 4, color: '#c58e53', flexShrink: 0 }}
+                  />
+                  酒店设施
+                </span>
+              }
+            >
+              {displayHotel.facilities && displayHotel.facilities.length > 0 ? (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  {displayHotel.facilities.map((facility, index) => (
+                    <Tag
+                      key={index}
+                      style={{
+                        margin: 0,
+                        padding: '4px 12px',
+                        borderRadius: 6,
+                        background: '#f5f5f4',
+                        border: '1px solid #e7e5e4',
+                        color: '#57534e',
+                        fontSize: 13,
+                      }}
+                    >
+                      {facility}
+                    </Tag>
+                  ))}
+                </div>
+              ) : (
+                '-'
+              )}
             </Descriptions.Item>
           </Descriptions>
 
