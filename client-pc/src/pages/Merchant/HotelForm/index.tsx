@@ -750,7 +750,19 @@ const MerchantHotelForm: React.FC = () => {
       // 注意：只要用户操作过图片（imagesModifiedRef.current 为 true），无论 uniqueImageUrls 是否为空，都需要同步
       // 因为 uniqueImageUrls 为空表示用户删除了所有图片，这时候需要删除数据库中的草稿图片
       const shouldSyncImages = imagesModifiedRef.current
-      if (hotelInfo?.id && shouldSyncImages) {
+
+      // 对于已发布/已下线状态，如果没有草稿图片但有已发布图片，需要复制已发布图片到草稿
+      // 这样可以确保 draftData 中的图片与已发布图片一致
+      if (
+        !shouldSyncImages &&
+        hotelInfo?.id &&
+        hasVersionControl(hotelInfo.status) &&
+        draftImages.length === 0 &&
+        publishedImages.length > 0
+      ) {
+        await copyToDraft()
+        imagesUpdated = true
+      } else if (hotelInfo?.id && shouldSyncImages) {
         await hotelImageApi.syncImages(hotelInfo.id, uniqueImageUrls, 'hotel_main')
         imagesUpdated = true
       }
