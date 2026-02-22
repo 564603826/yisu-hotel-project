@@ -43,7 +43,11 @@ const HotelDetailModal: React.FC<HotelDetailModalProps> = ({
 
   // 构建图片 URL
   const getImageUrl = (url: string) => {
-    return url.startsWith('http') ? url : `${import.meta.env.VITE_BACKEND_URL}${url}`
+    if (url.startsWith('http')) return url
+    const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://112.124.2.205'
+    // 确保路径以 / 开头
+    const path = url.startsWith('/') ? url : `/${url}`
+    return `${backendUrl}${path}`
   }
 
   return (

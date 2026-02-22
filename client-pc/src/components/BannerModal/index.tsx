@@ -78,8 +78,10 @@ const BannerModal = ({ open, hotel, onCancel, onSubmit, loading }: BannerModalPr
     if (!url) return ''
     if (url.startsWith('http')) return url
     // 相对路径，添加后端地址
-    const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000'
-    return `${backendUrl}${url.startsWith('/') ? '' : '/'}${url}`
+    const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://112.124.2.205'
+    // 确保路径以 / 开头
+    const path = url.startsWith('/') ? url : `/${url}`
+    return `${backendUrl}${path}`
   }
 
   // 获取酒店封面图 - 使用列表返回的 image 字段

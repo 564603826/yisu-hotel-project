@@ -45,15 +45,7 @@ service.interceptors.response.use(
     const { response } = error
 
     // ----------------------------------------------------
-    // 情况 A：请求被取消 (用户切换页面或主动取消)
-    // ----------------------------------------------------
-    if (error.code === 'ERR_CANCELED' || error.message === 'canceled') {
-      console.log('Request canceled:', error.config?.url)
-      return Promise.reject(error)
-    }
-
-    // ----------------------------------------------------
-    // 情况 B：没有响应 (网络断了，或者服务器挂了没返回)
+    // 情况 A：没有响应 (网络断了，或者服务器挂了没返回)
     // ----------------------------------------------------
     if (!response) {
       message.error('网络连接异常，请检查您的网络')

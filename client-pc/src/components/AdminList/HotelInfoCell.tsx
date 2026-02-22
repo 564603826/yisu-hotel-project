@@ -23,8 +23,10 @@ const HotelInfoCell: React.FC<HotelInfoCellProps> = ({
     if (!url) return ''
     if (url.startsWith('http')) return url
     // 相对路径，添加后端地址
-    const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000'
-    return `${backendUrl}${url.startsWith('/') ? '' : '/'}${url}`
+    const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://112.124.2.205'
+    // 确保路径以 / 开头
+    const path = url.startsWith('/') ? url : `/${url}`
+    return `${backendUrl}${path}`
   }
 
   const displayImageUrl = buildImageUrl(imageUrl)

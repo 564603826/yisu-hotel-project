@@ -923,11 +923,7 @@ const MerchantHotelForm: React.FC = () => {
                 type="link"
                 icon={<AlertCircle size={16} />}
                 onClick={() => setRejectReasonModalOpen(true)}
-                style={{
-                  color: '#dc2626',
-                  padding: '0 8px 0 0',
-                }}
-                className="reject-reason-btn"
+                style={{ color: '#dc2626', padding: '0 8px 0 0' }}
               >
                 查看驳回原因
               </Button>
@@ -942,21 +938,11 @@ const MerchantHotelForm: React.FC = () => {
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'flex-end',
-              position: 'relative',
             }}
           >
             <div>{loading ? '更新中...' : `上次更新: ${formatUpdateTime(lastUpdateTime)}`}</div>
             {hasUnsavedChanges && (
-              <div
-                style={{
-                  color: '#fa8c16',
-                  position: 'absolute',
-                  top: '100%',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                (未保存的修改-自动刷新已暂停)
-              </div>
+              <div style={{ color: '#fa8c16' }}>(未保存的修改-自动刷新已暂停)</div>
             )}
           </div>
           <Button

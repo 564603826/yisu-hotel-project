@@ -112,8 +112,10 @@ const MultiImageUpload: React.FC<MultiImageUploadProps> = ({
     // 完整 URL 直接返回
     if (url.startsWith('http')) return url
     // 相对路径添加服务器前缀
-    const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000'
-    return `${backendUrl}${url}`
+    const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://112.124.2.205'
+    // 确保路径以 / 开头
+    const path = url.startsWith('/') ? url : `/${url}`
+    return `${backendUrl}${path}`
   }
 
   // 构建预览图片列表
