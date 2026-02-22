@@ -39,7 +39,6 @@
 | 获取酒店详情   | GET  | /mobile/hotels/:id      | 获取酒店详细信息               |
 | 获取筛选选项   | GET  | /mobile/filters/options | 获取筛选条件选项               |
 | 获取快捷标签   | GET  | /mobile/filters/tags    | 获取快捷标签列表               |
-| 获取城市列表   | GET  | /mobile/cities          | 获取所有有酒店的城市列表       |
 
 ---
 
@@ -169,23 +168,35 @@ GET /mobile/hotels/search?keyword=杭州&page=1&limit=10
 
 **请求参数**:
 
-| 参数名       | 类型   | 必填 | 说明                                                              |
-| ------------ | ------ | ---- | ----------------------------------------------------------------- |
-| city         | string | 否   | 城市名称                                                          |
-| starRating   | number | 否   | 星级筛选：1-5，多个用逗号分隔，如"4,5"                            |
-| minPrice     | number | 否   | 最低价格                                                          |
-| maxPrice     | number | 否   | 最高价格                                                          |
-| tags         | string | 否   | 快捷标签，多个用逗号分隔，如"亲子,豪华"                           |
-| sortBy       | string | 否   | 排序方式：price-asc(价格升序), price-desc(价格降序), default-默认 |
-| page         | number | 否   | 页码，默认1                                                       |
-| limit        | number | 否   | 每页数量，默认10                                                  |
-| checkInDate  | string | 否   | 入住日期，格式：YYYY-MM-DD                                        |
-| checkOutDate | string | 否   | 离店日期，格式：YYYY-MM-DD                                        |
+| 参数名            | 类型   | 必填 | 说明                                                |
+| ----------------- | ------ | ---- | --------------------------------------------------- |
+| city              | string | 否   | 城市/地址（支持模糊匹配，如"深圳市南山区"）         |
+| starRating        | string | 否   | 星级筛选：1-5，多个用逗号分隔，如"4,5"              |
+| minPrice          | number | 否   | 最低价格                                            |
+| maxPrice          | number | 否   | 最高价格                                            |
+| tags              | string | 否   | 快捷标签，多个用逗号分隔，如"亲子,豪华"             |
+| facilities        | string | 否   | 设施筛选，多个用逗号分隔，如"免费WiFi,游泳池"       |
+| roomTypes         | string | 否   | 房型筛选，多个用逗号分隔，如"大床房,套房"           |
+| nearbyAttractions | string | 否   | 周边景点筛选，多个用逗号分隔，如"世界之窗,欢乐谷"   |
+| nearbyTransport   | string | 否   | 交通信息筛选，多个用逗号分隔，如"地铁站,机场"       |
+| nearbyMalls       | string | 否   | 商圈筛选，多个用逗号分隔，如"万象城,海岸城"         |
+| sortBy            | string | 否   | 排序方式：default, price-asc, price-desc, star-desc |
+| page              | number | 否   | 页码，默认1                                         |
+| limit             | number | 否   | 每页数量，默认10                                    |
+
+**排序方式说明**:
+
+| 值         | 说明             |
+| ---------- | ---------------- |
+| default    | 综合推荐（默认） |
+| price-asc  | 价格从低到高     |
+| price-desc | 价格从高到低     |
+| star-desc  | 星级从高到低     |
 
 **请求示例**:
 
 ```
-GET /mobile/hotels?city=杭州&starRating=4,5&minPrice=500&maxPrice=1000&sortBy=price-asc&page=1&limit=10&checkInDate=2026-03-01&checkOutDate=2026-03-03
+GET /mobile/hotels?city=杭州&starRating=4,5&minPrice=500&maxPrice=1000&sortBy=price-asc&page=1&limit=10
 ```
 
 **成功响应** (200):
@@ -220,14 +231,10 @@ GET /mobile/hotels?city=杭州&starRating=4,5&minPrice=500&maxPrice=1000&sortBy=
       "pageSize": 10,
       "total": 50,
       "totalPages": 5
-    },
-    "searchParams": {
-      "city": "杭州",
-      "checkInDate": "2026-03-01",
-      "checkOutDate": "2026-03-03"
     }
   }
 }
+```
 
 **字段说明：**
 
@@ -238,9 +245,9 @@ GET /mobile/hotels?city=杭州&starRating=4,5&minPrice=500&maxPrice=1000&sortBy=
 | nameEn        | string | 酒店英文名                             |
 | address       | string | 酒店地址                               |
 | starRating    | number | 酒店星级（1-5）                        |
-| price         | number | 优惠后最低价格（已应用最优惠）         |
-| originalPrice | number | 原始最低价格（商户录入价）             |
-| discountInfo  | object | 使用的最优惠信息（type/name/value）    |
+| price         | number | 当前最低价格（根据房型计算）           |
+| originalPrice | number | 原价（有优惠时）                       |
+| discountInfo  | object | 优惠信息（仅返回type/name/value）      |
 | mainImage     | string | 主图URL（images的第一张）              |
 | images        | array  | 图片列表                               |
 | tags          | array  | 标签列表（根据星级/景点/设施自动生成） |
@@ -263,10 +270,8 @@ GET /mobile/hotels?city=杭州&starRating=4,5&minPrice=500&maxPrice=1000&sortBy=
 **请求示例**:
 
 ```
-
 GET /mobile/hotels/1
-
-````
+```
 
 **成功响应** (200):
 
@@ -332,27 +337,27 @@ GET /mobile/hotels/1
     ]
   }
 }
-````
+```
 
 **字段说明：**
 
 **酒店基本信息**
 
-| 字段名        | 类型   | 说明                           |
-| ------------- | ------ | ------------------------------ |
-| id            | number | 酒店ID                         |
-| nameZh        | string | 酒店中文名                     |
-| nameEn        | string | 酒店英文名                     |
-| address       | string | 酒店地址                       |
-| starRating    | number | 酒店星级                       |
-| openDate      | string | 开业时间                       |
-| description   | string | 酒店描述                       |
-| price         | number | 优惠后最低价格（已应用最优惠） |
-| originalPrice | number | 原始最低价格（商户录入价）     |
-| discountInfo  | object | 使用的最优惠信息               |
-| images        | array  | 酒店图片列表                   |
-| facilities    | array  | 设施列表                       |
-| tags          | array  | 标签列表                       |
+| 字段名        | 类型   | 说明                   |
+| ------------- | ------ | ---------------------- |
+| id            | number | 酒店ID                 |
+| nameZh        | string | 酒店中文名             |
+| nameEn        | string | 酒店英文名             |
+| address       | string | 酒店地址               |
+| starRating    | number | 酒店星级               |
+| openDate      | string | 开业时间               |
+| description   | string | 酒店描述               |
+| price         | number | 最低价格（房型最低价） |
+| originalPrice | number | 原价                   |
+| discountInfo  | object | 优惠信息               |
+| images        | array  | 酒店图片列表           |
+| facilities    | array  | 设施列表               |
+| tags          | array  | 标签列表               |
 
 **周边信息 (nearby)**
 
@@ -369,18 +374,18 @@ GET /mobile/hotels/1
 | name     | string | 地点名称（如：克拉码头）      |
 | distance | string | 距离信息（如：直线距离540米） |
 
-**房型信息 (roomTypes)** - 按优惠后价格从低到高排序
+**房型信息 (roomTypes)** - 按价格从低到高排序
 
-| 字段名        | 类型    | 说明                       |
-| ------------- | ------- | -------------------------- |
-| name          | string  | 房型名称                   |
-| price         | number  | 优惠后价格（已应用最优惠） |
-| originalPrice | number  | 原始价格（商户录入价）     |
-| area          | number  | 面积（平方米）             |
-| bedType       | string  | 床型                       |
-| facilities    | array   | 房间设施                   |
-| images        | array   | 房型图片                   |
-| breakfast     | boolean | 是否含早餐（默认false）    |
+| 字段名        | 类型    | 说明                    |
+| ------------- | ------- | ----------------------- |
+| name          | string  | 房型名称                |
+| price         | number  | 价格                    |
+| originalPrice | number  | 原价（有优惠时）        |
+| area          | number  | 面积（平方米）          |
+| bedType       | string  | 床型                    |
+| facilities    | array   | 房间设施                |
+| images        | array   | 房型图片                |
+| breakfast     | boolean | 是否含早餐（默认false） |
 
 ---
 
@@ -418,11 +423,55 @@ GET /mobile/hotels/1
     "sortOptions": [
       { "value": "default", "label": "综合推荐" },
       { "value": "price-asc", "label": "价格从低到高" },
-      { "value": "price-desc", "label": "价格从高到低" }
+      { "value": "price-desc", "label": "价格从高到低" },
+      { "value": "star-desc", "label": "星级从高到低" }
+    ],
+    "facilities": [
+      { "value": "免费WiFi", "label": "免费WiFi" },
+      { "value": "游泳池", "label": "游泳池" },
+      { "value": "健身房", "label": "健身房" },
+      { "value": "免费停车", "label": "免费停车" },
+      { "value": "餐厅", "label": "餐厅" }
+    ],
+    "roomTypes": [
+      { "value": "大床房", "label": "大床房" },
+      { "value": "双床房", "label": "双床房" },
+      { "value": "套房", "label": "套房" },
+      { "value": "家庭房", "label": "家庭房" }
+    ],
+    "nearbyAttractions": [
+      { "value": "世界之窗", "label": "世界之窗" },
+      { "value": "欢乐谷", "label": "欢乐谷" },
+      { "value": "西湖", "label": "西湖" }
+    ],
+    "nearbyTransport": [
+      { "value": "地铁站", "label": "地铁站" },
+      { "value": "机场", "label": "机场" },
+      { "value": "火车站", "label": "火车站" }
+    ],
+    "nearbyMalls": [
+      { "value": "万象城", "label": "万象城" },
+      { "value": "海岸城", "label": "海岸城" },
+      { "value": "万达广场", "label": "万达广场" }
     ]
   }
 }
 ```
+
+**字段说明：**
+
+| 字段名            | 类型  | 说明                                           |
+| ----------------- | ----- | ---------------------------------------------- |
+| starRatings       | array | 星级选项（固定配置）                           |
+| priceRanges       | array | 价格区间选项（固定配置）                       |
+| sortOptions       | array | 排序方式选项（固定配置）                       |
+| facilities        | array | 设施选项（从数据库动态获取，根据实际酒店数据） |
+| roomTypes         | array | 房型选项（从数据库动态获取，根据实际酒店数据） |
+| nearbyAttractions | array | 周边景点选项（从数据库动态获取）               |
+| nearbyTransport   | array | 交通信息选项（从数据库动态获取）               |
+| nearbyMalls       | array | 商圈选项（从数据库动态获取）                   |
+
+**注意**：`facilities`、`roomTypes`、`nearbyAttractions`、`nearbyTransport`、`nearbyMalls` 为动态数据，根据当前已发布酒店的实际数据生成，确保前端展示的选项都能查到结果。
 
 ---
 
@@ -454,41 +503,6 @@ GET /mobile/hotels/1
   }
 }
 ```
-
----
-
-### 四、城市列表模块
-
-#### 1. 获取城市列表
-
-**接口地址**: `GET /mobile/cities`
-
-**说明**: 获取所有有已发布酒店的城市列表，用于城市选择和定位。
-
-**请求参数**: 无
-
-**成功响应** (200):
-
-```json
-{
-  "code": 200,
-  "msg": "查询成功",
-  "data": {
-    "cities": ["北京市", "上海市", "杭州市", "深圳市", "广州市", "成都市"]
-  }
-}
-```
-
-**字段说明**:
-
-| 字段名 | 类型  | 说明                     |
-| ------ | ----- | ------------------------ |
-| cities | array | 城市名称列表，按字母排序 |
-
-**数据来源**:
-
-- 从已发布酒店（`status = 'published'`）的地址中提取
-- 通过正则匹配地址开头的城市名称（如：北京市、杭州市、深圳等）
 
 ---
 
@@ -527,8 +541,13 @@ GET /mobile/hotels/1
 
 - **星级**: 固定选项（1-5星）
 - **价格区间**: 固定区间配置
-- **排序**: 固定排序选项
+- **排序**: 固定排序选项（default, price-asc, price-desc, star-desc）
 - **快捷标签**: 固定标签列表（可从配置文件读取）
+- **设施**: 从所有已发布酒店的 `facilities` 字段聚合，自动去重
+- **房型**: 从所有已发布酒店的 `roomTypes` 字段提取房型名称，自动去重
+- **周边景点**: 从所有已发布酒店的 `nearbyAttractions` 字段解析，自动去重
+- **交通信息**: 从所有已发布酒店的 `nearbyTransport` 字段解析，自动去重
+- **商圈**: 从所有已发布酒店的 `nearbyMalls` 字段解析，自动去重
 
 ---
 

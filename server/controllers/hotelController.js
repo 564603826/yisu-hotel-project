@@ -143,12 +143,9 @@ const getMyHotel = async (req, res) => {
       // 查看线上版本：只获取已发布图片
       hotelImages = await getImagesForHotel(hotel.id, 'published')
     } else {
-      // 编辑草稿模式：获取草稿图片
-      // 注意：需要区分"草稿图片为空数组（用户删除了所有图片）"和"草稿图片不存在（需要回退到已发布图片）"
-      // 对于已发布/已下线的酒店，如果存在 draftData，说明用户正在编辑草稿，应该使用草稿图片（即使是空数组）
+      // 编辑草稿模式：优先获取草稿图片，如果没有则获取已发布图片
       const draftImages = await getImagesForHotel(hotel.id, 'draft')
-      const hasDraftData = hotel.draftData !== null && hotel.draftData !== undefined
-      if (draftImages.length > 0 || hasDraftData) {
+      if (draftImages.length > 0) {
         hotelImages = draftImages
       } else {
         hotelImages = await getImagesForHotel(hotel.id, 'published')
@@ -280,8 +277,6 @@ const updateMyHotel = async (req, res) => {
     let updatedHotel
 
     if (isOnlineStatus(hotel.status)) {
-      // 判断是否有 draftData（用户是否编辑过草稿）
-      const hasDraftData = hotel.draftData !== null && hotel.draftData !== undefined
       const currentData = {
         nameZh: hotel.nameZh,
         nameEn: hotel.nameEn,
@@ -295,8 +290,8 @@ const updateMyHotel = async (req, res) => {
         nearbyMalls: hotel.nearbyMalls,
         discounts: hotel.discounts,
         description: hotel.description,
-        // 如果有 draftData，使用 draftData 中的图片（即使是空数组）；否则使用已发布图片
-        images: hasDraftData ? hotel.draftData.images : hotel.images,
+        // 优先使用已发布图片，如果 draftData 中有图片且不为空，则使用 draftData 中的图片
+        images: hotel.draftData?.images?.length > 0 ? hotel.draftData.images : hotel.images,
       }
 
       const newDraftData = {
