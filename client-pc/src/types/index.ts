@@ -69,6 +69,7 @@ type DraftData = {
   nearbyAttractions?: string
   nearbyTransport?: string
   nearbyMalls?: string
+  facilities?: string[]
   discounts?: Discount[]
   images?: string[]
   description?: string
@@ -86,6 +87,7 @@ type Hotel = {
   nearbyAttractions?: string
   nearbyTransport?: string
   nearbyMalls?: string
+  facilities?: string[]
   discounts?: Discount[]
   images?: string[]
   description?: string
@@ -126,6 +128,7 @@ type UpdateHotelRequest = {
   nearbyAttractions?: string
   nearbyTransport?: string
   nearbyMalls?: string
+  facilities?: string[]
   discounts?: Discount[]
   images?: string[]
   description?: string

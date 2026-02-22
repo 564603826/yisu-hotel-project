@@ -273,6 +273,10 @@ const MerchantHotelForm: React.FC = () => {
         },
       })
     } else {
+      // 没有未保存修改时，也需要重置本地状态以获取最新数据
+      setLocalImages(null)
+      // 重置初始数据加载标志，允许表单重新初始化
+      initialDataLoadedRef.current = false
       fetchHotelData()
     }
   }, [hasUnsavedChanges, fetchHotelData, clearDraftStorage])
@@ -436,22 +440,30 @@ const MerchantHotelForm: React.FC = () => {
   const initialDataLoadedRef = useRef(false)
   useEffect(() => {
     if (displayData?.id && !initialDataLoadedRef.current) {
-      // 优先使用 allFormValues 中的值（用户已编辑但未保存的值）
-      const formData = {
-        ...displayData,
-        ...allFormValues,
-        openDate: allFormValues.openDate
-          ? dayjs(allFormValues.openDate)
-          : displayData.openDate
-            ? dayjs(displayData.openDate)
-            : null,
-        coverImage: allFormValues.images?.[0] || displayData.images?.[0] || '',
-        images: allFormValues.images || displayData.images || [],
-      }
+      // 查看线上版本时，不使用 allFormValues（草稿数据）
+      // 编辑草稿模式时，优先使用 allFormValues 中的值（用户已编辑但未保存的值）
+      const formData = viewingPublishedVersion
+        ? {
+            ...displayData,
+            openDate: displayData.openDate ? dayjs(displayData.openDate) : null,
+            coverImage: displayData.images?.[0] || '',
+            images: displayData.images || [],
+          }
+        : {
+            ...displayData,
+            ...allFormValues,
+            openDate: allFormValues.openDate
+              ? dayjs(allFormValues.openDate)
+              : displayData.openDate
+                ? dayjs(displayData.openDate)
+                : null,
+            coverImage: allFormValues.images?.[0] || displayData.images?.[0] || '',
+            images: allFormValues.images || displayData.images || [],
+          }
       form.setFieldsValue(formData)
       initialDataLoadedRef.current = true
     }
-  }, [displayData, form, allFormValues])
+  }, [displayData, form, allFormValues, viewingPublishedVersion])
 
   // 当 displayData 变化但非首次加载时，更新非表单编辑中的字段
   useEffect(() => {
@@ -506,6 +518,8 @@ const MerchantHotelForm: React.FC = () => {
         openDate: finalData?.openDate ? dayjs(finalData.openDate) : null,
         coverImage: finalData?.images?.[0] || '',
         images: finalData?.images || [],
+        // 确保 facilities 也被更新
+        facilities: finalData?.facilities,
       }
       form.setFieldsValue(formData)
     }
@@ -700,6 +714,9 @@ const MerchantHotelForm: React.FC = () => {
         nearbyAttractions: getValue(formValues.nearbyAttractions, currentData?.nearbyAttractions),
         nearbyTransport: getValue(formValues.nearbyTransport, currentData?.nearbyTransport),
         nearbyMalls: getValue(formValues.nearbyMalls, currentData?.nearbyMalls),
+        // 酒店设施
+        facilities:
+          formValues.facilities !== undefined ? formValues.facilities : currentData?.facilities,
         // 优惠活动
         discounts:
           formValues.discounts !== undefined ? formValues.discounts : currentData?.discounts,
@@ -935,14 +952,25 @@ const MerchantHotelForm: React.FC = () => {
             style={{
               fontSize: 12,
               color: '#78716c',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'flex-end',
+              position: 'relative',
+              textAlign: 'right',
             }}
           >
-            <div>{loading ? '更新中...' : `上次更新: ${formatUpdateTime(lastUpdateTime)}`}</div>
+            <div style={{ display: 'flex', alignItems: 'center', height: '32px' }}>
+              {loading ? '更新中...' : `上次更新: ${formatUpdateTime(lastUpdateTime)}`}
+            </div>
             {hasUnsavedChanges && (
-              <div style={{ color: '#fa8c16' }}>(未保存的修改-自动刷新已暂停)</div>
+              <div
+                style={{
+                  color: '#fa8c16',
+                  position: 'absolute',
+                  top: '100%',
+                  right: 0,
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                (未保存的修改-自动刷新已暂停)
+              </div>
             )}
           </div>
           <Button

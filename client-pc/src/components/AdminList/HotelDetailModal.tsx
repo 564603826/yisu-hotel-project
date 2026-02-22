@@ -1,7 +1,7 @@
 import React from 'react'
 import { Modal, Descriptions, Tag, Image, Row, Col, Rate, Divider, Alert, Carousel } from 'antd'
 import { ClockCircleOutlined, CloseCircleOutlined } from '@ant-design/icons'
-import { MapPin, Train, ShoppingBag, Calendar } from 'lucide-react'
+import { MapPin, Train, ShoppingBag, Calendar, Building2 } from 'lucide-react'
 import type { Hotel } from '@/types'
 import '@/components/AdminList/index.scss'
 
@@ -322,6 +322,33 @@ const HotelDetailModal: React.FC<HotelDetailModalProps> = ({
             <span style={{ display: 'flex', alignItems: 'center' }}>
               <ShoppingBag size={14} style={{ marginRight: 4, color: '#c58e53' }} />
               {displayHotel.nearbyMalls || '-'}
+            </span>
+          </Descriptions.Item>
+          <Descriptions.Item label="酒店设施">
+            <span style={{ display: 'flex', alignItems: 'center' }}>
+              <Building2 size={14} style={{ marginRight: 4, color: '#c58e53' }} />
+              {displayHotel.facilities && displayHotel.facilities.length > 0 ? (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  {displayHotel.facilities.map((facility, index) => (
+                    <Tag
+                      key={index}
+                      style={{
+                        margin: 0,
+                        padding: '4px 12px',
+                        borderRadius: 6,
+                        background: '#f5f5f4',
+                        border: '1px solid #e7e5e4',
+                        color: '#57534e',
+                        fontSize: 13,
+                      }}
+                    >
+                      {facility}
+                    </Tag>
+                  ))}
+                </div>
+              ) : (
+                '-'
+              )}
             </span>
           </Descriptions.Item>
         </Descriptions>
