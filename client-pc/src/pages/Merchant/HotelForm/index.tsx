@@ -157,6 +157,24 @@ const MerchantHotelForm: React.FC = () => {
     }
   }, [getDraftStorageKey])
 
+  // 处理 discounts 日期转换为字符串（用于保存）
+  const processDiscountsForSave = (discounts: any[] | undefined) => {
+    if (!discounts || !Array.isArray(discounts)) return discounts
+    return discounts.map((d) => {
+      if (!d) return d
+      let startDate = d.startDate
+      let endDate = d.endDate
+      // 如果是 dayjs 对象，转换为字符串
+      if (startDate && typeof startDate === 'object' && startDate.format) {
+        startDate = startDate.format('YYYY-MM-DD')
+      }
+      if (endDate && typeof endDate === 'object' && endDate.format) {
+        endDate = endDate.format('YYYY-MM-DD')
+      }
+      return { ...d, startDate, endDate }
+    })
+  }
+
   // 表单值变化时的处理
   const handleFormValuesChange = useCallback(
     (_changedValues: any, allValues: any) => {
@@ -173,6 +191,10 @@ const MerchantHotelForm: React.FC = () => {
       // 使用 functional update 合并新的表单值
       setAllFormValues((prev: any) => {
         const newFormValues = { ...prev, ...allValues }
+        // 处理 discounts 日期格式
+        if (newFormValues.discounts) {
+          newFormValues.discounts = processDiscountsForSave(newFormValues.discounts)
+        }
         saveDraftToStorage(newFormValues)
         return newFormValues
       })
@@ -319,12 +341,25 @@ const MerchantHotelForm: React.FC = () => {
         }
         const draftValue = draft.values[key]
         const currentValue = hotelInfo[key as keyof typeof hotelInfo]
-        // 处理 undefined 和空字符串的等价性
-        const normalizedDraft =
-          draftValue === undefined || draftValue === null ? '' : String(draftValue)
-        const normalizedCurrent =
-          currentValue === undefined || currentValue === null ? '' : String(currentValue)
-        return normalizedDraft !== normalizedCurrent
+        // 处理 undefined 和 null
+        if (
+          (draftValue === undefined || draftValue === null) &&
+          (currentValue === undefined || currentValue === null)
+        ) {
+          return false
+        }
+        if (
+          (draftValue === undefined || draftValue === null) !==
+          (currentValue === undefined || currentValue === null)
+        ) {
+          return true
+        }
+        // 对于数组和对象，使用 JSON.stringify 比较
+        if (typeof draftValue === 'object' || typeof currentValue === 'object') {
+          return JSON.stringify(draftValue) !== JSON.stringify(currentValue)
+        }
+        // 对于基本类型，使用 String 比较
+        return String(draftValue) !== String(currentValue)
       })
 
       if (hasChanges) {
@@ -342,9 +377,21 @@ const MerchantHotelForm: React.FC = () => {
   // 恢复草稿
   const handleRestoreDraft = () => {
     if (pendingDraft) {
+      // 处理 discounts 日期转换
+      const processedDiscounts = pendingDraft.values.discounts?.map((d: any) => {
+        const startDateStr = d.startDate ? String(d.startDate).split('T')[0] : null
+        const endDateStr = d.endDate ? String(d.endDate).split('T')[0] : null
+        return {
+          ...d,
+          startDate: startDateStr && dayjs(startDateStr).isValid() ? dayjs(startDateStr) : null,
+          endDate: endDateStr && dayjs(endDateStr).isValid() ? dayjs(endDateStr) : null,
+        }
+      })
+
       form.setFieldsValue({
         ...pendingDraft.values,
         openDate: pendingDraft.values.openDate ? dayjs(pendingDraft.values.openDate) : null,
+        discounts: processedDiscounts,
       })
       // 同时恢复 allFormValues
       setAllFormValues(pendingDraft.values)
@@ -384,8 +431,8 @@ const MerchantHotelForm: React.FC = () => {
   const displayData = useMemo(() => {
     if (!hotelInfo) return null
 
-    if (hotelInfo.status === 'pending') {
-      // pending 状态：优先使用 draftData 中的数据（如果 draftData 存在），否则使用主表数据
+    if (hotelInfo.status === 'pending' || hotelInfo.status === 'rejected') {
+      // pending 和 rejected 状态：优先使用 draftData 中的数据（如果 draftData 存在），否则使用主表数据
       // 图片使用 draftImages
       // 如果 draftData 存在，使用 draftData 中的房型数据（即使是空数组也使用，表示用户删除了所有房型）
       const hasDraftData = hotelInfo.draftData !== undefined && hotelInfo.draftData !== null
@@ -399,9 +446,8 @@ const MerchantHotelForm: React.FC = () => {
       }
     }
 
-    if (hotelInfo.status === 'rejected' || hotelInfo.status === 'draft') {
-      // rejected 和 draft 状态：直接使用主表数据，图片使用 draftImages
-      // 这些状态的数据保存在主表，不使用 draftData
+    if (hotelInfo.status === 'draft') {
+      // draft 状态：直接使用主表数据，图片使用 draftImages
       return {
         ...hotelInfo,
         images: draftImages.map((img) => img.url),
@@ -456,6 +502,22 @@ const MerchantHotelForm: React.FC = () => {
   const initialDataLoadedRef = useRef(false)
   useEffect(() => {
     if (displayData?.id && !initialDataLoadedRef.current) {
+      // 处理 discounts 日期转换
+      const processDiscounts = (discounts: any[] | undefined) => {
+        if (!discounts || !Array.isArray(discounts)) return []
+        return discounts.map((d) => {
+          if (!d) return { type: 'percentage', value: 0, name: '' }
+          // 确保日期格式正确，只取 YYYY-MM-DD 部分
+          const startDateStr = d.startDate ? String(d.startDate).split('T')[0] : null
+          const endDateStr = d.endDate ? String(d.endDate).split('T')[0] : null
+          return {
+            ...d,
+            startDate: startDateStr && dayjs(startDateStr).isValid() ? dayjs(startDateStr) : null,
+            endDate: endDateStr && dayjs(endDateStr).isValid() ? dayjs(endDateStr) : null,
+          }
+        })
+      }
+
       // 查看线上版本时，不使用 allFormValues（草稿数据）
       // 编辑草稿模式时，优先使用 allFormValues 中的值（用户已编辑但未保存的值）
       const formData = viewingPublishedVersion
@@ -464,6 +526,7 @@ const MerchantHotelForm: React.FC = () => {
             openDate: displayData.openDate ? dayjs(displayData.openDate) : null,
             coverImage: displayData.images?.[0] || '',
             images: displayData.images || [],
+            discounts: processDiscounts(displayData.discounts),
           }
         : {
             ...displayData,
@@ -475,6 +538,9 @@ const MerchantHotelForm: React.FC = () => {
                 : null,
             coverImage: allFormValues.images?.[0] || displayData.images?.[0] || '',
             images: allFormValues.images || displayData.images || [],
+            discounts: allFormValues.discounts
+              ? processDiscounts(allFormValues.discounts)
+              : processDiscounts(displayData.discounts),
           }
       form.setFieldsValue(formData)
       initialDataLoadedRef.current = true
@@ -529,6 +595,21 @@ const MerchantHotelForm: React.FC = () => {
       const finalData =
         !viewingPublishedVersion && hasFormDraft ? { ...data, ...allFormValues } : data
 
+      // 处理 discounts 日期转换
+      const processDiscounts = (discounts: any[] | undefined) => {
+        if (!discounts || !Array.isArray(discounts)) return []
+        return discounts.map((d) => {
+          if (!d) return { type: 'percentage', value: 0, name: '' }
+          const startDateStr = d.startDate ? String(d.startDate).split('T')[0] : null
+          const endDateStr = d.endDate ? String(d.endDate).split('T')[0] : null
+          return {
+            ...d,
+            startDate: startDateStr && dayjs(startDateStr).isValid() ? dayjs(startDateStr) : null,
+            endDate: endDateStr && dayjs(endDateStr).isValid() ? dayjs(endDateStr) : null,
+          }
+        })
+      }
+
       const formData = {
         ...finalData,
         openDate: finalData?.openDate ? dayjs(finalData.openDate) : null,
@@ -536,6 +617,8 @@ const MerchantHotelForm: React.FC = () => {
         images: finalData?.images || [],
         // 确保 facilities 也被更新
         facilities: finalData?.facilities,
+        // 处理 discounts 日期
+        discounts: processDiscounts(finalData?.discounts),
       }
       form.setFieldsValue(formData)
     }
@@ -604,7 +687,18 @@ const MerchantHotelForm: React.FC = () => {
     try {
       // 合并当前表单值和 allFormValues（跨 tab 保存的所有字段值）
       const currentFormValues = form.getFieldsValue()
-      const formValues = { ...allFormValues, ...currentFormValues }
+
+      // 特殊处理 discounts：优先使用 allFormValues 中的值（因为 Form.List 可能存在同步问题）
+      const mergedDiscounts =
+        allFormValues.discounts !== undefined && allFormValues.discounts !== null
+          ? allFormValues.discounts
+          : currentFormValues.discounts
+
+      const formValues = {
+        ...allFormValues,
+        ...currentFormValues,
+        discounts: mergedDiscounts,
+      }
 
       // 1. 处理酒店主图
       // 使用 localImages（用户调整后的顺序）作为基础
@@ -733,9 +827,31 @@ const MerchantHotelForm: React.FC = () => {
         // 酒店设施
         facilities:
           formValues.facilities !== undefined ? formValues.facilities : currentData?.facilities,
-        // 优惠活动
+        // 优惠活动 - 处理日期格式转换
         discounts:
-          formValues.discounts !== undefined ? formValues.discounts : currentData?.discounts,
+          formValues.discounts !== undefined
+            ? formValues.discounts.map((discount: any) => {
+                // 处理 startDate
+                let startDate = discount.startDate
+                if (startDate && typeof startDate === 'object' && startDate.format) {
+                  startDate = startDate.format('YYYY-MM-DD')
+                } else if (startDate) {
+                  startDate = String(startDate).split('T')[0]
+                }
+                // 处理 endDate
+                let endDate = discount.endDate
+                if (endDate && typeof endDate === 'object' && endDate.format) {
+                  endDate = endDate.format('YYYY-MM-DD')
+                } else if (endDate) {
+                  endDate = String(endDate).split('T')[0]
+                }
+                return {
+                  ...discount,
+                  startDate,
+                  endDate,
+                }
+              })
+            : currentData?.discounts,
       }
 
       // 只有用户操作过图片（在基本信息 tab）时，才发送 images 字段
@@ -751,18 +867,8 @@ const MerchantHotelForm: React.FC = () => {
       // 因为 uniqueImageUrls 为空表示用户删除了所有图片，这时候需要删除数据库中的草稿图片
       const shouldSyncImages = imagesModifiedRef.current
 
-      // 对于已发布/已下线状态，如果没有草稿图片但有已发布图片，需要复制已发布图片到草稿
-      // 这样可以确保 draftData 中的图片与已发布图片一致
-      if (
-        !shouldSyncImages &&
-        hotelInfo?.id &&
-        hasVersionControl(hotelInfo.status) &&
-        draftImages.length === 0 &&
-        publishedImages.length > 0
-      ) {
-        await copyToDraft()
-        imagesUpdated = true
-      } else if (hotelInfo?.id && shouldSyncImages) {
+      // 只有用户操作过图片时才同步
+      if (hotelInfo?.id && shouldSyncImages) {
         await hotelImageApi.syncImages(hotelInfo.id, uniqueImageUrls, 'hotel_main')
         imagesUpdated = true
       }
@@ -1208,7 +1314,10 @@ const MerchantHotelForm: React.FC = () => {
             />
           </div>
           <div style={{ display: activeTab === 'marketing' ? 'block' : 'none' }}>
-            <MarketingForm disabled={viewingPublishedVersion || hotelInfo?.status === 'pending'} />
+            <MarketingForm
+              disabled={viewingPublishedVersion || hotelInfo?.status === 'pending'}
+              discounts={form.getFieldValue('discounts') || allFormValues.discounts || []}
+            />
           </div>
         </Form>
       </FormCard>

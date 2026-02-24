@@ -43,7 +43,7 @@ const HotelDetailModal: React.FC<HotelDetailModalProps> = ({
     canSwitchVersion && showPublishedVersion
       ? hotel // 显示上线版本
       : canSwitchVersion && !showPublishedVersion
-        ? { ...hotel, ...hotel.draftData } // 显示审核版本
+        ? { ...hotel, ...hotel.draftData } // 显示 draftData 中的数据（待审核版本或被驳回后修改的版本）
         : hotel
 
   // 根据切换状态决定使用哪种图片和房型
@@ -133,7 +133,9 @@ const HotelDetailModal: React.FC<HotelDetailModalProps> = ({
             }
             description={
               showPublishedVersion
-                ? '这是当前正在线上展示的版本，审核通过后将替换此版本。'
+                ? hotel.status === 'rejected'
+                  ? '这是被驳回前的上线版本，重新提交审核通过后将替换此版本。'
+                  : '这是最近一次在线上展示的版本，审核通过后将替换此版本。'
                 : hotel.status === 'pending'
                   ? '这是商户提交的最新修改版本，审核通过并发布后将替换线上版本。'
                   : '这是被驳回时的修改版本，商户可基于此版本继续修改后重新提交。'
@@ -498,33 +500,48 @@ const HotelDetailModal: React.FC<HotelDetailModalProps> = ({
               <div>
                 <h4 style={{ marginBottom: 12 }}>优惠活动</h4>
                 <Row gutter={[16, 16]}>
-                  {displayHotel.discounts.map((discount, index) => (
-                    <Col span={12} key={index}>
-                      <div
-                        style={{
-                          padding: 12,
-                          background: '#fef3c7',
-                          borderRadius: 8,
-                          border: '1px solid #fcd34d',
-                        }}
-                      >
-                        <div style={{ fontWeight: 'bold', color: '#92400e', marginBottom: 4 }}>
-                          {discount.name}
-                        </div>
-                        <div style={{ fontSize: 13, color: '#78350f' }}>
-                          {discount.type === 'percentage'
-                            ? `${discount.value}折`
-                            : `减¥${discount.value}`}
-                          {discount.description && ` · ${discount.description}`}
-                        </div>
-                        {discount.startDate && discount.endDate && (
-                          <div style={{ fontSize: 12, color: '#a16207', marginTop: 4 }}>
-                            有效期: {discount.startDate} 至 {discount.endDate}
+                  {displayHotel.discounts.map((discount, index) => {
+                    const isPercentage = discount.type === 'percentage'
+                    return (
+                      <Col span={12} key={index}>
+                        <div
+                          style={{
+                            padding: 12,
+                            background: isPercentage ? '#fef3c7' : '#dbeafe',
+                            borderRadius: 8,
+                            border: isPercentage ? '1px solid #fcd34d' : '1px solid #93c5fd',
+                          }}
+                        >
+                          <div
+                            style={{
+                              fontWeight: 'bold',
+                              color: isPercentage ? '#92400e' : '#1e40af',
+                              marginBottom: 4,
+                            }}
+                          >
+                            {discount.name}
                           </div>
-                        )}
-                      </div>
-                    </Col>
-                  ))}
+                          <div
+                            style={{ fontSize: 13, color: isPercentage ? '#78350f' : '#1e3a8a' }}
+                          >
+                            {isPercentage ? `${discount.value}折` : `减¥${discount.value}`}
+                            {discount.description && ` · ${discount.description}`}
+                          </div>
+                          {discount.startDate && discount.endDate && (
+                            <div
+                              style={{
+                                fontSize: 12,
+                                color: isPercentage ? '#a16207' : '#3b82f6',
+                                marginTop: 4,
+                              }}
+                            >
+                              有效期: {discount.startDate} 至 {discount.endDate}
+                            </div>
+                          )}
+                        </div>
+                      </Col>
+                    )
+                  })}
                 </Row>
               </div>
             </>
