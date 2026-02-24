@@ -67,7 +67,19 @@ service.interceptors.response.use(
         break
 
       case 403:
-        message.warning('您没有权限执行此操作，请重新登录')
+        // 根据后端返回的具体错误信息，给出更精确的提示
+        if (errorMessage?.includes('token') || errorMessage?.includes('Token')) {
+          // Token 无效或过期，清除登录状态
+          clearAuth()
+          useUserStore.getState().logout()
+          message.error('登录已过期，请重新登录')
+        } else if (errorMessage?.includes('商户')) {
+          message.warning('此操作需要商户权限')
+        } else if (errorMessage?.includes('管理员')) {
+          message.warning('此操作需要管理员权限')
+        } else {
+          message.warning(errorMessage || '您没有权限执行此操作')
+        }
         break
 
       case 500:
