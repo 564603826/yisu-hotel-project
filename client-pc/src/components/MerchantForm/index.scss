@@ -462,6 +462,47 @@
     margin-top: 4px;
   }
 
+  // 预设设施快捷添加
+  .preset-facilities {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+    flex-wrap: nowrap;
+  }
+
+  .preset-facility-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 12px;
+    border-radius: 16px;
+    border: 1px solid #e7e5e4;
+    background: #fff;
+    color: #78716c;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+
+    &:hover {
+      border-color: #c58e53;
+      color: #c58e53;
+      background: #fbf8f1;
+    }
+
+    &.added {
+      border-color: #c58e53;
+      color: #c58e53;
+      background: #fbf8f1;
+
+      &:hover {
+        border-color: #a07040;
+        color: #a07040;
+        background: #f5f0e8;
+      }
+    }
+  }
+
   .facilities-tags {
     display: flex;
     flex-wrap: wrap;
@@ -501,41 +542,57 @@
     display: inline-flex;
     align-items: center;
     border-radius: 20px;
-    border: 1px dashed #d6d3d1;
+    border: 1px dashed #c58e53;
+    background: #fff;
     overflow: hidden;
     transition: all 0.2s;
+    height: 36px;
 
-    &:hover,
+    &:hover {
+      border-color: #a07040;
+      box-shadow: 0 2px 8px rgba(197, 142, 83, 0.15);
+    }
+
     &:focus-within {
       border-color: #c58e53;
+      border-style: solid;
+      box-shadow: 0 0 0 3px rgba(197, 142, 83, 0.1);
     }
 
     .add-facility-input {
       border: none;
       background: transparent;
-      padding: 6px 12px;
+      padding: 0 0 0 14px;
       font-size: 14px;
-      color: #78716c;
-      width: 100px;
+      color: #57534e;
+      width: 90px;
       outline: none;
+      height: 100%;
 
       &::placeholder {
-        color: #d6d3d1;
+        color: #a8a29e;
       }
     }
 
     .add-facility-btn {
-      background: none;
+      background: transparent;
       border: none;
-      padding: 6px 10px;
-      color: #d6d3d1;
+      padding: 0 12px;
+      height: 100%;
+      color: #c58e53;
       cursor: pointer;
       display: flex;
       align-items: center;
-      transition: color 0.2s;
+      justify-content: center;
+      transition: all 0.2s;
 
       &:hover {
-        color: #c58e53;
+        color: #a07040;
+        background: rgba(197, 142, 83, 0.08);
+      }
+
+      &:active {
+        transform: scale(0.95);
       }
     }
   }

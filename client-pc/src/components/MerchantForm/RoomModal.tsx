@@ -1,10 +1,20 @@
 import React, { useEffect, useState, useMemo } from 'react'
 import { Form, Input, InputNumber, Select, Button } from 'antd'
-import { Plus, Star, X } from 'lucide-react'
+import { Plus, Star, X, Wifi, Tv, Coffee, Bath, Wind, Snowflake } from 'lucide-react'
 import type { RoomType } from '@/types'
 import MultiImageUpload from './MultiImageUpload'
 import type { ImageItem } from './MultiImageUpload'
 import '@/components/MerchantForm/index.scss'
+
+// 常用预设设施
+const PRESET_FACILITIES = [
+  { name: 'WiFi', icon: Wifi },
+  { name: '电视', icon: Tv },
+  { name: '早餐', icon: Coffee },
+  { name: '独立卫浴', icon: Bath },
+  { name: '空调', icon: Wind },
+  { name: '暖气', icon: Snowflake },
+]
 
 // 扩展 RoomType 支持 ImageItem
 interface RoomTypeWithImageItems extends Omit<RoomType, 'images'> {
@@ -235,6 +245,36 @@ const RoomModal: React.FC<RoomModalProps> = ({
             {/* Facilities */}
             <div className="facilities-section">
               <label className="form-label">设施列表</label>
+
+              {/* 预设设施快捷添加 */}
+              {!disabled && (
+                <div className="preset-facilities">
+                  {PRESET_FACILITIES.map((preset) => {
+                    const Icon = preset.icon
+                    const isAdded = facilities.includes(preset.name)
+                    return (
+                      <button
+                        key={preset.name}
+                        type="button"
+                        className={`preset-facility-btn ${isAdded ? 'added' : ''}`}
+                        onClick={() => {
+                          if (isAdded) {
+                            // 已选中则取消
+                            setFacilities(facilities.filter((f) => f !== preset.name))
+                          } else {
+                            // 未选中则添加
+                            setFacilities([...facilities, preset.name])
+                          }
+                        }}
+                      >
+                        <Icon size={14} />
+                        <span>{preset.name}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+
               <div className="facilities-tags">
                 {facilities.map((fac, idx) => (
                   <span key={idx} className="facility-tag">
