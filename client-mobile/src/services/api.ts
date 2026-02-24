@@ -8,7 +8,6 @@ import type {
   HotelListParams,
   FilterOptions,
   QuickTagsResponse,
-  CitiesResponse,
 } from '../types/api'
 
 const BASE_URL = 'http://112.124.2.205/api/v1'
@@ -110,11 +109,6 @@ export const filterApi = {
   },
 }
 
-export const cityApi = {
-  getCities: async (): Promise<string[]> => {
-    const response = await apiClient.get<ApiResponse<CitiesResponse>>('/mobile/cities')
-    return response.data.data.cities
-  },
-}
+
 
 export default apiClient

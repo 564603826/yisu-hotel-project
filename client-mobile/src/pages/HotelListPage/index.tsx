@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import Header from "../../components/common/Header";
 import HotelCard from "../../components/hotelList/HotelCard";
 import FilterPanel from "../../components/hotelList/FilterPanel";
 import SortPanel from "../../components/hotelList/SortPanel";
@@ -16,6 +15,7 @@ const HotelListPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [sortBy, setSortBy] = useState(searchParams.get("sortBy") || "default");
+  const [loadingMore, setLoadingMore] = useState(false);
   const [pagination, setPagination] = useState({
     page: 1,
     pageSize: 10,
@@ -25,6 +25,39 @@ const HotelListPage: React.FC = () => {
   const [filterOptions, setFilterOptions] = useState<FilterOptions | null>(
     null,
   );
+
+  const loadMoreHotels = async () => {
+    if (loadingMore || loading || pagination.page >= pagination.totalPages) {
+      return;
+    }
+
+    setLoadingMore(true);
+    try {
+      const nextPage = pagination.page + 1;
+      const params = {
+        ...getFilterParams(),
+        page: nextPage
+      };
+
+      let data;
+      if (params.keyword) {
+        data = await hotelApi.searchHotels({
+          keyword: params.keyword,
+          page: nextPage,
+          limit: params.limit
+        });
+      } else {
+        data = await hotelApi.getHotelList(params);
+      }
+
+      setHotels(prevHotels => [...prevHotels, ...data.list]);
+      setPagination(data.pagination);
+    } catch (error) {
+      console.error("Failed to load more hotels:", error);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
   const getFilterParams = useCallback((): HotelListParams => {
     const keyword = searchParams.get("keyword");
@@ -66,6 +99,22 @@ const HotelListPage: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    const handleScroll = () => {
+      const scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
+      const scrollHeight = document.documentElement.scrollHeight || document.body.scrollHeight;
+      const clientHeight = document.documentElement.clientHeight || window.innerHeight;
+      
+      // 当滚动到距离底部100px时触发加载更多
+      if (scrollTop + clientHeight >= scrollHeight - 100) {
+        loadMoreHotels();
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [loadingMore, loading, pagination.page, pagination.totalPages, loadMoreHotels]);
+
+  useEffect(() => {
     const fetchHotels = async () => {
       setLoading(true);
       try {
@@ -74,13 +123,16 @@ const HotelListPage: React.FC = () => {
         if (params.keyword) {
           const data = await hotelApi.searchHotels({
             keyword: params.keyword,
-            page: params.page,
+            page: 1, // 重置为第一页
             limit: params.limit,
           });
           setHotels(data.list);
           setPagination(data.pagination);
         } else {
-          const data = await hotelApi.getHotelList(params);
+          const data = await hotelApi.getHotelList({
+            ...params,
+            page: 1, // 重置为第一页
+          });
           setHotels(data.list);
           setPagination(data.pagination);
         }
@@ -193,45 +245,45 @@ const HotelListPage: React.FC = () => {
 
   return (
     <div className="hotel-list-page">
-      <Header title="酒店列表" showBack={true} />
+      <div className="search-header">
+        <div className="date-selector">
+          <div className="date-input-group">
+            <label>入住</label>
+            <input
+              type="date"
+              value={searchParams.get("checkInDate") || getToday()}
+              min={getToday()}
+              onChange={(e) => handleDateChange("checkIn", e.target.value)}
+            />
+          </div>
+          <div className="date-separator">→</div>
+          <div className="date-input-group">
+            <label>离店</label>
+            <input
+              type="date"
+              value={searchParams.get("checkOutDate") || getTomorrow()}
+              min={searchParams.get("checkInDate") || getToday()}
+              onChange={(e) => handleDateChange("checkOut", e.target.value)}
+            />
+          </div>
+        </div>
 
-      <div className="date-selector">
-        <div className="date-input-group">
-          <label>入住</label>
-          <input
-            type="date"
-            value={searchParams.get("checkInDate") || getToday()}
-            min={getToday()}
-            onChange={(e) => handleDateChange("checkIn", e.target.value)}
+        <div className="list-controls">
+          <button
+            className="filter-button"
+            onClick={() => setShowFilters(!showFilters)}
+          >
+            🔍 筛选
+          </button>
+          <SortPanel
+            sortBy={sortBy}
+            onSortChange={handleSortChange}
+            options={filterOptions?.sortOptions?.map((opt) => ({
+              value: opt.value,
+              label: opt.label,
+            }))}
           />
         </div>
-        <div className="date-separator">→</div>
-        <div className="date-input-group">
-          <label>离店</label>
-          <input
-            type="date"
-            value={searchParams.get("checkOutDate") || getTomorrow()}
-            min={searchParams.get("checkInDate") || getToday()}
-            onChange={(e) => handleDateChange("checkOut", e.target.value)}
-          />
-        </div>
-      </div>
-
-      <div className="list-controls">
-        <button
-          className="filter-button"
-          onClick={() => setShowFilters(!showFilters)}
-        >
-          🔍 筛选
-        </button>
-        <SortPanel
-          sortBy={sortBy}
-          onSortChange={handleSortChange}
-          options={filterOptions?.sortOptions?.map((opt) => ({
-            value: opt.value,
-            label: opt.label,
-          }))}
-        />
       </div>
 
       {showFilters && filterOptions && (
@@ -260,7 +312,14 @@ const HotelListPage: React.FC = () => {
               />
             ))}
 
-            {pagination.totalPages > 1 && (
+            {loadingMore && (
+              <div className="loading-more">
+                <div className="loading-spinner"></div>
+                <span>加载更多...</span>
+              </div>
+            )}
+            
+            {!loadingMore && pagination.totalPages > 1 && (
               <div className="pagination">
                 <button
                   className="page-button"

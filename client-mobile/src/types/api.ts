@@ -72,7 +72,11 @@ export interface SearchParams {
 export interface HotelListResponse {
   list: Hotel[];
   pagination: Pagination;
-  searchParams?: SearchParams;
+  queryInfo?: {
+    city?: string;
+    checkInDate?: string;
+    checkOutDate?: string;
+  };
 }
 
 export interface HotelSearchParams {
@@ -84,10 +88,14 @@ export interface HotelSearchParams {
 export interface HotelListParams {
   keyword?: string;
   city?: string;
+  province?: string;
+  district?: string;
   starRating?: string;
   minPrice?: number;
   maxPrice?: number;
   tags?: string;
+  facilities?: string;
+  roomTypes?: string;
   sortBy?: string;
   page?: number;
   limit?: number;
@@ -99,6 +107,13 @@ export interface FilterOptions {
   starRatings: Array<{ value: number; label: string }>;
   priceRanges: Array<{ min: number; max: number | null; label: string }>;
   sortOptions: Array<{ value: string; label: string }>;
+  locations: {
+    provinces: Array<{ value: string; label: string }>;
+    cities: Array<{ value: string; label: string }>;
+    districts: Array<{ value: string; label: string }>;
+  };
+  facilities: Array<{ value: string; label: string }>;
+  roomTypes: Array<{ value: string; label: string }>;
 }
 
 export interface QuickTag {
@@ -111,6 +126,4 @@ export interface QuickTagsResponse {
   tags: QuickTag[];
 }
 
-export interface CitiesResponse {
-  cities: string[];
-}
+
