@@ -230,36 +230,43 @@ const MerchantHotelForm: React.FC = () => {
   const [pendingDraft, setPendingDraft] = useState<any>(null)
 
   // 获取酒店信息的函数 - 使用 useCallback 避免无限循环
-  const fetchHotelData = useCallback(async () => {
-    setLoading(true)
-    try {
-      // 根据查看模式传递 viewMode 参数
-      const viewMode = viewingPublishedVersion ? 'published' : 'draft'
-      const hotel = await getHotelInfo(viewMode)
-      setLastUpdateTime(new Date())
-      // 获取酒店信息后，根据状态加载相应的图片
-      if (hotel?.id) {
-        if (hotel.status === 'pending' || hotel.status === 'rejected') {
-          await getDraftImages()
-        } else if (hotel.status === 'published' || hotel.status === 'offline') {
-          // 对于已发布/已下线状态，根据查看模式和草稿数据状态加载相应图片
-          if (viewingPublishedVersion) {
-            await getPublishedImages()
-          } else if (hotel.draftData) {
-            // 编辑草稿模式且有草稿数据时，加载草稿图片
+  const fetchHotelData = useCallback(
+    async (showSuccessMsg = false) => {
+      setLoading(true)
+      try {
+        // 根据查看模式传递 viewMode 参数
+        const viewMode = viewingPublishedVersion ? 'published' : 'draft'
+        const hotel = await getHotelInfo(viewMode)
+        setLastUpdateTime(new Date())
+        // 获取酒店信息后，根据状态加载相应的图片
+        if (hotel?.id) {
+          if (hotel.status === 'pending' || hotel.status === 'rejected') {
             await getDraftImages()
-          } else {
-            // 编辑草稿模式但没有草稿数据时（如审核通过后），加载已发布图片
-            await getPublishedImages()
+          } else if (hotel.status === 'published' || hotel.status === 'offline') {
+            // 对于已发布/已下线状态，根据查看模式和草稿数据状态加载相应图片
+            if (viewingPublishedVersion) {
+              await getPublishedImages()
+            } else if (hotel.draftData) {
+              // 编辑草稿模式且有草稿数据时，加载草稿图片
+              await getDraftImages()
+            } else {
+              // 编辑草稿模式但没有草稿数据时（如审核通过后），加载已发布图片
+              await getPublishedImages()
+            }
           }
         }
+        // 手动刷新成功时显示提示
+        if (showSuccessMsg) {
+          message.success('数据已刷新')
+        }
+      } catch (error) {
+        console.error('获取酒店信息失败:', error)
+      } finally {
+        setLoading(false)
       }
-    } catch (error) {
-      console.error('获取酒店信息失败:', error)
-    } finally {
-      setLoading(false)
-    }
-  }, [getHotelInfo, getDraftImages, getPublishedImages, viewingPublishedVersion])
+    },
+    [getHotelInfo, getDraftImages, getPublishedImages, viewingPublishedVersion]
+  )
 
   // 自动刷新用的函数 - 有未保存修改时跳过
   const autoRefreshData = useCallback(async () => {
@@ -295,7 +302,7 @@ const MerchantHotelForm: React.FC = () => {
           imagesModifiedRef.current = false
           // 重置初始数据加载标志，允许表单重新初始化
           initialDataLoadedRef.current = false
-          await fetchHotelData()
+          await fetchHotelData(true)
         },
       })
     } else {
@@ -303,7 +310,7 @@ const MerchantHotelForm: React.FC = () => {
       setLocalImages(null)
       // 重置初始数据加载标志，允许表单重新初始化
       initialDataLoadedRef.current = false
-      fetchHotelData()
+      fetchHotelData(true)
     }
   }, [hasUnsavedChanges, fetchHotelData, clearDraftStorage])
 
