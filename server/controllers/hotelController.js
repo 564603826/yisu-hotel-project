@@ -216,10 +216,38 @@ const getMyHotel = async (req, res) => {
 
     // 构造返回数据，避免 draftData 中的数据污染外层
     const { draftData, ...hotelWithoutDraft } = hotel
+
+    // 对于草稿版本，优先使用 draftData 中的 discounts 数据
+    const hasDraftData = draftData !== undefined && draftData !== null
+    const finalDiscounts =
+      isDraftVersion && hasDraftData && draftData.discounts !== undefined
+        ? draftData.discounts
+        : hotel.discounts
+
+    // 对于 pending 和 rejected 状态，优先使用 draftData 中的基础信息字段
+    const draftBaseData =
+      isDraftVersion && hasDraftData && viewMode !== 'published'
+        ? {
+            nameZh: draftData.nameZh,
+            nameEn: draftData.nameEn,
+            address: draftData.address,
+            starRating: draftData.starRating,
+            price: draftData.price,
+            openDate: draftData.openDate,
+            description: draftData.description,
+            facilities: draftData.facilities,
+            nearbyAttractions: draftData.nearbyAttractions,
+            nearbyTransport: draftData.nearbyTransport,
+            nearbyMalls: draftData.nearbyMalls,
+          }
+        : {}
+
     const hotelWithImages = {
       ...hotelWithoutDraft,
+      ...draftBaseData,
       images: hotelImages,
       roomTypes: roomTypesWithImages,
+      discounts: finalDiscounts,
       // 只在编辑模式下返回 draftData
       draftData: viewMode === 'published' ? undefined : draftData,
     }
@@ -278,7 +306,8 @@ const updateMyHotel = async (req, res) => {
 
     let updatedHotel
 
-    if (isOnlineStatus(hotel.status)) {
+    if (isOnlineStatus(hotel.status) || hotel.status === 'rejected') {
+      // published/offline/rejected 状态：数据保存到 draftData，不修改主表数据
       // 获取最新的草稿图片
       const draftImages = await prisma.hotelimage.findMany({
         where: {
@@ -289,26 +318,48 @@ const updateMyHotel = async (req, res) => {
         orderBy: { sortOrder: 'asc' },
       })
 
-      const currentData = {
-        nameZh: hotel.nameZh,
-        nameEn: hotel.nameEn,
-        address: hotel.address,
-        starRating: hotel.starRating,
-        roomTypes: hotel.roomTypes,
-        price: hotel.price,
-        openDate: hotel.openDate,
-        nearbyAttractions: hotel.nearbyAttractions,
-        nearbyTransport: hotel.nearbyTransport,
-        nearbyMalls: hotel.nearbyMalls,
-        facilities: hotel.facilities,
-        discounts: hotel.discounts,
-        description: hotel.description,
-        // 使用最新的草稿图片
-        images: draftImages.map((img) => img.url),
-      }
+      // 对于 rejected 状态，从主表获取当前数据作为基础
+      // 对于 published/offline 状态，优先使用已有的 draftData
+      const baseData =
+        hotel.status === 'rejected'
+          ? {
+              nameZh: hotel.nameZh,
+              nameEn: hotel.nameEn,
+              address: hotel.address,
+              starRating: hotel.starRating,
+              roomTypes: hotel.roomTypes,
+              price: hotel.price,
+              openDate: hotel.openDate,
+              nearbyAttractions: hotel.nearbyAttractions,
+              nearbyTransport: hotel.nearbyTransport,
+              nearbyMalls: hotel.nearbyMalls,
+              facilities: hotel.facilities,
+              discounts: hotel.discounts,
+              description: hotel.description,
+              images: draftImages.map((img) => img.url),
+            }
+          : {
+              nameZh: hotel.nameZh,
+              nameEn: hotel.nameEn,
+              address: hotel.address,
+              starRating: hotel.starRating,
+              roomTypes: hotel.roomTypes,
+              price: hotel.price,
+              openDate: hotel.openDate,
+              nearbyAttractions: hotel.nearbyAttractions,
+              nearbyTransport: hotel.nearbyTransport,
+              nearbyMalls: hotel.nearbyMalls,
+              facilities: hotel.facilities,
+              discounts: hotel.discounts,
+              description: hotel.description,
+              // 如果没有草稿图片但有已发布图片，使用已发布图片
+              images:
+                draftImages.length > 0 ? draftImages.map((img) => img.url) : hotel.images || [],
+              ...hotel.draftData,
+            }
 
       const newDraftData = {
-        ...currentData,
+        ...baseData,
         ...updateData,
       }
 
@@ -316,10 +367,13 @@ const updateMyHotel = async (req, res) => {
         where: { creatorId: userId },
         data: {
           draftData: newDraftData,
+          // rejected 状态保持 rejected，published/offline 保持原状态
+          status: hotel.status,
           updatedAt: new Date(),
         },
       })
     } else {
+      // draft 状态直接更新主表数据
       updatedHotel = await prisma.hotel.update({
         where: { creatorId: userId },
         data: {
@@ -358,12 +412,18 @@ const submitMyHotel = async (req, res) => {
       )
     }
 
+    // 构建完整的酒店数据用于验证和保存
     let dataToValidate
     if (isOnlineStatus(hotel.status) && hotel.draftData) {
+      // published/offline 状态且有 draftData，使用 draftData
       dataToValidate = hotel.draftData
     } else if (isOnlineStatus(hotel.status) && !hotel.draftData) {
       return responseHandler.badRequest(res, '请先修改酒店信息后再提交审核')
+    } else if (hotel.status === 'rejected' && hotel.draftData) {
+      // rejected 状态且有 draftData，使用 draftData（被驳回后修改的数据）
+      dataToValidate = hotel.draftData
     } else {
+      // draft 状态或 rejected 状态但没有 draftData，从主表字段构建完整数据
       dataToValidate = {
         nameZh: hotel.nameZh,
         nameEn: hotel.nameEn,
@@ -372,6 +432,12 @@ const submitMyHotel = async (req, res) => {
         roomTypes: hotel.roomTypes,
         price: hotel.price,
         openDate: hotel.openDate,
+        nearbyAttractions: hotel.nearbyAttractions,
+        nearbyTransport: hotel.nearbyTransport,
+        nearbyMalls: hotel.nearbyMalls,
+        facilities: hotel.facilities,
+        discounts: hotel.discounts,
+        description: hotel.description,
       }
     }
 
@@ -384,13 +450,21 @@ const submitMyHotel = async (req, res) => {
       )
     }
 
+    // 对于 rejected 状态，需要将数据保存到 draftData，这样管理员才能看到完整数据
+    const updateData = {
+      status: 'pending',
+      auditInfo: auditInfo || null,
+      updatedAt: new Date(),
+    }
+
+    // 如果是 rejected 状态提交，把当前数据保存到 draftData
+    if (hotel.status === 'rejected') {
+      updateData.draftData = dataToValidate
+    }
+
     const updatedHotel = await prisma.hotel.update({
       where: { creatorId: userId },
-      data: {
-        status: 'pending',
-        auditInfo: auditInfo || null,
-        updatedAt: new Date(),
-      },
+      data: updateData,
     })
 
     return responseHandler.success(res, updatedHotel, ResponseMessage.HOTEL_SUBMIT_SUCCESS)
@@ -419,12 +493,23 @@ const cancelSubmitMyHotel = async (req, res) => {
       )
     }
 
+    // 判断撤销后应该回到什么状态：
+    // 1. 如果有 rejectReason，说明之前是被驳回后重新提交的，撤销后回到 rejected 状态
+    // 2. 如果没有 rejectReason，说明是从 published 直接提交的，撤销后回到 published
+    // 3. 如果没有 draftData，说明是 draft 状态提交的，撤销后回到 draft
     let updateData
-    if (hotel.draftData) {
+    if (hotel.rejectReason) {
+      // 有被驳回记录，回到 rejected 状态
+      updateData = {
+        status: 'rejected',
+      }
+    } else if (hotel.draftData) {
+      // 有草稿数据但没有驳回记录，说明是从 published 提交的
       updateData = {
         status: 'published',
       }
     } else {
+      // 没有草稿数据，说明是从 draft 提交的
       updateData = {
         status: 'draft',
       }

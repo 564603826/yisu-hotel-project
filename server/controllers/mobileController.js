@@ -31,30 +31,83 @@ const calculateMinPrice = (roomTypes) => {
 }
 
 /**
+ * 计算单个优惠后的价格
+ * @param {number} originalPrice - 原始价格
+ * @param {Object} discount - 优惠信息
+ * @returns {number} 优惠后价格
+ */
+const calculateDiscountedPrice = (originalPrice, discount) => {
+  if (!discount || !discount.type || !discount.value || discount.value <= 0) {
+    return originalPrice
+  }
+
+  if (discount.type === 'percentage') {
+    // 百分比折扣：如 20% 表示打 8 折（100% - 20% = 80%）
+    const discountRate = (100 - discount.value) / 100
+    return Math.round(originalPrice * discountRate)
+  } else if (discount.type === 'fixed') {
+    // 固定金额减免
+    return Math.max(0, originalPrice - discount.value)
+  }
+
+  return originalPrice
+}
+
+/**
+ * 从多个优惠中选择最优惠的方案
+ * @param {number} originalPrice - 原始价格
+ * @param {Array} discounts - 优惠列表
+ * @returns {Object} 包含最优价格和最优优惠信息的对象
+ */
+const getBestDiscount = (originalPrice, discounts) => {
+  if (!discounts || !Array.isArray(discounts) || discounts.length === 0) {
+    return { finalPrice: originalPrice, bestDiscount: null }
+  }
+
+  let bestDiscount = null
+  let lowestPrice = originalPrice
+
+  for (const discount of discounts) {
+    if (!discount || !discount.type || !discount.value || discount.value <= 0) {
+      continue
+    }
+
+    const discountedPrice = calculateDiscountedPrice(originalPrice, discount)
+
+    if (discountedPrice < lowestPrice) {
+      lowestPrice = discountedPrice
+      bestDiscount = discount
+    }
+  }
+
+  return { finalPrice: lowestPrice, bestDiscount }
+}
+
+/**
  * 格式化酒店列表项
  * @param {Object} hotel - 酒店原始数据
  * @returns {Object} 格式化后的酒店数据
  */
 const formatHotelListItem = (hotel, images = []) => {
   const roomTypes = safeParseJson(hotel.roomTypes)
-  const minPrice = calculateMinPrice(roomTypes)
+  const minOriginalPrice = calculateMinPrice(roomTypes)
   const mainImage = images.length > 0 ? images[0] : ''
 
-  // 解析优惠信息
+  // 解析优惠信息 - 自动选择最优惠的方案
   let discountInfo = null
+  let finalPrice = minOriginalPrice
   let originalPrice = null
   const discounts = hotel.discounts || []
-  if (discounts.length > 0) {
-    const discount = discounts[0]
+  const { finalPrice: bestPrice, bestDiscount } = getBestDiscount(minOriginalPrice, discounts)
+
+  if (bestDiscount) {
     discountInfo = {
-      type: discount.type || 'percentage',
-      name: discount.name || '',
-      value: discount.value || 0,
+      type: bestDiscount.type || 'percentage',
+      name: bestDiscount.name || '',
+      value: bestDiscount.value || 0,
     }
-    // 计算原价
-    if (discount.type === 'percentage' && discount.value > 0) {
-      originalPrice = Math.round(minPrice / (discount.value / 100))
-    }
+    finalPrice = bestPrice
+    originalPrice = minOriginalPrice
   }
 
   // 生成标签
@@ -72,7 +125,7 @@ const formatHotelListItem = (hotel, images = []) => {
     nameEn: hotel.nameEn,
     address: hotel.address,
     starRating: hotel.starRating,
-    price: minPrice,
+    price: finalPrice,
     originalPrice,
     discountInfo,
     mainImage,
@@ -107,26 +160,26 @@ const safeParseJson = (value) => {
  */
 const formatHotelDetail = (hotel, images = [], roomTypeImages = {}) => {
   const roomTypes = safeParseJson(hotel.roomTypes)
-  const minPrice = calculateMinPrice(roomTypes)
+  const minOriginalPrice = calculateMinPrice(roomTypes)
 
-  // 解析优惠信息
+  // 解析优惠信息 - 自动选择最优惠的方案
   let discountInfo = null
-  let originalPrice = null
+  let finalMinPrice = minOriginalPrice
+  let originalMinPrice = null
   const discounts = hotel.discounts || []
-  if (discounts.length > 0) {
-    const discount = discounts[0]
+  const { finalPrice: bestPrice, bestDiscount } = getBestDiscount(minOriginalPrice, discounts)
+
+  if (bestDiscount) {
     discountInfo = {
-      type: discount.type || 'percentage',
-      name: discount.name || '',
-      value: discount.value || 0,
-      description: discount.description || '',
-      startDate: discount.startDate || '',
-      endDate: discount.endDate || '',
+      type: bestDiscount.type || 'percentage',
+      name: bestDiscount.name || '',
+      value: bestDiscount.value || 0,
+      description: bestDiscount.description || '',
+      startDate: bestDiscount.startDate || '',
+      endDate: bestDiscount.endDate || '',
     }
-    // 计算原价
-    if (discount.type === 'percentage' && discount.value > 0) {
-      originalPrice = Math.round(minPrice / (discount.value / 100))
-    }
+    finalMinPrice = bestPrice
+    originalMinPrice = minOriginalPrice
   }
 
   // 生成标签
@@ -146,12 +199,18 @@ const formatHotelDetail = (hotel, images = [], roomTypeImages = {}) => {
       const queryImages = roomTypeImages[room.name] || []
       const finalImages = storedImages.length > 0 ? storedImages : queryImages
 
+      // 计算折扣后的房型价格 - 使用最优优惠方案
+      const originalRoomPrice = room.price || 0
+      const { finalPrice: finalRoomPrice, bestDiscount: roomBestDiscount } = getBestDiscount(
+        originalRoomPrice,
+        discounts
+      )
+      const roomOriginalPrice = roomBestDiscount ? originalRoomPrice : null
+
       return {
         name: room.name || '',
-        price: room.price || 0,
-        originalPrice: discountInfo
-          ? Math.round((room.price || 0) / (discountInfo.value / 100))
-          : null,
+        price: finalRoomPrice,
+        originalPrice: roomOriginalPrice,
         area: room.area || 0,
         bedType: room.bedType || '',
         bedSize: room.bedSize || '',
@@ -199,8 +258,8 @@ const formatHotelDetail = (hotel, images = [], roomTypeImages = {}) => {
     starRating: hotel.starRating,
     openDate: hotel.openDate ? hotel.openDate.toISOString().split('T')[0] : '',
     description: hotel.description || '',
-    price: minPrice,
-    originalPrice,
+    price: finalMinPrice,
+    originalPrice: originalMinPrice,
     discountInfo,
     images,
     facilities: hotel.facilities || [],

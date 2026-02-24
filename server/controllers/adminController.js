@@ -166,13 +166,19 @@ const getAdminHotelById = async (req, res) => {
       }
     })
 
-    // 默认显示草稿版本房型
+    // 默认显示草稿版本房型（对于 pending/rejected 状态）
     const roomTypesWithImages = isDraftVersion
       ? draftRoomTypesWithImages
       : publishedRoomTypesWithImages
 
+    // 默认都显示主表数据（线上版本），让前端根据切换状态来选择显示哪个版本
+    // 对于 rejected 状态，默认显示主表数据
+    // 对于 pending 状态，默认也显示主表数据（线上版本）
+    const draftBaseData = {}
+
     const hotelWithImages = {
       ...hotel,
+      ...draftBaseData,
       images: hotelImages,
       roomTypes: roomTypesWithImages,
       // 额外返回两种版本的图片和房型数据，支持管理员对比
