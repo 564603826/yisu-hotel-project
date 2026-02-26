@@ -57,7 +57,8 @@ const FacilitySelector: React.FC<{
   value?: string[]
   onChange?: (value: string[]) => void
   disabled?: boolean
-}> = ({ value = [], onChange, disabled = false }) => {
+}> = ({ value: valueProp, onChange, disabled = false }) => {
+  const value = valueProp || []
   const [customInput, setCustomInput] = useState('')
 
   const handleToggle = (facilityValue: string) => {

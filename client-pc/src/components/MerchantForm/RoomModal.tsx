@@ -104,7 +104,7 @@ const RoomModal: React.FC<RoomModalProps> = ({
 
       onSubmit?.({
         ...values,
-        facilities,
+        facilities: facilities || [],
         images: processedImages,
       })
 
@@ -127,14 +127,14 @@ const RoomModal: React.FC<RoomModalProps> = ({
   const addFacility = () => {
     if (disabled) return
     if (newFacility.trim()) {
-      setFacilities([...facilities, newFacility.trim()])
+      setFacilities([...(facilities || []), newFacility.trim()])
       setNewFacility('')
     }
   }
 
   const removeFacility = (index: number) => {
     if (disabled) return
-    setFacilities(facilities.filter((_, i) => i !== index))
+    setFacilities((facilities || []).filter((_, i) => i !== index))
   }
 
   if (!open) return null
@@ -251,7 +251,7 @@ const RoomModal: React.FC<RoomModalProps> = ({
                 <div className="preset-facilities">
                   {PRESET_FACILITIES.map((preset) => {
                     const Icon = preset.icon
-                    const isAdded = facilities.includes(preset.name)
+                    const isAdded = (facilities || []).includes(preset.name)
                     return (
                       <button
                         key={preset.name}
@@ -260,10 +260,10 @@ const RoomModal: React.FC<RoomModalProps> = ({
                         onClick={() => {
                           if (isAdded) {
                             // 已选中则取消
-                            setFacilities(facilities.filter((f) => f !== preset.name))
+                            setFacilities((facilities || []).filter((f) => f !== preset.name))
                           } else {
                             // 未选中则添加
-                            setFacilities([...facilities, preset.name])
+                            setFacilities([...(facilities || []), preset.name])
                           }
                         }}
                       >
@@ -276,7 +276,7 @@ const RoomModal: React.FC<RoomModalProps> = ({
               )}
 
               <div className="facilities-tags">
-                {facilities.map((fac, idx) => (
+                {(facilities || []).map((fac, idx) => (
                   <span key={idx} className="facility-tag">
                     {fac}
                     {!disabled && (
