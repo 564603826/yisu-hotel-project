@@ -38,7 +38,7 @@ const HotelCard: React.FC<HotelCardProps> = ({ hotel, onClick }) => {
 
         <div className="hotel-location">
           <span className="location-icon">📍</span>
-          {hotel.address}
+          <span className="location-text">{hotel.address}</span>
         </div>
 
         <div className="hotel-tags">

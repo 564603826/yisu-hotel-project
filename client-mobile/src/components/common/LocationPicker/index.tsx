@@ -2,6 +2,15 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import AMapLoader from '@amap/amap-jsapi-loader';
 import './LocationPicker.scss';
 
+// Extend Window interface to include AMap security config
+declare global {
+  interface Window {
+    _AMapSecurityConfig?: {
+      securityJsCode: string;
+    };
+  }
+}
+
 interface LocationPickerProps {
   show: boolean;
   onClose: () => void;

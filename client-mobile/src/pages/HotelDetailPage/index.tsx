@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import Header from '../../components/common/Header';
 import ImageGallery from '../../components/hotelDetail/ImageGallery';
 import RoomList from '../../components/hotelDetail/RoomList';
 import { hotelApi } from '../../services/api';
@@ -46,7 +45,6 @@ const HotelDetailPage: React.FC = () => {
   if (loading) {
     return (
       <div className="hotel-detail-page">
-        <Header title="酒店详情" showBack={true} />
         <div className="detail-loading">
           <div className="loading-spinner"></div>
           <span>加载中...</span>
@@ -58,7 +56,6 @@ const HotelDetailPage: React.FC = () => {
   if (error || !hotel) {
     return (
       <div className="hotel-detail-page">
-        <Header title="酒店详情" showBack={true} />
         <div className="detail-error">
           <div className="error-icon">😞</div>
           <p className="error-text">{error || '酒店不存在'}</p>
@@ -72,7 +69,6 @@ const HotelDetailPage: React.FC = () => {
 
   return (
     <div className="hotel-detail-page">
-      <Header title={hotel.nameZh} showBack={true} />
       
       <div className="detail-content">
         <ImageGallery images={hotel.images || []} />

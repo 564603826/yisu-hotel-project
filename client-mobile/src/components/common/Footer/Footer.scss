@@ -23,6 +23,7 @@
         cursor: pointer;
         color: #666;
         transition: color 0.2s;
+        flex: 1;
         
         &.active {
           color: #1890ff;

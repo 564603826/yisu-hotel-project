@@ -9,8 +9,6 @@ const Footer: React.FC = () => {
   const menuItems = [
     { id: 'home', label: '首页', icon: '🏠', path: '/' },
     { id: 'search', label: '搜索', icon: '🔍', path: '/hotels' },
-    { id: 'order', label: '订单', icon: '📋', path: '/hotels' },
-    { id: 'profile', label: '我的', icon: '👤', path: '/' },
   ];
   
   return (

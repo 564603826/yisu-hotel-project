@@ -62,8 +62,9 @@
       height: 120px;
       background: linear-gradient(135deg, #91d5ff, #1890ff);
       flex-shrink: 0;
-      background-size: cover;
+      background-size: contain;
       background-position: center;
+      background-repeat: no-repeat;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -85,7 +86,9 @@
         margin: 0 0 8px;
         overflow: hidden;
         text-overflow: ellipsis;
-        white-space: nowrap;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
       }
 
       .hotel-location {
@@ -94,7 +97,9 @@
         margin-bottom: 8px;
         overflow: hidden;
         text-overflow: ellipsis;
-        white-space: nowrap;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
       }
 
       .hotel-rating {
